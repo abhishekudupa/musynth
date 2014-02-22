@@ -5,7 +5,7 @@ include Makefile.config
 # Set this flag to the source directory of CUDD, in which you have compiled
 # the CUDD library.
 
-CUDD_SRC = $(HOME)/pkgsrc/cudd-2.4.2
+CUDD_SRC = $(CUDD_DIR)
 
 # temporary directory
 TMPDIR = /tmp/cudd
@@ -23,30 +23,30 @@ util/util.h \
 dddmp/dddmp.h
 
 install:
-	mkdir -p $(CUDD_PREFIX)/include
-	mkdir -p $(CUDD_PREFIX)/lib
+	mkdir -p $(CUDD_DIR)/include
+	mkdir -p $(CUDD_DIR)/lib
 ifneq ($(HAS_SHARED),)
 	for i in $(LIBS); do ( \
 		rm -fr $(TMPDIR); mkdir $(TMPDIR); cd $(TMPDIR); \
 		$(AR) x $(CUDD_SRC)/$$i/lib$$i.a; \
-		$(CC) $(CFLAGS) $(XCFLAGS) -shared -o $(CUDD_PREFIX)/lib/lib$$i.so *.o; \
+		$(CC) $(CFLAGS) $(XCFLAGS) -shared -o $(CUDD_DIR)/lib/lib$$i.so *.o; \
 	); done
 	( \
 	rm -fr $(TMPDIR); mkdir $(TMPDIR); cd $(TMPDIR); \
 	$(AR) x $(CUDD_SRC)/util/libutil.a; \
-	$(CC) $(CFLAGS) $(XCFLAGS) -shared -o $(CUDD_PREFIX)/lib/libcuddutil.so *.o; \
+	$(CC) $(CFLAGS) $(XCFLAGS) -shared -o $(CUDD_DIR)/lib/libcuddutil.so *.o; \
 	)
 endif
 	for i in $(LIBS); do \
-		$(INSTALL) $(CUDD_SRC)/$$i/lib$$i.a $(CUDD_PREFIX)/lib; \
+		$(INSTALL) $(CUDD_SRC)/$$i/lib$$i.a $(CUDD_DIR)/lib; \
 	done
-	cp -f $(CUDD_SRC)/util/libutil.a $(CUDD_PREFIX)/lib/libcuddutil.a
+	cp -f $(CUDD_SRC)/util/libutil.a $(CUDD_DIR)/lib/libcuddutil.a
 	for i in $(CCINC); do \
-		cp -f $(CUDD_SRC)/$$i $(CUDD_PREFIX)/include; \
+		cp -f $(CUDD_SRC)/$$i $(CUDD_DIR)/include; \
 	done
 
 uninstall:
-	/bin/rm -f $(LIBS:%=$(CUDD_PREFIX)/lib/lib%.a)
-	/bin/rm -f $(LIBS:%=$(CUDD_PREFIX)/lib/lib%.so)
-	(cd $(CUDD_PREFIX)/include; \
+	/bin/rm -f $(LIBS:%=$(CUDD_DIR)/lib/lib%.a)
+	/bin/rm -f $(LIBS:%=$(CUDD_DIR)/lib/lib%.so)
+	(cd $(CUDD_DIR)/include; \
 	/bin/rm -f cuddInt.h cudd.h mtrInt.h mtr.h epd.h st.h util.h dddmp.h)

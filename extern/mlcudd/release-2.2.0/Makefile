@@ -16,18 +16,20 @@ SITE-LIB-PKG = $(SITE-LIB)/$(PKG-NAME)
 # C part
 #---------------------------------------
 
-ICFLAGS = -Icudd-2.4.2/cudd -Icudd-2.4.2/mtr -Icudd-2.4.2/epd -Icudd-2.4.2/st -Icudd-2.4.2/util \
--I$(CAML_PREFIX)/lib/ocaml -I$(CAMLIDL_PREFIX)/lib/ocaml
+ICFLAGS = -I $(CUDD_DIR)/cudd -I $(CUDD_DIR)/mtr -I $(CUDD_DIR)/epd -I $(CUDD_DIR)/st -I $(CUDD_DIR)/util \
+-I $(CAML_INCLUDE_DIR) -I $(CAMLIDL_INCLUDE_DIR)
 
 #---------------------------------------
 # OCaml part
 #---------------------------------------
 
 OCAMLCCOPT = \
--ccopt -L$(SITE-LIB)/stublibs \
--ccopt -L$(SITE-LIB-PKG) \
--ccopt -L$(CAMLIDL_PREFIX)/lib/ocaml \
--ccopt -L$(CAML_PREFIX)/lib/ocaml
+-ccopt -L$(CAML_LIB_DIR) \
+-ccopt -L$(CAMLIDL_LIB_DIR) 
+# -ccopt -L$(SITE-LIB)/stublibs \
+# -ccopt -L$(SITE-LIB-PKG) \
+# -ccopt -L$(CAMLIDL_PREFIX)/lib/ocaml \
+# -ccopt -L$(CAML_PREFIX)/lib/ocaml
 
 #---------------------------------------
 # Files
@@ -43,23 +45,39 @@ CCMODULES = \
 	cuddauxTDGenCof cuddauxAddApply \
 	$(IDLMODULES:%=%_caml) cudd_caml
 
-CCLIB = libcuddcaml.a libcuddcaml.d.a libcuddcaml.p.a
+# CCLIB = libcuddcaml.a libcuddcaml.d.a libcuddcaml.p.a
+CCLIB=libcuddcaml.a
+
 ifneq ($(HAS_SHARED),)
-	CCLIB += dllcuddcaml.so
+	CCLIB += libcuddcaml.so
 endif
 
+# FILES_TOINSTALL = META \
+# 	$(CUDD_DIR)/cudd/cudd.h \
+# 	$(CUDD_DIR)/cudd/cuddInt.h \
+# 	$(CUDD_DIR)/mtr/mtr.h \
+# 	$(CUDD_DIR)/epd/epd.h \
+# 	$(CUDD_DIR)/st/st.h \
+# 	$(CUDD_DIR)/util/util.h \
+# 	cuddaux.h cudd_caml.h \
+# 	$(IDLMODULES:%=%.idl) \
+# 	cudd.cmi cudd.cma \
+# 	cudd.cmx cudd.cmxa cudd.a \
+# 	cudd.d.cmxa cudd.d.a \
+# 	cudd.p.cmx cudd.p.cmxa cudd.p.a \
+# 	$(CCLIB)
+
 FILES_TOINSTALL = META \
-	cudd-2.4.2/cudd/cudd.h cudd-2.4.2/cudd/cuddInt.h \
-	cudd-2.4.2/mtr/mtr.h \
-	cudd-2.4.2/epd/epd.h \
-	cudd-2.4.2/st/st.h \
-	cudd-2.4.2/util/util.h \
+	$(CUDD_DIR)/cudd/cudd.h \
+	$(CUDD_DIR)/cudd/cuddInt.h \
+	$(CUDD_DIR)/mtr/mtr.h \
+	$(CUDD_DIR)/epd/epd.h \
+	$(CUDD_DIR)/st/st.h \
+	$(CUDD_DIR)/util/util.h \
 	cuddaux.h cudd_caml.h \
 	$(IDLMODULES:%=%.idl) \
 	cudd.cmi cudd.cma \
 	cudd.cmx cudd.cmxa cudd.a \
-	cudd.d.cmxa cudd.d.a \
-	cudd.p.cmx cudd.p.cmxa cudd.p.a \
 	$(CCLIB)
 
 ifneq ($(OCAMLPACK),)
@@ -77,13 +95,13 @@ endif
 # Global rules
 all: $(FILES_TOINSTALL)
 
-# Example of compilation command with ocamlfind
-%.byte: %.ml
-	$(OCAMLFIND) ocamlc $(OCAMLFLAGS) $(OCAMLINC) -o $@ $*.ml \
-	-package cudd -linkpkg
-%.opt: %.ml
-	$(OCAMLFIND) ocamlopt -verbose $(OCAMLOPTFLAGS) $(OCAMLINC) -o $@ $*.ml \
-	-package cudd -linkpkg
+# # Example of compilation command with ocamlfind
+# %.byte: %.ml
+# 	ocamlc $(OCAMLFLAGS) $(OCAMLINC) -o $@ $*.ml -package cudd -linkpkg
+
+# %.opt: %.ml
+# 	$(OCAMLFIND) ocamlopt -verbose $(OCAMLOPTFLAGS) $(OCAMLINC) -o $@ $*.ml \
+# 	-package cudd -linkpkg
 
 META: Makefile
 	/bin/rm -f META
@@ -93,13 +111,6 @@ META: Makefile
 	echo "archive(native) = \"cudd.cmxa\"" >>META
 	echo "archive(native,debug) = \"cudd.d.cmxa\"" >>META
 	echo "archive(native,gprof) = \"cudd.p.cmxa\"" >>META
-
-install: $(FILES_TOINSTALL)
-	$(OCAMLFIND) remove $(PKG-NAME)
-	$(OCAMLFIND) install $(PKG-NAME) $^
-
-uninstall:
-	$(OCAMLFIND) remove $(PKG-NAME)
 
 mostlyclean: clean
 	(cd cudd-2.4.2; make clean)
@@ -120,57 +131,33 @@ clean:
 # CAML rules
 
 cudd.cma: cudd.cmo $(CCLIB)
-	$(OCAMLFIND) ocamlc -verbose -a	-o $@ $< \
-	-dllib -lcuddcaml \
-	-cclib -lcuddcaml -cclib -lcamlidl $(OCAMLCCOPT)
+	ocamlc -verbose -a -linkall -o $@ $< -cclib -lcuddcaml -cclib -lcamlidl $(OCAMLCCOPT)
 
 cudd.cmxa: cudd.cmx $(CCLIB)
-	$(OCAMLFIND) ocamlopt -verbose -a -o $@ $< \
-	-cclib -lcuddcaml -cclib -lcamlidl $(OCAMLCCOPT)
-cudd.p.cmxa: cudd.p.cmx $(CCLIB)
-	$(OCAMLFIND) ocamlopt -verbose -p -a -o $@ $< \
-	-cclib -lcuddcaml.p -cclib -lcamlidl $(OCAMLCCOPT)
-cudd.d.cmxa: cudd.cmx $(CCLIB)
-	$(OCAMLFIND) ocamlopt -verbose -a -o $@ $< \
-	-cclib -lcuddcaml.d -cclib -lcamlidl $(OCAMLCCOPT)
+	ocamlopt -verbose -a -linkall -o $@ $< -cclib -lcuddcaml -cclib -lcamlidl $(OCAMLCCOPT)
 
 cudd.cmo cudd.cmi: $(MLMODULES:%=%.cmo)
 	$(OCAMLC) $(OCAMLFLAGS) $(OCAMLINC) -pack -o $@ $^
+
 cudd.cmx: $(MLMODULES:%=%.cmx)
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -pack -o $@ $^
-cudd.p.cmx:  $(MLMODULES:%=%.p.cmx)
-	$(OCAMLOPT) $(OCAMLOPTFLAGS_PROF) -p -pack -o $@ $^
-
 
 # C rules
 libcuddcaml.a: cudd-2.4.2/libcuddall.a $(CCMODULES:%=%.o)
 	cp $< $@
 	$(AR) r $@ $(CCMODULES:%=%.o)
 	$(RANLIB) $@
-libcuddcaml.p.a: cudd-2.4.2/libcuddall.p.a $(CCMODULES:%=%.p.o)
-	cp $< $@
-	$(AR) r $@ $(CCMODULES:%=%.p.o)
-	$(RANLIB) $@
-libcuddcaml.d.a: cudd-2.4.2/libcuddall.d.a $(CCMODULES:%=%.d.o)
-	cp $< $@
-	$(AR) r $@ $(CCMODULES:%=%.d.o)
-	$(RANLIB) $@
-dllcuddcaml.so: libcuddcaml.a
+
+libcuddcaml.so: libcuddcaml.a
 	mkdir -p tmp
 	(cd tmp; /bin/rm -fr *.o; $(AR) x ../$^)
 	$(CC) $(CFLAGS) $(XCFLAGS) -shared -o $@ tmp/*.o \
-	-L$(CAMLIDL_PREFIX)/lib/ocaml -lcamlidl
+	-L$(CAMLIDL_LIB_DIR) -lcamlidl
 	/bin/rm -f tmp/*.o
 
 cudd-2.4.2/libcuddall.a:
 	(cd cudd-2.4.2; \
 	make libcuddall.a CPP="$(CC)" CC="$(CC)" XCFLAGS="$(XCFLAGS)" ICFLAGS="$(CFLAGS)" RANLIB="$(RANLIB)" DDDEBUG="" MTRDEBUG="")
-cudd-2.4.2/libcuddall.p.a:
-	(cd cudd-2.4.2; \
-	make libcuddall.p.a CPP="$(CC)" CC="$(CC)" XCFLAGS="$(XCFLAGS)" ICFLAGS="$(CFLAGS_PROF)" RANLIB="$(RANLIB)" DDDEBUG="" MTRDEBUG="")
-cudd-2.4.2/libcuddall.d.a:
-	(cd cudd-2.4.2; \
-	make libcuddall.d.a CPP="$(CC)" CC="$(CC)" XCFLAGS="$(XCFLAGS)" ICFLAGS="$(CFLAGS_DEBUG)" RANLIB="$(RANLIB)" DDDEBUG="-DDD.D -DDD_VERBOSE -DDD_STATS -DDD_CACHE_PROFILE -DDD_UNIQUE_PROFILE -DDD_COUNT" MTRDEBUG="-DMTR_DEBUG")
 
 # HTML and LATEX rules
 .PHONY: html
@@ -180,6 +167,7 @@ cudd_ocamldoc.mli: $(MLMODULES:%=%.mli) introduction.odoc
 
 mlcuddidl.pdf: mlcuddidl.dvi
 	$(DVIPDF) mlcuddidl.dvi
+
 mlcuddidl.dvi: cudd_ocamldoc.mli
 	mkdir -p tmp
 	cp cudd_ocamldoc.mli tmp/cudd.mli
@@ -243,10 +231,6 @@ $(IDLMODULES:%=%_caml.c) $(IDLMODULES:%=%.ml) $(IDLMODULES:%=%.mli): $(IDLMODULE
 
 %.o: %.c cudd_caml.h cuddaux.h
 	$(CC) $(CFLAGS) $(ICFLAGS) $(XCFLAGS) -c -o $@ $<
-%.d.o: %.c cudd_caml.h cuddaux.h
-	$(CC) $(CFLAGS_DEBUG) $(ICFLAGS) $(XCFLAGS) -c -o $@ $<
-%.p.o: %.c cudd_caml.h cuddaux.h
-	$(CC) $(CFLAGS_PROF) $(ICFLAGS) $(XCFLAGS) -c -o $@ $<
 
 #-----------------------------------
 # CAML
