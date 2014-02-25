@@ -14,8 +14,39 @@ let incLineNum lexbuf =
   
 let musynthKeywords = 
   [ ("var", VAR);
-    ("=", EQUALS);
-    (".", DOT);
-    ("main", MAIN); 
+    ("detautomaton", DETAUTOMATON);
+    ("automaton", AUTOMATON);
+    ("partialautomaton", PARTIALAUTOMATON);
+    ("lossy", LOSSY);
+    ("lossless", LOSSLESS);
+    ("duplicating", DUPLICATING);
+    ("nonduplicating", NONDUPLICATING);
+    ("ordered", ORDERED);
+    ("unordered", UNORDERED);
+    ("transitions", TRANSITIONS);
+    ("inputs", INPUTS);
+    ("outputs", OUTPUTS);
+    ("define", DEFINE);
+    ("fairness", FAIRNESS);
+    ("cansyncon", CANSYNCON);
+    ("ctlspec", CTLSPEC);
+    ("ltlspec", LTLSPEC);
+    ("invariant", INVARIANT);
+    ("incomplete", INCOMPLETE);
+    ("complete", COMPLETE);
+    ("state", STATE);
+    ("forall", FORALL);
+    ("foreach", FOREACH);
+    ("exists", EXISTS);
   ]
+
+let musynthKwTable = 
+  let tbl = Hashtbl.create 32 in
+  List.iter (fun (kw, token) -> Hashtbl.add tbl kw tok) musynthKeywords;
+  tbl
+
+let findKeyword kw = 
+  Hashtbl.find musynthKwTable (String.lowercase kw)
+
+
 }

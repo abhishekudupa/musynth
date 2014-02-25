@@ -1,0 +1,142 @@
+SYMMETRICTYPES
+CacheIDType : { C1, C2 };
+DataType : { D0, D1 };
+
+Automaton Environment[c] foreach c in CacheIDType
+{
+    State : { Init };
+    InitState = Init;
+
+    outputs {
+        Get, Put, 
+        Havoc[d] foreach d in DataType
+    };
+
+    transitions {
+        (Init, Get, Init),
+        (Init, Put, Init),
+        (Init, Havoc[d], Init foreach d in DataType)
+    };
+}
+
+ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
+{
+    unordered, lossless, nonduplicating;
+    capacity = 1;    
+
+    messages {
+        Req2Dir, 
+        WB2Dir[d] foreach d in DataType,
+        InvAck2Dir[d] foreach d in DataType,
+        Ack2Dir
+    };
+}
+
+ChannelAutomaton RspChannel[c] foreach c in CacheIDType
+{
+    unordered, lossless, nonduplicating;
+    capacity = 1;
+
+    messages {
+        Rsp[d] foreach d in DataType,
+        WBAck,
+        Inv
+    };
+}
+
+PartialAutomaton Cache[c] foreach c in CacheIDType
+{
+    state : { I : complete, 
+              IV1 : complete,
+              IV2 : complete,
+              IV3[d] foreach d in DataType : complete, 
+              V[d] foreach d in DataType : complete, 
+              VI1[d] foreach d in DataType : complete,
+              VI2 : incomplete, 
+              VI3[d] foreach d in DataType : complete }
+
+    initstate = I;
+
+    inputs {
+        Get, Put, Havoc,
+        Rsp[d] foreach d in DataType,
+        WBAck, Inv 
+    };
+
+    outputs {
+        Req2Dir, 
+        WB2Dir[d] foreach d in DataType, 
+        InvAck2Dir[d] foreach d in DataType,
+        Ack2Dir
+    };
+
+    transitions {
+        (I, Get, IV1),
+        (IV1, Req2Dir, IV2),
+        (IV2, Rsp[d], IV3[d] foreach d in DataType),
+        (IV3[d], Ack2Dir, V[d] foreach d in DataType),
+
+        (V[d1], Havoc[d2], V[d2] foreach d1, d2 in DataType),
+
+        (V[d], Put, VI1[d] foreach d in DataType),
+        (VI1[d], WB2Dir[d], VI2 foreach d in DataType),
+        (VI2, WBAck', I),
+
+        (V[d], Inv', VI3[d] foreach d in DataType),
+        (VI3[d], InvAck2Dir[d], I foreach d in DataType)
+        
+        /*
+        (VI2, Inv', I)
+        */
+    };
+}
+
+PartialAutomaton Directory
+{
+    state : { I[d] foreach d in DataType : complete,
+              IV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+              IV2[c] foreach c in CacheIDType : complete,
+              V[c] foreach c in CacheIDType : complete,
+              VV1[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2)) : complete,
+              VV2[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2)) : incomplete,
+              VV3[c,d] (foreach c in CacheIDType foreach d in DataType) : complete,
+              VV4[c] foreach c in CacheIDType : complete,
+              VI1[c,d] foreach c in CacheIDType foreach d in DataType : complete };
+
+    initstate = I[D0];
+
+    inputs {
+        Req2Dir'[c] foreach c in CacheIDType,
+        WB2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+        InvAck2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+        Ack2Dir'[c] foreach c in CacheIDType
+    };
+
+    outputs {
+        Rsp[c][d] foreach c in CacheIDType foreach d in DataType,
+        WBAck[c] foreach c in CacheIDType,
+        Inv[c] foreach c in CacheIDType
+    };
+
+    transitions {
+        (I[d], Req2Dir'[c], IV1[c][d] foreach d in DataType foreach c in CacheIDType),
+        (IV1[c][d], Rsp[c][d], IV2[c] foreach d in DataType foreach c in CacheIDType),
+        (IV2[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
+        
+        (V[c1], Req2Dir'[c2], VV1[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2))),
+        (VV1[c1, c2], Inv[c1], VV2[c1, c2] (foreach c1, c2 in CacheIDType (c1 != c2))),
+        (VV2[c1, c2], InvAck2Dir'[c1, d], VV3[c2,d] (foreach c1, c2 in CacheIDType 
+                                                     foreach d in DataType (c1 != c2))),
+        (VV3[c,d], Rsp[c,d], VV4[c] foreach c in CacheIDType foreach d in DataType),
+        (VV4[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
+
+        (V[c], WB2Dir'[c,d], VI1[c,d] foreach c in CacheIDType foreach d in DataType),
+        (VI1[c,d], WBAck[c], I[d] foreach c in CacheIDType foreach d in DataType)
+        
+        /*
+        (VV2[c1, c2], WB2Dir'[c1,d], VV3[c2,d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
+        */
+    }
+}
+
+
