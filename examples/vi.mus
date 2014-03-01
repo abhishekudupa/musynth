@@ -1,6 +1,7 @@
-SYMMETRICTYPES
-CacheIDType : { C1, C2 };
-DataType : { D0, D1 };
+symmetrictypes {
+    CacheIDType : { C1, C2 };
+    DataType : { D0, D1 };
+}
 
 Automaton Environment[c] foreach c in CacheIDType
 {
@@ -16,6 +17,20 @@ Automaton Environment[c] foreach c in CacheIDType
         (Init, Get, Init),
         (Init, Put, Init),
         (Init, Havoc[d], Init foreach d in DataType)
+    };
+}
+
+Automaton Oracle
+{
+    State : { Data[d] foreach d in DataType };
+    InitState = DataD0;
+
+    inputs {
+        Havoc[d] foreach d in DataType
+    };
+
+    transitions {
+        (Data[d], Havoc[d], Data[d] foreach d in DataType)
     };
 }
 
@@ -137,6 +152,20 @@ PartialAutomaton Directory
         (VV2[c1, c2], WB2Dir'[c1,d], VV3[c2,d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
         */
     }
+}
+
+invariant "Coherence Invariant" {
+    (forall d in DataType 
+     (forall c in CacheIDType
+      (Cache[c].State = V[d] -> Oracle.State = Data[d])))
+}
+
+invariant "One Valid Invariant" {
+    (forall 
+}
+
+ctlspec {
+  
 }
 
 
