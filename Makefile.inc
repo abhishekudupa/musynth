@@ -1,70 +1,57 @@
-BUILD_SUFFIX=debug
-COPTFLAGS=-ggdb3 -O0 -fno-inline
-FEAT_FLAGS=-fPIC
+OCAMLC=ocamlc
+OCAMLOPT=ocamlopt
+OCAMLYACC=ocamlyacc
+OCAMLLEX=ocamllex
+OCAMLDEP=ocamldep
 
-Z3DIR=$(ESOLVER_ROOT)/../z3-4.3.1
-Z3LIBLINK=-lz3
+OBJDIR=$(SRCDIR)
+INCDIRS+=-I $(OBJDIR)
+.PHONY:				clean opt all default byte
 
-ifeq ($(MAKECMDGOALS), opt)
-BUILD_SUFFIX=opt
-OPTFLAGS=-O2
-endif
-ifeq ($(MAKECMDGOALS), optlto)
-BUILD_SUFFIX=opt
-OPTFLAGS=-O2 -flto
-Z3LIBNAME=-lz3
-endif
-ifeq ($(MAKECMDGOALS), prof)
-BUILD_SUFFIX=prof
-OPTFLAGS=-O2 -pg
-endif
-ifeq ($(MAKECMDGOALS), proflto)
-BUILD_SUFFIX=prof
-OPTFLAGS=-O2 -pg -flto
-Z3LIBLINK=-lz3
-endif
-ifeq ($(MAKECMDGOALS), eopt)
-BUILD_SUFFIX=opt
-OPTFLAGS=-O3
-endif
-ifeq ($(MAKECMDGOALS), eoptlto)
-BUILD_SUFFIX=opt
-OPTFLAGS=-O3 -flto
-Z3LIBLINK=-lz3
-endif
-ifeq ($(MAKECMDGOALS), eprof)
-BUILD_SUFFIX=prof
-OPTFLAGS=-O3 -pg
-endif
-ifeq ($(MAKECMDGOALS), eproflto)
-BUILD_SUFFIX=prof
-OPTFLAGS=-O3 -pg -flto
-Z3LIBLINK=-lz3
-endif
-ifeq ($(MAKECMDGOALS), fulllto)
-BUILD_SUFFIX=opt
-Z3LIBLINK=-lz3-lto
-endif
-ifeq ($(MAKECMDGOALS), fullltoprof)
-BUILD_SUFFIX=prof
-Z3LIBLINK=-lz3-lto
+ML=$(foreach f, $(MODULES), $(SRCDIR)/$(f).ml)
+MLI=$(foreach f, $(MODULES), $(SRCDIR)/$(f).mli)
+CMI=$(foreach f, $(MODULES), $(OBJDIR)/$(f).cmi)
+CMO=$(foreach f, $(MODULES), $(OBJDIR)/$(f).cmo)
+CMX=$(foreach f, $(MODULES), $(OBJDIR)/$(f).cmx)
+DOTO=$(foreach f, $(MODULES), $(OBJDIR)/$(f).o)
+ABSGENS=$(foreach f, $(GENSRC), $(SRCDIR)/$(f))
+DEPEND=$(OBJDIR)/depend
+
+# template rules
+$(SRCDIR)/%.ml : $(SRCDIR)/%.mll
+	$(OCAMLLEX) $<
+
+$(SRCDIR)/%.ml $(SRCDIR)/%.mli : $(SRCDIR)/%.mly
+	$(OCAMLYACC) $<
+
+$(SRCDIR)/%.mli : $(SRCDIR)/%.ml
+	$(OCAMLC) -i $(INCDIRS) $< > $@
+
+$(OBJDIR)/%.cmi : $(SRCDIR)/%.mli
+	$(OCAMLC) -c $(INCDIRS) $<
+
+$(OBJDIR)/%.cmo : $(SRCDIR)/%.mli $(OBJDIR)/%.cmi
+
+$(OBJDIR)/%.cmo : $(SRCDIR)/%.ml
+	$(OCAMLC) -c $(INCDIRS) $<
+
+$(OBJDIR)/%.cmx : $(OBJDIR)/%.cmi
+$(OBJDIR)/%.cmx : $(SRCDIR)/%.ml
+	$(OCAMLOPT) -c $(INCDIRS) $<
+
+# targets
+all : byte opt
+
+byte : $(DEPEND) $(CMO)
+
+opt : $(DEPEND) $(CMX)
+
+$(DEPEND) : $(ML) $(ABSGENS)
+	$(OCAMLDEP) $(ML) $(ABSGENS) > $@
+
+ifneq ($(MAKECMDGOALS), clean)
+-include $(DEPEND)
 endif
 
-CXX=g++
-CC=$(CXX)
-LD=$(CXX)
-CXXFLAGS+=-Wall -pedantic -D__STDC_LIMIT_MACROS -DDISABLE_STATIC_BP
-CXXFLAGS+=-I $(Z3DIR)/src/api/
-CXXFLAGS+=-pipe -std=c++11
-LINKFLAGS+=-L $(Z3DIR)/build -L $(ESOLVER_ROOT)/lib/$(BUILD_SUFFIX)
-LINKFLAGS+=-Wl,-Bstatic -lesolver -Wl,-Bstatic $(Z3LIBLINK) -Wl,-Bdynamic -lrt
-LINKFLAGS+=-lboost_program_options -lboost_system -fopenmp
-CXXFLAGS+=$(FEAT_FLAGS)
-AR=ar
-ARFLAGS=rcs
-
-CXXPRINTNAME="[CXX:$(PROJECT_NAME)]"
-ARPRINTNAME="[AR:$(PROJECT_NAME)]"
-LDPRINTNAME="[LD:$(PROJECT_NAME)]"
-DEPPRINTNAME="[DEP:$(PROJECT_NAME)]"
-.PHONY:				debug clean opt prof all default eprof eopt optlto proflto eoptlto eproflto
+clean:
+	rm -rf $(CMO) $(CMI) $(CMX) $(DOTO) $(ABSGENS) $(DEPEND)

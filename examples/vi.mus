@@ -161,11 +161,16 @@ invariant "Coherence Invariant" {
 }
 
 invariant "One Valid Invariant" {
-    (forall 
+    (forall c1 in CacheIDType
+     (forall c2 in CacheIDType
+      (forall d1 in DataType
+       (forall d2 in DataType
+        (c1 != c2 -> (Cache[c1].State = V[d1] -> 
+                      Cache[c2].State != V[d2]))))))
 }
 
 ctlspec {
-  
+    (forall c in CacheIDType
+     (exists d in DataType
+      (AG (Cache[c].State = IV1 -> EF (Cache[c].State = V[d]))))) 
 }
-
-
