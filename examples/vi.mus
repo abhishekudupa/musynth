@@ -5,8 +5,8 @@ symmetrictypes {
 
 Automaton Environment[c] foreach c in CacheIDType
 {
-    State : { Init };
-    InitState = Init;
+    states : { Init };
+    initstates : { Init };
 
     outputs {
         Get, Put, 
@@ -22,8 +22,8 @@ Automaton Environment[c] foreach c in CacheIDType
 
 Automaton Oracle
 {
-    State : { Data[d] foreach d in DataType };
-    InitState = DataD0;
+    states : { Data[d] foreach d in DataType };
+    initstates : { Data[D0] };
 
     inputs {
         Havoc[d] foreach d in DataType
@@ -61,16 +61,16 @@ ChannelAutomaton RspChannel[c] foreach c in CacheIDType
 
 PartialAutomaton Cache[c] foreach c in CacheIDType
 {
-    state : { I : complete, 
-              IV1 : complete,
-              IV2 : complete,
-              IV3[d] foreach d in DataType : complete, 
-              V[d] foreach d in DataType : complete, 
-              VI1[d] foreach d in DataType : complete,
-              VI2 : incomplete, 
-              VI3[d] foreach d in DataType : complete }
+    states : { I : complete, 
+               IV1 : complete,
+               IV2 : complete,
+               IV3[d] foreach d in DataType : complete, 
+               V[d] foreach d in DataType : complete, 
+               VI1[d] foreach d in DataType : complete,
+               VI2 : incomplete, 
+               VI3[d] foreach d in DataType : complete };
 
-    initstate = I;
+    initstates : { I };
 
     inputs {
         Get, Put, Havoc,
@@ -108,17 +108,17 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
 
 PartialAutomaton Directory
 {
-    state : { I[d] foreach d in DataType : complete,
-              IV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
-              IV2[c] foreach c in CacheIDType : complete,
-              V[c] foreach c in CacheIDType : complete,
-              VV1[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2)) : complete,
-              VV2[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2)) : incomplete,
-              VV3[c,d] (foreach c in CacheIDType foreach d in DataType) : complete,
-              VV4[c] foreach c in CacheIDType : complete,
-              VI1[c,d] foreach c in CacheIDType foreach d in DataType : complete };
+    states : { I[d] foreach d in DataType : complete,
+               IV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               IV2[c] foreach c in CacheIDType : complete,
+               V[c] foreach c in CacheIDType : complete,
+               VV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
+               VV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : incomplete,
+               VV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               VV4[c] foreach c in CacheIDType : complete,
+               VI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
 
-    initstate = I[D0];
+    initstates : { I[D0] };
 
     inputs {
         Req2Dir'[c] foreach c in CacheIDType,
@@ -138,26 +138,27 @@ PartialAutomaton Directory
         (IV1[c][d], Rsp[c][d], IV2[c] foreach d in DataType foreach c in CacheIDType),
         (IV2[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
         
-        (V[c1], Req2Dir'[c2], VV1[c1,c2] (foreach c1, c2 in CacheIDType (c1 != c2))),
-        (VV1[c1, c2], Inv[c1], VV2[c1, c2] (foreach c1, c2 in CacheIDType (c1 != c2))),
-        (VV2[c1, c2], InvAck2Dir'[c1, d], VV3[c2,d] (foreach c1, c2 in CacheIDType 
-                                                     foreach d in DataType (c1 != c2))),
-        (VV3[c,d], Rsp[c,d], VV4[c] foreach c in CacheIDType foreach d in DataType),
+        (V[c1], Req2Dir'[c2], VV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (VV1[c1][c2], Inv[c1], VV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (VV2[c1][c2], InvAck2Dir'[c1][d], VV3[c2][d] 
+         foreach c1, c2 in CacheIDType 
+         foreach d in DataType (!= c1 c2)),
+        (VV3[c][d], Rsp[c][d], VV4[c] foreach c in CacheIDType foreach d in DataType),
         (VV4[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
 
-        (V[c], WB2Dir'[c,d], VI1[c,d] foreach c in CacheIDType foreach d in DataType),
-        (VI1[c,d], WBAck[c], I[d] foreach c in CacheIDType foreach d in DataType)
+        (V[c], WB2Dir'[c][d], VI1[c][d] foreach c in CacheIDType foreach d in DataType),
+        (VI1[c][d], WBAck[c], I[d] foreach c in CacheIDType foreach d in DataType)
         
         /*
         (VV2[c1, c2], WB2Dir'[c1,d], VV3[c2,d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
         */
-    }
+    };
 }
 
 invariant "Coherence Invariant" {
     (forall d in DataType 
      (forall c in CacheIDType
-      (Cache[c].State = V[d] -> Oracle.State = Data[d])))
+      (-> (= Cache[c].State V[d]) (= Oracle.State Data[d]))))
 }
 
 invariant "One Valid Invariant" {
@@ -165,12 +166,12 @@ invariant "One Valid Invariant" {
      (forall c2 in CacheIDType
       (forall d1 in DataType
        (forall d2 in DataType
-        (c1 != c2 -> (Cache[c1].State = V[d1] -> 
-                      Cache[c2].State != V[d2]))))))
+        (-> (!= c1 c2) (-> (= Cache[c1].State V[d1]) 
+                           (!= Cache[c2].State V[d2])))))))
 }
 
-ctlspec {
+ctlspec "I-V liveness" {
     (forall c in CacheIDType
      (exists d in DataType
-      (AG (Cache[c].State = IV1 -> EF (Cache[c].State = V[d]))))) 
+      (AG (-> (= Cache[c].State IV1) (EF (= Cache[c].State V[d]))))))
 }

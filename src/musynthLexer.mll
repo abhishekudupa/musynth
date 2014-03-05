@@ -104,7 +104,7 @@ rule token = parse
   | Not_found ->
       let startpos = lexeme_start_p lexbuf in
       let endpos = lexeme_end_p lexbuf in
-      IDENT (name, Some (startpos.pos_fname, startpos.pos_lnum,
+      IDENT (name, Some (startpos.pos_lnum,
                          startpos.pos_cnum - startpos.pos_bol,
                          endpos.pos_lnum, endpos.pos_cnum - endpos.pos_bol))
 }
@@ -122,11 +122,12 @@ rule token = parse
   let endpos = lexeme_end_p lexbuf in
   bprintf buf "Lexer: Unexpected token \'%c\'" c;
   let loc = 
-    (startpos.pos_fname, startpos.pos_lnum,
+    (startpos.pos_lnum,
      (startpos.pos_cnum - startpos.pos_bol), endpos.pos_lnum,
      (endpos.pos_cnum - endpos.pos_bol)) in
   raise (ParseError (Buffer.contents buf, loc))
 }
+| eof { EOF }
 
 and linecomment = parse
 | newline { Lexing.new_line lexbuf; token lexbuf }
@@ -143,7 +144,7 @@ and blockcomment = parse
   let endpos = lexeme_end_p lexbuf in
   bprintf buf "Lexer: Unterminated block comment";
   let loc = 
-    (startpos.pos_fname, startpos.pos_lnum,
+    (startpos.pos_lnum,
      (startpos.pos_cnum - startpos.pos_bol), endpos.pos_lnum,
      (endpos.pos_cnum - endpos.pos_bol)) in
   raise (ParseError (Buffer.contents buf, loc))

@@ -11,7 +11,10 @@ MODULES= \
 	musynthAST \
 	musynthParser \
 	musynthLexer \
+	musynthFrontEnd \
+	main \
 
+EXE=musynth
 
 default: all
 

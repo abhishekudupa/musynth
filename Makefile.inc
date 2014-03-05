@@ -5,6 +5,7 @@ OCAMLLEX=ocamllex
 OCAMLDEP=ocamldep
 
 OBJDIR=$(SRCDIR)
+BINDIR=$(PROJECTROOT)/bin
 INCDIRS+=-I $(OBJDIR)
 .PHONY:				clean opt all default byte
 
@@ -40,11 +41,17 @@ $(OBJDIR)/%.cmx : $(SRCDIR)/%.ml
 	$(OCAMLOPT) -c $(INCDIRS) $<
 
 # targets
-all : byte opt
+all : byte opt 
 
-byte : $(DEPEND) $(CMO)
+byte : $(DEPEND) $(CMO) $(BINDIR)/$(EXE).byte
 
-opt : $(DEPEND) $(CMX)
+$(BINDIR)/$(EXE).byte : $(DEPEND) $(CMO)
+	$(OCAMLC) $(CMO) -o $(BINDIR)/$(EXE).byte
+
+opt : $(DEPEND) $(CMX) $(BINDIR)/$(EXE).byte
+
+$(BINDIR)/$(EXE).opt : $(DEPEND) $(CMX)
+	$(OCAMLOPT) $(CMX) -o $(BINDIR)/$(EXE).opt
 
 $(DEPEND) : $(ML) $(ABSGENS)
 	$(OCAMLDEP) $(ML) $(ABSGENS) > $@

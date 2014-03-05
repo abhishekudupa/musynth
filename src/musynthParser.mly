@@ -13,6 +13,7 @@
 %token OR AND NOT IMPLIES IFF TLAG TLAF TLAX TLEX TLEG TLEF TLAU TLEU
 %token TLFORALL TLEXISTS TLGLOBAL TLFUTURE TLNEXT
 %token TLFUTURE TLGLOBAL FORALL FOREACH EXISTS
+%token EOF
 
 %token<MusynthAST.identifierT> IDENT 
 %token<string> STRINGCONST
@@ -32,27 +33,25 @@ open Format
 let errmsg item msg =
   let start_pos = if item <= 0 then symbol_start_pos () else rhs_start_pos item in
   let end_pos = if item <= 0 then symbol_end_pos () else rhs_start_pos item in
-  let fname = start_pos.pos_fname in
   let slineno = start_pos.pos_lnum in
   let scol = start_pos.pos_cnum - start_pos.pos_bol in
   let elineno = end_pos.pos_lnum in
   let ecol = end_pos.pos_cnum - end_pos.pos_bol in
-  raise (ParseError (msg, (fname, slineno, scol, elineno, ecol)))
-    
+  raise (ParseError (msg, (slineno, scol, elineno, ecol)))
+
 let getrhsloc item =
   let startpos = rhs_start_pos item in
   let endpos = rhs_end_pos item in
-  let fname = startpos.pos_fname in
   let slinenum = startpos.pos_lnum in
   let scolnum = startpos.pos_cnum - startpos.pos_bol in
   let elinenum = endpos.pos_lnum in
   let ecolnum = endpos.pos_cnum - endpos.pos_bol in
-  (fname, slinenum, scolnum, elinenum, ecolnum)
+  (slinenum, scolnum, elinenum, ecolnum)
     
 let getlhsloc () =
   let startpos = symbol_start_pos () in
   let endpos = symbol_end_pos () in
-    (startpos.pos_fname, startpos.pos_lnum,
+    (startpos.pos_lnum,
      startpos.pos_cnum - startpos.pos_bol,
      endpos.pos_lnum, endpos.pos_cnum - endpos.pos_bol)
 
@@ -166,7 +165,7 @@ oneAutomatonDecl : oneCompAutomatonDecl
         { $1 }
 
 oneCompAutomatonDecl : AUTOMATON designator optQuants LBRACE 
-        stateDecl initStateDecl optOutputDecl optInputDecl transDecl RBRACE
+        stateDecl initStateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
           let aut = CompleteAutomaton ($2, $5, $6, $7, $8, $9) in
           match $3 with
@@ -175,7 +174,7 @@ oneCompAutomatonDecl : AUTOMATON designator optQuants LBRACE
         }
 
 oneIncompAutomatonDecl : PARTIALAUTOMATON designator optQuants LBRACE
-        stateDecl initStateDecl optOutputDecl optInputDecl transDecl RBRACE
+        stateDecl initStateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
           let aut = IncompleteAutomaton ($2, $5, $6, $7, $8, $9) in
           match $3 with
@@ -305,16 +304,16 @@ optInputDecl : INPUTS LBRACE msgList RBRACE SEMICOLON
 transDecl : TRANSITIONS LBRACE transList RBRACE SEMICOLON
         { $3 }
 
-transList : transList oneTrans
-        { $1 @ [ $2 ] }
+transList : transList COMMA oneTrans
+        { $1 @ [ $3 ] }
     | oneTrans
         { [ $1 ] }
 
-oneTrans : designator COMMA designator COMMA designator optQuants
+oneTrans : LPAREN designator COMMA designator COMMA designator optQuants RPAREN
         { 
-          match $6 with
-          | Some (qMap, propOpt) -> DeclQuantified (($1, $3, $5), qMap, propOpt)
-          | None -> DeclSimple (($1, $3, $5))
+          match $7 with
+          | Some (qMap, propOpt) -> DeclQuantified (($2, $4, $6), qMap, propOpt)
+          | None -> DeclSimple (($2, $4, $6))
         }
 
 specs : specs oneSpec

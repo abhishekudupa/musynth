@@ -3,7 +3,7 @@
 open Format
 
 (* file name * start line num * start col * end line num * end col *)
-type sourcelocation = string * int * int * int * int
+type sourcelocation = int * int * int * int
 
 (* Filename * Line Num * Col num *)
 exception ParseError of string * sourcelocation
@@ -112,3 +112,32 @@ type musSpecT =
   | SpecCTL of string * musPropT
 
 type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * musSpecT list
+
+(* pretty printing routines *)
+(* they follow the grammar really *)
+
+let pIdentifier fmt ident =
+  let id, _ = ident in
+  fprintf fmt "%s" id
+
+let rec pList sep break pfun fmt lst =
+  match lst with
+  | [] -> ()
+  | [ head ] -> fprintf fmt "%a" pfun head
+  | head :: rest ->
+      (if break then
+        fprintf fmt "%a%s@ " pfun head sep
+      else
+        fprintf fmt "%a%s" pfun head sep);
+      pList sep break pfun fmt rest
+
+let pSymType fmt typ =
+  match typ with
+  | SymTypeNamed ident -> pIdentifier fmt ident
+  | SymTypeAnon identlist -> 
+      fprintf fmt "{ %a }" (pList ", " false pIdentifier) identlist
+
+let pSymTypeDecl fmt decl =
+  let ident, typ = decl in
+  fprintf fmt "@[v<0>%a : %a;@,@]" pIdentifier ident pSymType typ
+
