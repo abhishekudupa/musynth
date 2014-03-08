@@ -1,5 +1,4 @@
 (* types and functions for the parse tree *)
-
 open Format
 
 (* file name * start line num * start col * end line num * end col *)
@@ -125,11 +124,13 @@ let rec pList sep break pfun fmt lst =
   | [] -> ()
   | [ head ] -> fprintf fmt "%a" pfun head
   | head :: rest ->
-      (if break then
-        fprintf fmt "%a%s@ " pfun head sep
-      else
-        fprintf fmt "%a%s" pfun head sep);
-      pList sep break pfun fmt rest
+      begin
+        if break then
+          fprintf fmt "%a%s@," pfun head sep
+        else
+          fprintf fmt "%a%s" pfun head sep;
+        pList sep break pfun fmt rest
+      end
 
 let pSymType fmt typ =
   match typ with
@@ -139,5 +140,21 @@ let pSymType fmt typ =
 
 let pSymTypeDecl fmt decl =
   let ident, typ = decl in
-  fprintf fmt "@[v<0>%a : %a;@,@]" pIdentifier ident pSymType typ
+  fprintf fmt "%a : %a;" pIdentifier ident pSymType typ
+
+let musMakeIndentedBox fmt prefix body suffix =
+  fprintf fmt "@[<v 0>@,@[<v 4>";
+  fprintf fmt prefix;
+  fprintf fmt "@,";
+  fprintf fmt body;
+  fprintf fmt "@]@,";
+  fprintf fmt suffix;
+  fprintf fmt "@,@]"
+
+let pSymTypeDeclBlock fmt block =
+  musMakeIndentedBox fmt "symmetrictypes {" "%a" (pList "" true pSymTypeDecl) block "}"
+
+let pProg fmt prog =
+  let symtypes, automata, specs = prog in
+  pSymTypeDeclBlock fmt symtypes;
 

@@ -26,8 +26,8 @@ let musynthParse filename =
     | None -> stdin) in
   let lexbuf = Lexing.from_channel inchan in
   try 
-    printf "Beginning parse\n"; flush stdout;
-    MusynthParser.prog MusynthLexer.token lexbuf
+    let prog = MusynthParser.prog MusynthLexer.token lexbuf in
+    pProg std_formatter prog
   with
   | ParseError (errstr, loc) -> 
       printf "%s\n%a\n" errstr pLoc loc; 
@@ -53,3 +53,4 @@ let musynthParse filename =
           pp_print_flush std_formatter ();
           raise newex
       end
+        
