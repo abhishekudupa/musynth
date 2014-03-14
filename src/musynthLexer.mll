@@ -39,7 +39,12 @@ let musynthKeywords =
     ("foreach", FOREACH);
     ("exists", EXISTS);
     ("true", BCTRUE);
-    ("false", BCFALSE)
+    ("false", BCFALSE);
+    ("and", AND);
+    ("or", OR);
+    ("implies", IMPLIES);
+    ("not", NOT);
+    ("iff", IFF)
   ]
 
 let musynthKwTable = 

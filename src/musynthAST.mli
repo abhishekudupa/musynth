@@ -76,6 +76,7 @@ type musPropT =
   | PropFalse
   | PropEquals of (musDesignatorT * musDesignatorT)
   | PropNEquals of (musDesignatorT * musDesignatorT)
+  | PropNot of musPropT
   | PropAnd of musPropT * musPropT
   | PropOr of musPropT * musPropT
   | PropImplies of musPropT * musPropT
@@ -129,7 +130,44 @@ val pList :
   (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a list -> unit
 val pSymType : Format.formatter -> musSymTypeT -> unit
 val pSymTypeDecl : Format.formatter -> (string * 'a) * musSymTypeT -> unit
+val musMakeIndentedBox :
+  Format.formatter ->
+  (Format.formatter -> 'a -> unit) ->
+  'a ->
+  (Format.formatter -> 'b -> unit) ->
+  'b -> (Format.formatter -> 'c -> unit) -> 'c -> unit
 val pSymTypeDeclBlock :
   Format.formatter -> ((string * 'a) * musSymTypeT) list -> unit
+val pDesignator : Format.formatter -> musDesignatorT -> unit
+val pProp : Format.formatter -> musPropT -> unit
+val pPropOpt : Format.formatter -> musPropT option -> unit
+val pDecl :
+  (Format.formatter -> 'a -> 'b) ->
+  (Format.formatter -> 'a -> 'c) -> Format.formatter -> 'a musDeclType -> 'c
+val noopPrinter : 'a -> 'b -> unit
+val pMsgDecl : Format.formatter -> musDesignatorT musDeclType -> unit
+val pMsgDeclBlock :
+  string -> Format.formatter -> musDesignatorT musDeclType list -> unit
+val pStateAnnot : Format.formatter -> musStateAnnotationT -> unit
+val pStateDecl :
+  Format.formatter ->
+  musDesignatorT musDeclType * musStateAnnotationT -> unit
+val pStateDeclBlock :
+  string ->
+  Format.formatter ->
+  (musDesignatorT musDeclType * musStateAnnotationT) list -> unit
+val pTransDecl :
+  Format.formatter ->
+  (musDesignatorT * musDesignatorT * musDesignatorT) musDeclType -> unit
+val pTransDeclBlock :
+  Format.formatter ->
+  (musDesignatorT * musDesignatorT * musDesignatorT) musDeclType list -> unit
+val pChanProp :
+  Format.formatter -> musChanOrdT * musChanLossT * musChanDupT * int -> unit
+val pAutomatonDecl :
+  Format.formatter -> musAutomatonDeclType musDeclType -> unit
+val pSpec : Format.formatter -> musSpecT -> unit
 val pProg :
-  Format.formatter -> ((string * 'a) * musSymTypeT) list * 'b * 'c -> unit
+  Format.formatter ->
+  ((string * 'a) * musSymTypeT) list *
+  musAutomatonDeclType musDeclType list * musSpecT list -> unit
