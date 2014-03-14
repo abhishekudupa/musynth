@@ -16,4 +16,4 @@ let gatherQVarsInDesig desig =
   gatherQVarsInDesigRec desig;
   !retval
 
-
+let checkDecl 
