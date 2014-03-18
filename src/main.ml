@@ -7,4 +7,3 @@ let _ =
   with
   | Invalid_argument _ ->
       musynthParse None
-

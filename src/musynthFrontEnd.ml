@@ -2,6 +2,7 @@
 
 open MusynthParser
 open MusynthAST
+open MusynthTypes
 open Format
 open Buffer
 open Lexing
@@ -19,6 +20,11 @@ let pLoc fmt loc =
   fprintf fmt "%s" locstr;
   pp_print_flush fmt ()
 
+let pLocOpt fmt loc =
+  match loc with
+  | Some locn -> pLoc fmt locn
+  | None -> ()
+
 let musynthParse filename =
   let inchan = 
     (match filename with
@@ -33,7 +39,7 @@ let musynthParse filename =
       printf "%s\n%a\n" errstr pLoc loc; 
       raise (ParseError (errstr, loc))
   | SemanticError (errstr, loc) -> 
-      printf "%s\n%a\n" errstr pLoc loc;
+      printf "%s\n%a\n" errstr pLocOpt loc;
       raise (SemanticError (errstr, loc))
   | Parsing.Parse_error ->
       begin

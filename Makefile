@@ -1,11 +1,11 @@
 PROJECTROOT=$(realpath .)
 SRCDIR=$(PROJECTROOT)/src
 
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
+OCAMLC=ocamlc.opt
+OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
-OCAMLLEX=ocamllex
-OCAMLDEP=ocamldep
+OCAMLLEX=ocamllex.opt
+OCAMLDEP=ocamldep.opt
 
 INCDIRS+=-I $(SRCDIR)
 BINDIR=$(PROJECTROOT)/bin
@@ -19,9 +19,12 @@ GENSRC= \
 
 
 MODULES= \
+	musynthTypes \
 	musynthAST \
 	musynthParser \
 	musynthLexer \
+	musynthSymTab \
+	musynthASTChecker \
 	musynthFrontEnd \
 	main \
 

@@ -15,17 +15,17 @@
 %token TLFUTURE TLGLOBAL FORALL FOREACH EXISTS
 %token EOF
 
-%token<MusynthAST.identifierT> IDENT 
+%token<MusynthTypes.identifierT> IDENT 
 %token<string> STRINGCONST
 %token<int> INTCONST
 
-%type<MusynthAST.musProgT> prog
+%type<MusynthTypes.musProgT> prog
 
 %start prog
 
 %{
 open Lexing
-open MusynthAST
+open MusynthTypes
 open Parsing
 open Format
 
@@ -225,7 +225,7 @@ quantList : quantList oneQuant
               if IdentMap.mem ident map then
                 let id, loc = ident in
                 raise (SemanticError ("Quantified identifier " ^ id ^ " mapped more than once",
-                                      getrhsloc 2))
+                                      (Some (getrhsloc 2))))
               else
                 IdentMap.add ident typ map)
             $1 idlist
@@ -238,7 +238,7 @@ quantList : quantList oneQuant
             if IdentMap.mem ident map then
               let id, loc = ident in
               raise (SemanticError ("Quantified identifier " ^ id ^ " mapped more than once",
-                                    getrhsloc 2))
+                                    (Some (getrhsloc 2))))
             else
               IdentMap.add ident typ map)
           IdentMap.empty idlist

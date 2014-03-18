@@ -118,7 +118,7 @@ PartialAutomaton Directory
                VV4[c] foreach c in CacheIDType : complete,
                VI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
 
-    initstates : { I[D0] };
+    initstates : { I[d] foreach d in DataType };
 
     inputs {
         Req2Dir'[c] foreach c in CacheIDType,
@@ -158,7 +158,7 @@ PartialAutomaton Directory
 invariant "Coherence Invariant" {
     (forall d in DataType 
      (forall c in CacheIDType
-      (-> (= Cache[c].State V[d]) (= Oracle.State Data[d]))))
+      (-> (= Cache[c].state Cache[c].V[d]) (= Oracle.state Oracle.Data[d]))))
 }
 
 invariant "One Valid Invariant" {
@@ -166,12 +166,12 @@ invariant "One Valid Invariant" {
      (forall c2 in CacheIDType
       (forall d1 in DataType
        (forall d2 in DataType
-        (-> (!= c1 c2) (-> (= Cache[c1].State V[d1]) 
-                           (!= Cache[c2].State V[d2])))))))
+        (-> (!= c1 c2) (-> (= Cache[c1].state Cache[c1].V[d1]) 
+                           (!= Cache[c2].state Cache[c2].V[d2])))))))
 }
 
 ctlspec "I-V liveness" {
     (forall c in CacheIDType
      (exists d in DataType
-      (AG (-> (= Cache[c].State IV1) (EF (= Cache[c].State V[d]))))))
+      (AG (-> (= Cache[c].state Cache[c].IV1) (EF (= Cache[c].state Cache[c].V[d]))))))
 }

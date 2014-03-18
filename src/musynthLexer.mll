@@ -2,7 +2,7 @@
 
 {
 open MusynthParser
-open MusynthAST
+open MusynthTypes
 open Lexing
 open Printf
 
