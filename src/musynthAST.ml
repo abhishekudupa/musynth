@@ -12,7 +12,6 @@ let identToName ident =
   let id, _ = ident in 
   id
 
-
 let astToString astprinter ast =
   let buf = Buffer.create 32 in
   let fmt = formatter_of_buffer buf in
@@ -22,24 +21,25 @@ let astToString astprinter ast =
   pp_print_flush fmt ();
   Buffer.contents buf
 
-let rec pList sep break pfun fmt lst =
+let rec pList sep break endsep pfun fmt lst =
   match lst with
   | [] -> ()
-  | [ head ] -> fprintf fmt "%a" pfun head
+  | [ head ] -> 
+      fprintf fmt "%a%s" pfun head  (if endsep then sep else "")
   | head :: rest ->
       begin
         if break then
           fprintf fmt "%a%s@," pfun head sep
         else
           fprintf fmt "%a%s" pfun head sep;
-        pList sep break pfun fmt rest
+        pList sep break endsep pfun fmt rest
       end
 
 let pSymType fmt typ =
   match typ with
   | SymTypeNamed ident -> pIdentifier fmt ident
   | SymTypeAnon identlist ->
-      fprintf fmt "{ %a }" (pList ", " false pIdentifier) identlist
+      fprintf fmt "{ %a }" (pList ", " false false pIdentifier) identlist
 
 let pSymTypeDecl fmt decl =
   let ident, typ = decl in
@@ -57,7 +57,7 @@ let musMakeIndentedBox fmt prefixPrinter prefixArg
 
 let pSymTypeDeclBlock fmt block =
   musMakeIndentedBox fmt pp_print_string "symmetrictypes {" 
-    (pList "" true pSymTypeDecl) block 
+    (pList "" true false pSymTypeDecl) block 
     pp_print_string "}"
 
 let rec pDesignator fmt desig =
@@ -91,11 +91,11 @@ let rec pProp fmt prop =
       fprintf fmt "@[<b 5>(iff@ %a@ %a)@]" pProp prop1 pProp prop2
   | PropForall (identlist, symtype, prop1) ->
       fprintf fmt "@[<b 1>(forall %a in %a@ %a)@]" 
-        (pList "" false pIdentifier) identlist
+        (pList "" false false pIdentifier) identlist
         pSymType symtype pProp prop1
   | PropExists (identlist, symtype, prop1) ->
       fprintf fmt "@[<b 1>(exists %a in %a@ %a)@]" 
-        (pList "" false pIdentifier) identlist 
+        (pList "" false false pIdentifier) identlist 
         pSymType symtype pProp prop1
   | PropCTLAG prop1 ->
       fprintf fmt "@[<b 4>(AG@ %a)@]" pProp prop1
@@ -128,7 +128,7 @@ let pDecl declPrefixPrinter declSuffixPrinter fmt decl =
       declPrefixPrinter fmt declParam;
       fprintf fmt "@[<v 0>";
       let qList = IdentMap.bindings qMap in
-      pList "" true 
+      pList "" true false
         (fun fmtloc (ident, typ) -> 
           fprintf fmtloc " foreach %a in %a" 
             pIdentifier ident pSymType typ) fmt qList;
@@ -143,7 +143,7 @@ let pMsgDecl fmt decl =
 
 let pMsgDeclBlock name fmt block =
   musMakeIndentedBox fmt pp_print_string (name ^ " {")
-    (pList "," true pMsgDecl) block fprintf "};"
+    (pList "," true false pMsgDecl) block fprintf "};"
 
 let pStateAnnot fmt annot =
   match annot with
@@ -152,12 +152,12 @@ let pStateAnnot fmt annot =
   | AnnotIncomplete -> fprintf fmt " : incomplete"
   | AnnotIncompleteEventList msglist -> 
       fprintf fmt " : incomplete (@[<v 0>%a@])" 
-        (pList "," true pMsgDecl) msglist
+        (pList "," true false pMsgDecl) msglist
   | AnnotIncompleteNum num ->
       fprintf fmt " : incomplete %d" num
   | AnnotIncompleteNumEventList (num, msglist) ->
       fprintf fmt " : incomplete %d (@[<v 0>%a@])" num 
-        (pList "," true pMsgDecl) msglist
+        (pList "," true false pMsgDecl) msglist
 
 let pStateDecl fmt decl =
   let sdecl, annot = decl in
@@ -167,7 +167,7 @@ let pStateDecl fmt decl =
 let pStateDeclBlock prefix fmt block =
   musMakeIndentedBox fmt 
     pp_print_string (prefix ^ " : {")
-    (pList "," true pStateDecl) block
+    (pList "," true false pStateDecl) block
     fprintf "};"
 
 let pTransDecl fmt decl =
@@ -182,8 +182,26 @@ let pTransDecl fmt decl =
 let pTransDeclBlock fmt block =
   musMakeIndentedBox fmt 
     pp_print_string "transitions {"
-    (pList "," true pTransDecl) block
+    (pList "," true false pTransDecl) block
     fprintf "};"
+
+let pInitStateConstraint fmt decl =
+  let lhs, rhs = decl in
+  fprintf fmt "%a = %a" pDesignator lhs pDesignator rhs
+
+let pInitStateDecl fmt decl =
+  let prefixPrinter fmt initstateconstr =
+    pList "," true false pInitStateConstraint fmt initstateconstr
+  in
+  fprintf fmt "@[<v 4>";
+  pDecl prefixPrinter noopPrinter fmt decl;
+  fprintf fmt "@]"
+
+let pInitStateDeclBlock fmt block =
+  musMakeIndentedBox fmt 
+    pp_print_string "init {"
+    (pList ";" true true pInitStateDecl) block
+    pp_print_string "}"
 
 let pChanProp fmt chanprop =
   let ord, loss, dup, cap = chanprop in
@@ -217,20 +235,19 @@ let pAutomatonDecl fmt autdecl =
   in
   let prefixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (d, _, _, _, _, _) ->
+    | CompleteAutomaton (d, _, _, _, _) ->
         fprintf fmt "@[<v 0>automaton %a" pDesignator d
-    | IncompleteAutomaton (d, _, _, _, _, _) ->
+    | IncompleteAutomaton (d, _, _, _, _) ->
         fprintf fmt "@[<v 0>partialautomaton %a" pDesignator d
     | ChannelAutomaton (d, _, _) ->
         fprintf fmt "@[<v 0>channelautomaton %a" pDesignator d
   in
   let suffixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (_, states, initstates, inblock, outblock, transblock)
-    | IncompleteAutomaton (_, states, initstates, inblock, outblock, transblock) ->
+    | CompleteAutomaton (_, states, inblock, outblock, transblock)
+    | IncompleteAutomaton (_, states, inblock, outblock, transblock) ->
         fprintf fmt "@,@[<v 4>{@,";
         pBlockCond (pStateDeclBlock "states") fmt states;
-        pBlockCond (pStateDeclBlock "initstates") fmt initstates;
         pBlockCond (pMsgDeclBlock "inputs") fmt inblock;
         pBlockCond (pMsgDeclBlock "outputs") fmt outblock;
         pBlockCond ~br:false pTransDeclBlock fmt transblock;
@@ -254,10 +271,12 @@ let pSpec fmt spec =
     pProp prop pp_print_string "}"
 
 let pProg fmt prog =
-  let symtypes, automata, specs = prog in
+  let symtypes, automata, initblock, specs = prog in
   fprintf fmt "@[<v 0>";
   pSymTypeDeclBlock fmt symtypes;
   fprintf fmt "@,@,";
   List.iter (pAutomatonDecl fmt) automata;
+  pInitStateDeclBlock fmt initblock;
+  fprintf fmt "@,@,";
   List.iter (fun spec -> pSpec fmt spec; fprintf fmt "@,@,") specs;
   fprintf fmt "@]"

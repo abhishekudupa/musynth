@@ -15,7 +15,7 @@ let musynthKeywords =
     ("channelautomaton", CHANNELAUTOMATON);
     ("capacity", CAPACITY);
     ("messages", MESSAGES);
-    ("initstates", INITSTATES);
+    ("init", INIT);
     ("in", IN);
     ("lossy", LOSSY);
     ("lossless", LOSSLESS);

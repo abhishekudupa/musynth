@@ -5,8 +5,7 @@ symmetrictypes {
 
 Automaton Environment[c] foreach c in CacheIDType
 {
-    states : { Init };
-    initstates : { Init };
+    states : { InitState };
 
     outputs {
         Get, Put, 
@@ -14,16 +13,15 @@ Automaton Environment[c] foreach c in CacheIDType
     };
 
     transitions {
-        (Init, Get, Init),
-        (Init, Put, Init),
-        (Init, Havoc[d], Init foreach d in DataType)
+        (InitState, Get, InitState),
+        (InitState, Put, InitState),
+        (InitState, Havoc[d], InitState foreach d in DataType)
     };
 }
 
 Automaton Oracle
 {
     states : { Data[d] foreach d in DataType };
-    initstates : { Data[D0] };
 
     inputs {
         Havoc[d] foreach d in DataType
@@ -69,8 +67,6 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
                VI1[d] foreach d in DataType : complete,
                VI2 : incomplete, 
                VI3[d] foreach d in DataType : complete };
-
-    initstates : { I };
 
     inputs {
         Get, Put, Havoc,
@@ -118,8 +114,6 @@ PartialAutomaton Directory
                VV4[c] foreach c in CacheIDType : complete,
                VI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
 
-    initstates : { I[d] foreach d in DataType };
-
     inputs {
         Req2Dir'[c] foreach c in CacheIDType,
         WB2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
@@ -153,6 +147,12 @@ PartialAutomaton Directory
         (VV2[c1, c2], WB2Dir'[c1,d], VV3[c2,d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
         */
     };
+}
+
+init {
+    Environment[c].state = Environment[c].InitState foreach c in CacheIDType;
+    Oracle.state = Oracle.Data[d], Directory.state = Directory.I[d] foreach d in DataType;
+    Cache[c].state = Cache[c].I foreach c in CacheIDType;
 }
 
 invariant "Coherence Invariant" {

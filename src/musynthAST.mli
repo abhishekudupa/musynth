@@ -4,6 +4,7 @@ val astToString : (Format.formatter -> 'a -> 'b) -> 'a -> string
 val pList :
   string ->
   bool ->
+  bool ->
   (Format.formatter -> 'a -> unit) -> Format.formatter -> 'a list -> unit
 val pSymType : Format.formatter -> MusynthTypes.musSymTypeT -> unit
 val pSymTypeDecl :
@@ -53,6 +54,17 @@ val pTransDeclBlock :
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
    MusynthTypes.musDesignatorT)
   MusynthTypes.musDeclType list -> unit
+val pInitStateConstraint :
+  Format.formatter ->
+  MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
+val pInitStateDecl :
+  Format.formatter ->
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
+  MusynthTypes.musDeclType -> unit
+val pInitStateDeclBlock :
+  Format.formatter ->
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
+  MusynthTypes.musDeclType list -> unit
 val pChanProp :
   Format.formatter ->
   MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -65,4 +77,5 @@ val pProg :
   Format.formatter ->
   ((string * 'a) * MusynthTypes.musSymTypeT) list *
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-  MusynthTypes.musSpecT list -> unit
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
+  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit

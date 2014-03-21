@@ -149,7 +149,7 @@ let checkDecl symtab declParamChecker decl =
       ignore (ST.pop symtab);
       res
 
-let checkStateDecl symtab statedecl isdecl =
+let checkStateDecl symtab statedecl =
   let ident, typelistopt = checkDecl symtab checkDesigDecl statedecl in
   ST.bind symtab ident (StateEntry typelistopt)
 
@@ -167,27 +167,13 @@ let checkStateDeclBlock symtab block annotallowed =
       else
         ()) block
 
-let checkInitStateBlock symtab block =
-  List.iter 
-    (fun sdecl ->
-      let decl, annot = sdecl in
-      checkDesigRVal
-
 (* checker for automata *)
 let checkAutDef symtab autdef =
   match autdef with
-  | CompleteAutomaton (autdesig, sblock, isblock, inblock, outblock, transblock) ->
+  | CompleteAutomaton (autdesig, sblock, inblock, outblock, transblock) ->
       ST.push symtab;
-      let autident, auttypelistopt = checkDesigDecl symtab autdesig in
-      let autname, autloc = autident in
-      checkStateBlockDecl symtab sblock true;
-      if (List.length isblock) <> 1 then
-        raise (SemanticError ("Incomplete automata must have exactly one (possibly parametrized) initial state",
-                              autloc))
-      else
-        ();
-      List.iter (fun istate ->
-        let checkDesigRVal symtab) isblock;
+      let _, _ = checkDesigDecl symtab autdesig in
+      checkStateDeclBlock symtab sblock true;
       List.iter (checkMsgDecl symtab InputMsg) inblock;
       List.iter (checkMsgDecl symtab OutputMsg) outblock;
       List.iter (checkDecl symtab checkTransDecl) transblock;

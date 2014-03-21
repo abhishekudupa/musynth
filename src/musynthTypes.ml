@@ -96,10 +96,14 @@ type musChanLossT =
 
 type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
 
+type musInitStateDeclT = ((musDesignatorT * musDesignatorT) list) musDeclType
+
+type musInitStateDeclBlockT = musInitStateDeclT list
+
 type musAutomatonDeclType = 
-  | CompleteAutomaton of musDesignatorT * musStateDeclBlockT * musStateDeclBlockT * 
+  | CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
         musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
-  | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT * musStateDeclBlockT * 
+  | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
         musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
   | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT
 
@@ -109,7 +113,8 @@ type musSpecT =
   | SpecInvar of string * musPropT
   | SpecCTL of string * musPropT
 
-type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * musSpecT list
+type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * 
+      musInitStateDeclBlockT * musSpecT list
 
 (* Symbol table types *)
 exception SymtabUnderflow

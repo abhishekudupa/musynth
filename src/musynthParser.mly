@@ -1,7 +1,7 @@
 /** MuSynth Parser */
 
 /* Keywords */
-%token VAR EQUALS DOT COMMA MAIN SYMMETRICTYPES INITSTATES
+%token VAR EQUALS DOT COMMA MAIN SYMMETRICTYPES INIT
 %token SEMICOLON COLON CAPACITY MESSAGES
 %token DETAUTOMATON AUTOMATON CHANNELAUTOMATON
 %token LOSSY LOSSLESS DUPLICATING NONDUPLICATING
@@ -61,8 +61,8 @@ let getlhsloc () =
 
 /* productions */
 
-prog : symTypeDecls automatonDecls specs
-    { ($1, $2, $3) }
+prog : symTypeDecls automatonDecls initStateDecl specs
+    { ($1, $2, $3, $4) }
 
 symTypeDecls : SYMMETRICTYPES LBRACE symTypeDeclList RBRACE
     { $3 }
@@ -165,18 +165,18 @@ oneAutomatonDecl : oneCompAutomatonDecl
         { $1 }
 
 oneCompAutomatonDecl : AUTOMATON designator optQuants LBRACE 
-        stateDecl initStateDecl optInputDecl optOutputDecl transDecl RBRACE
+        stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = CompleteAutomaton ($2, $5, $6, $7, $8, $9) in
+          let aut = CompleteAutomaton ($2, $5, $6, $7, $8) in
           match $3 with
           | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt)
           | None -> DeclSimple aut
         }
 
 oneIncompAutomatonDecl : PARTIALAUTOMATON designator optQuants LBRACE
-        stateDecl initStateDecl optInputDecl optOutputDecl transDecl RBRACE
+        stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = IncompleteAutomaton ($2, $5, $6, $7, $8, $9) in
+          let aut = IncompleteAutomaton ($2, $5, $6, $7, $8) in
           match $3 with
           | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt)
           | None -> DeclSimple aut
@@ -276,20 +276,28 @@ oneStateDecl : designator optQuants stateAnnotation
           | None -> (DeclSimple $1, $3)
         }
 
-initStateDecl : INITSTATES COLON LBRACE initStateDecls RBRACE SEMICOLON
-        { $4 }
+initStateDecl : INIT LBRACE initStateConstraintList RBRACE
+        { $3 }
 
-initStateDecls : initStateDecls COMMA oneInitStateDecl
-        { $1 @ [ $3 ] }
-    | oneInitStateDecl
+initStateConstraintList : initStateConstraintList initStateConstraint
+        { $1 @ [ $2 ] }
+    | initStateConstraint
         { [ $1 ] }
 
-oneInitStateDecl : designator optQuants
+initStateConstraint : stateEqList optQuants SEMICOLON
         {
           match $2 with
-          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt), AnnotNone)
-          | None -> (DeclSimple $1, AnnotNone)
+          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt))
+          | None -> (DeclSimple $1)
         }
+
+stateEqList : stateEqList COMMA oneStateEq
+        { $1 @ [ $3 ] }
+    | oneStateEq
+        { [ $1 ] }
+
+oneStateEq : designator EQUALS designator
+        { ($1, $3) }
 
 optOutputDecl : OUTPUTS LBRACE msgList RBRACE SEMICOLON
         { $3 }

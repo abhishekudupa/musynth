@@ -112,17 +112,19 @@ type musChanDupT = ChanDuplicating | ChanNonDuplicating
 type musChanOrdT = ChanOrdered | ChanUnordered
 type musChanLossT = ChanLossy | ChanLossless
 type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
+type musInitStateDeclT = (musDesignatorT * musDesignatorT) list musDeclType
+type musInitStateDeclBlockT = musInitStateDeclT list
 type musAutomatonDeclType =
     CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-      musStateDeclBlockT * musMsgDeclBlockT * musMsgDeclBlockT *
-      musTransDeclBlockT
+      musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-      musStateDeclBlockT * musMsgDeclBlockT * musMsgDeclBlockT *
-      musTransDeclBlockT
+      musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
   | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT = SpecInvar of string * musPropT | SpecCTL of string * musPropT
-type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * musSpecT list
+type musProgT =
+    musSymTypeDeclBlockT * musAutomatonDeclT list * musInitStateDeclBlockT *
+    musSpecT list
 exception SymtabUnderflow
 exception DuplicateSymbol of identifierT
 type msgType = InputMsg | OutputMsg
@@ -130,6 +132,7 @@ type autType = ChannelAutType | PartialAutType | CompleteAutType
 type symtabEntry =
     VarEntry of musSymTypeT
   | TypeEntry of musSymTypeT
+  | ConstEntry of musSymTypeT
   | StateEntry of musSymTypeT list option
   | MsgEntry of msgType * musSymTypeT list option
   | AutomatonEntry of autType * musSymTypeT list option * symTabScope
