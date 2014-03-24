@@ -6,6 +6,7 @@ OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
+OCAMLCFLAGS=-g
 
 INCDIRS+=-I $(SRCDIR)
 BINDIR=$(PROJECTROOT)/bin
@@ -50,7 +51,7 @@ all : byte opt
 byte : $(DEPEND) $(CMO) $(BYTEEXES) $(OPTEXES)
 
 $(BINDIR)/%.byte : $(CMO)
-	$(OCAMLC) $(CMO) -o $@
+	$(OCAMLC) $(OCAMLCFLAGS) $(CMO) -o $@
 
 opt : $(DEPEND) $(CMX) $(OPTEXES)
 
@@ -70,19 +71,19 @@ $(SRCDIR)/musynthLexer.ml $(SRCDIR)/musynthLexer.mli : $(SRCDIR)/musynthLexer.ml
 
 $(SRCDIR)/musynthLexer.cmi : $(SRCDIR)/musynthLexer.ml
 	$(OCAMLC) -i $(INCDIRS) $< > $(SRCDIR)/musynthLexer.mli
-	$(OCAMLC) -c $(INCDIRS) $(SRCDIR)/musynthLexer.mli
+	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $(SRCDIR)/musynthLexer.mli
 
 # template rules
 $(SRCDIR)/%.cmo : $(SRCDIR)/%.cmi
 
 $(SRCDIR)%.cmi : $(SRCDIR)/%.mli
-	$(OCAMLC) -c $(INCDIRS) $<
+	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $<
 
 $(SRCDIR)/%.cmo : $(SRCDIR)/%.ml
-	$(OCAMLC) -c $(INCDIRS) $<
+	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $<
 
 $(SRCDIR)/%.cmx : $(SRCDIR)/%.ml
-	$(OCAMLOPT) -c $(INCDIRS) $<
+	$(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $<
 
 
 ifneq ($(MAKECMDGOALS), clean)

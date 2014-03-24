@@ -1,21 +1,35 @@
 val createSymTab : unit -> 'a MusynthTypes.IdentMap.t ref list ref
-val push : MusynthTypes.symTableT -> unit
-val pushScope : MusynthTypes.symTableT -> MusynthTypes.symTabScope -> unit
-val pop : MusynthTypes.symTableT -> MusynthTypes.symTabScope
-val peek : MusynthTypes.symTableT -> MusynthTypes.symTabScope
-val getNumScopes : MusynthTypes.symTableT -> int
+val push : 'a MusynthTypes.IdentMap.t ref list ref -> unit
+val pushScope : 'a list ref -> 'a -> unit
+val pop : 'a list ref -> 'a
+val peek : 'a list ref -> 'a
+val getNumScopes : 'a list ref -> int
 val lookup :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.symtabEntry option
+  'a MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> 'a option
 val bind :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.symtabEntry -> unit
+  'a MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> 'a -> unit
+val bindGlobal :
+  'a MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> 'a -> unit
 val lookupOrFail :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.symtabEntry
+  'a MusynthTypes.IdentMap.t ref list ref -> MusynthTypes.IdentMap.key -> 'a
 val lookupVar :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.musSymTypeT
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT
 val lookupType :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.musSymTypeT
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT
+val lookupMsg :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+val lookupState :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+val lookupAutomaton :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+val lookupConst :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry

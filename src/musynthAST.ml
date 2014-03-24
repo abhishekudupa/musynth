@@ -4,6 +4,16 @@ open MusynthTypes
 (* pretty printing routines for ASTs *)
 (* they follow the grammar really *)
 
+let pLoc fmt loc =
+  let locstr = locToString loc in
+  fprintf fmt "%s" locstr;
+  pp_print_flush fmt ()
+
+let pLocOpt fmt loc =
+  match loc with
+  | Some locn -> pLoc fmt locn
+  | None -> ()
+
 let pIdentifier fmt ident =
   let id, _ = ident in
   fprintf fmt "%s" id
@@ -37,8 +47,8 @@ let rec pList sep break endsep pfun fmt lst =
 
 let pSymType fmt typ =
   match typ with
-  | SymTypeNamed ident -> pIdentifier fmt ident
-  | SymTypeAnon identlist ->
+  | SymTypeNamed (ident, _) -> pIdentifier fmt ident
+  | SymTypeAnon (identlist, _) ->
       fprintf fmt "{ %a }" (pList ", " false false pIdentifier) identlist
 
 let pSymTypeDecl fmt decl =
@@ -63,56 +73,56 @@ let pSymTypeDeclBlock fmt block =
 let rec pDesignator fmt desig =
   match desig with
   | SimpleDesignator ident -> pIdentifier fmt ident
-  | IndexDesignator (nestedDesig, ident) -> 
+  | IndexDesignator (nestedDesig, ident, _) -> 
       pDesignator fmt nestedDesig;
       fprintf fmt "[%a]" pIdentifier ident
-  | FieldDesignator (nestedDesig, ident) ->
+  | FieldDesignator (nestedDesig, ident, _) ->
       pDesignator fmt nestedDesig;
       fprintf fmt ".%a" pIdentifier ident
 
 
 let rec pProp fmt prop =
   match prop with
-  | PropTrue -> fprintf fmt "true"
-  | PropFalse -> fprintf fmt "false"
-  | PropEquals (desig1, desig2) ->
+  | PropTrue _ -> fprintf fmt "true"
+  | PropFalse _ -> fprintf fmt "false"
+  | PropEquals (desig1, desig2, _) ->
       fprintf fmt "@[<b 3>(= %a@ %a)@]" pDesignator desig1 pDesignator desig2
-  | PropNEquals (desig1, desig2) ->
+  | PropNEquals (desig1, desig2, _) ->
       fprintf fmt "@[<b 4>(!= %a@ %a)@]" pDesignator desig1 pDesignator desig2
-  | PropNot prop1 ->
-      fprintf fmt "@[<b 5>(not@ %a)" pProp prop1
-  | PropAnd (prop1, prop2) ->
-      fprintf fmt "@[<b 5>(and@ %a@ %a)@]" pProp prop1 pProp prop2
-  | PropOr (prop1, prop2) ->
-      fprintf fmt "@[<b 4>(or@ %a@ %a)@]" pProp prop1 pProp prop2
-  | PropImplies (prop1, prop2) ->
-      fprintf fmt "@[<b 9>(implies@ %a@ %a)@]" pProp prop1 pProp prop2
-  | PropIff (prop1, prop2) ->
-      fprintf fmt "@[<b 5>(iff@ %a@ %a)@]" pProp prop1 pProp prop2
-  | PropForall (identlist, symtype, prop1) ->
+  | PropNot (prop1, _) ->
+      fprintf fmt "@[<b 5>(not %a)" pProp prop1
+  | PropAnd (prop1, prop2, _) ->
+      fprintf fmt "@[<b 5>(and %a@ %a)@]" pProp prop1 pProp prop2
+  | PropOr (prop1, prop2, _) ->
+      fprintf fmt "@[<b 4>(or %a@ %a)@]" pProp prop1 pProp prop2
+  | PropImplies (prop1, prop2, _) ->
+      fprintf fmt "@[<b 9>(implies %a@ %a)@]" pProp prop1 pProp prop2
+  | PropIff (prop1, prop2, _) ->
+      fprintf fmt "@[<b 5>(iff %a@ %a)@]" pProp prop1 pProp prop2
+  | PropForall (identlist, symtype, prop1, _) ->
       fprintf fmt "@[<b 1>(forall %a in %a@ %a)@]" 
         (pList "" false false pIdentifier) identlist
         pSymType symtype pProp prop1
-  | PropExists (identlist, symtype, prop1) ->
+  | PropExists (identlist, symtype, prop1, _) ->
       fprintf fmt "@[<b 1>(exists %a in %a@ %a)@]" 
         (pList "" false false pIdentifier) identlist 
         pSymType symtype pProp prop1
-  | PropCTLAG prop1 ->
-      fprintf fmt "@[<b 4>(AG@ %a)@]" pProp prop1
-  | PropCTLAF prop1 ->
-      fprintf fmt "@[<b 4>(AF@ %a)@]" pProp prop1
-  | PropCTLAX prop1 ->
-      fprintf fmt "@[<b 4>(AX@ %a)@]" pProp prop1
-  | PropCTLAU (prop1, prop2) ->
-      fprintf fmt "@[<b 4>(AU@ %a@ %a)@]" pProp prop1 pProp prop2
-  | PropCTLEG prop1 ->
-      fprintf fmt "@[<b 4>(EG@ %a)@]" pProp prop1
-  | PropCTLEF prop1 ->
-      fprintf fmt "@[<b 4>(EF@ %a)@]" pProp prop1
-  | PropCTLEX prop1 ->
-      fprintf fmt "@[<b 4>(EX@ %a)@]" pProp prop1
-  | PropCTLEU (prop1, prop2) ->
-      fprintf fmt "@[<b 4>(EU@ %a@ %a)@]" pProp prop1 pProp prop2
+  | PropCTLAG (prop1, _) ->
+      fprintf fmt "@[<b 4>(AG %a)@]" pProp prop1
+  | PropCTLAF (prop1, _) ->
+      fprintf fmt "@[<b 4>(AF %a)@]" pProp prop1
+  | PropCTLAX (prop1, _) ->
+      fprintf fmt "@[<b 4>(AX %a)@]" pProp prop1
+  | PropCTLAU (prop1, prop2, _) ->
+      fprintf fmt "@[<b 4>(AU %a@ %a)@]" pProp prop1 pProp prop2
+  | PropCTLEG (prop1, _) ->
+      fprintf fmt "@[<b 4>(EG %a)@]" pProp prop1
+  | PropCTLEF (prop1, _) ->
+      fprintf fmt "@[<b 4>(EF %a)@]" pProp prop1
+  | PropCTLEX (prop1, _) ->
+      fprintf fmt "@[<b 4>(EX %a)@]" pProp prop1
+  | PropCTLEU (prop1, prop2, _) ->
+      fprintf fmt "@[<b 4>(EU %a@ %a)@]" pProp prop1 pProp prop2
 
 let rec pPropOpt fmt optProp =
   match optProp with
@@ -121,10 +131,10 @@ let rec pPropOpt fmt optProp =
 
 let pDecl declPrefixPrinter declSuffixPrinter fmt decl =
   match decl with
-  | DeclSimple declParam -> 
+  | DeclSimple (declParam, _) -> 
       declPrefixPrinter fmt declParam;
       declSuffixPrinter fmt declParam
-  | DeclQuantified (declParam, qMap, optProp) ->
+  | DeclQuantified (declParam, qMap, optProp, _) ->
       declPrefixPrinter fmt declParam;
       fprintf fmt "@[<v 0>";
       let qList = IdentMap.bindings qMap in
@@ -148,14 +158,14 @@ let pMsgDeclBlock name fmt block =
 let pStateAnnot fmt annot =
   match annot with
   | AnnotNone -> ()
-  | AnnotComplete -> fprintf fmt " : complete"
-  | AnnotIncomplete -> fprintf fmt " : incomplete"
-  | AnnotIncompleteEventList msglist -> 
+  | AnnotComplete _ -> fprintf fmt " : complete"
+  | AnnotIncomplete _ -> fprintf fmt " : incomplete"
+  | AnnotIncompleteEventList (msglist, _) -> 
       fprintf fmt " : incomplete (@[<v 0>%a@])" 
         (pList "," true false pMsgDecl) msglist
-  | AnnotIncompleteNum num ->
+  | AnnotIncompleteNum (num, _) ->
       fprintf fmt " : incomplete %d" num
-  | AnnotIncompleteNumEventList (num, msglist) ->
+  | AnnotIncompleteNumEventList (num, msglist, _) ->
       fprintf fmt " : incomplete %d (@[<v 0>%a@])" num 
         (pList "," true false pMsgDecl) msglist
 
@@ -205,20 +215,23 @@ let pInitStateDeclBlock fmt block =
 
 let pChanProp fmt chanprop =
   let ord, loss, dup, cap = chanprop in
-  if ord = ChanUnordered then
-    fprintf fmt "ordered"
-  else
-    fprintf fmt "unordered";
+  (match ord with
+  | ChanUnordered _ ->
+      fprintf fmt "ordered"
+  | _ ->
+      fprintf fmt "unordered");
   fprintf fmt ", ";
-  if loss = ChanLossy then
-    fprintf fmt "lossy"
-  else
-    fprintf fmt "lossless";
+  (match loss with 
+  | ChanLossy _ ->
+      fprintf fmt "lossy"
+  | _ ->
+      fprintf fmt "lossless");
   fprintf fmt ", ";
-  if dup = ChanDuplicating then
-    fprintf fmt "duplicating"
-  else
-    fprintf fmt "nonduplicating";
+  (match dup with
+  | ChanDuplicating _ ->
+      fprintf fmt "duplicating"
+  | _ ->
+      fprintf fmt "nonduplicating");
   fprintf fmt ";@,";
   fprintf fmt "capacity = %d;@," cap
 
@@ -235,24 +248,24 @@ let pAutomatonDecl fmt autdecl =
   in
   let prefixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (d, _, _, _, _) ->
+    | CompleteAutomaton (d, _, _, _, _, _) ->
         fprintf fmt "@[<v 0>automaton %a" pDesignator d
-    | IncompleteAutomaton (d, _, _, _, _) ->
+    | IncompleteAutomaton (d, _, _, _, _, _) ->
         fprintf fmt "@[<v 0>partialautomaton %a" pDesignator d
-    | ChannelAutomaton (d, _, _) ->
+    | ChannelAutomaton (d, _, _, _) ->
         fprintf fmt "@[<v 0>channelautomaton %a" pDesignator d
   in
   let suffixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (_, states, inblock, outblock, transblock)
-    | IncompleteAutomaton (_, states, inblock, outblock, transblock) ->
+    | CompleteAutomaton (_, states, inblock, outblock, transblock, _)
+    | IncompleteAutomaton (_, states, inblock, outblock, transblock, _) ->
         fprintf fmt "@,@[<v 4>{@,";
         pBlockCond (pStateDeclBlock "states") fmt states;
         pBlockCond (pMsgDeclBlock "inputs") fmt inblock;
         pBlockCond (pMsgDeclBlock "outputs") fmt outblock;
         pBlockCond ~br:false pTransDeclBlock fmt transblock;
         fprintf fmt "@]@,}@,@]@,"
-    | ChannelAutomaton (_, chanprop, msgblock) ->
+    | ChannelAutomaton (_, chanprop, msgblock, _) ->
         fprintf fmt "@,@[<v 4>{@,";
         pChanProp fmt chanprop;
         fprintf fmt "@,@,";
@@ -264,8 +277,8 @@ let pAutomatonDecl fmt autdecl =
 let pSpec fmt spec =
   let prefix, prop = 
     (match spec with
-    | SpecInvar (name, prop) -> ("invariant \"" ^ name ^ "\" {", prop)
-    | SpecCTL (name, prop) -> ("ctlspec \"" ^ name ^ "\" {", prop))
+    | SpecInvar (name, prop, _) -> ("invariant \"" ^ name ^ "\" {", prop)
+    | SpecCTL (name, prop, _) -> ("ctlspec \"" ^ name ^ "\" {", prop))
   in
   musMakeIndentedBox fmt pp_print_string prefix
     pProp prop pp_print_string "}"

@@ -4,13 +4,13 @@ open MusynthTypes
 let createSymTab () =
   ref [ ref IdentMap.empty ]
 
-let push (symtab : symTableT) =
+let push symtab =
   symtab := (ref IdentMap.empty) :: !symtab
 
-let pushScope (symtab : symTableT) (scope : symTabScope) = 
+let pushScope symtab scope = 
   symtab := scope :: !symtab
 
-let pop (symtab : symTableT) =
+let pop symtab =
   let scope = 
     (match !symtab with
     | [] -> raise SymtabUnderflow
@@ -18,15 +18,15 @@ let pop (symtab : symTableT) =
   in
   scope
 
-let peek (symtab : symTableT) =
+let peek symtab =
   match !symtab with
   | [] -> raise SymtabUnderflow
   | head :: rest -> head
 
-let getNumScopes (symtab : symTableT) =
+let getNumScopes symtab =
   List.length !symtab
 
-let lookup (symtab : symTableT) (ident : identifierT) =
+let lookup symtab ident =
   let rec lookupRec symtab =
     match symtab with
     | [] -> None
@@ -40,7 +40,7 @@ let lookup (symtab : symTableT) (ident : identifierT) =
   in
   lookupRec !symtab
     
-let bind (symtab : symTableT) (ident : identifierT) (entry : symtabEntry) =
+let bind symtab ident entry =
   let scope = peek symtab in
   try
     let _ = IdentMap.find ident !scope in
@@ -48,6 +48,14 @@ let bind (symtab : symTableT) (ident : identifierT) (entry : symtabEntry) =
   with
   | Not_found -> 
       scope := IdentMap.add ident entry !scope
+
+let bindGlobal symtab ident entry =
+  let scope = List.nth !symtab ((List.length !symtab) - 1) in
+  try
+    let _ = IdentMap.find ident !scope in
+    raise (DuplicateSymbol ident)
+  with
+  | Not_found -> scope := IdentMap.add ident entry !scope
 
 let lookupOrFail symtab ident =
   let entry = lookup symtab ident in
@@ -58,11 +66,35 @@ let lookupOrFail symtab ident =
 let lookupVar symtab ident =
   let entry = lookupOrFail symtab ident in
   match entry with
-  | VarEntry typ -> typ
-  | _ -> raise (UndeclaredIdentifier ident)
+  | SymVarName (_, typ) -> typ
+  | _ -> raise (WrongTypeIdentifier ("Expected a quantified variable", ident))
 
 let lookupType symtab ident =
   let entry = lookupOrFail symtab ident in
   match entry with
-  | TypeEntry typ -> typ
-  | _ ->  raise (UndeclaredIdentifier ident)
+  | SymtypeName (_, typ) -> typ
+  | _ ->  raise (WrongTypeIdentifier ("Expected a type name", ident))
+
+let lookupMsg symtab ident =
+  let entry = lookupOrFail symtab ident in
+  match entry with
+  | MsgName _ -> entry
+  | _ -> raise (WrongTypeIdentifier ("Expected a message name", ident))
+
+let lookupState symtab ident =
+  let entry = lookupOrFail symtab ident in
+  match entry with
+  | StateName _ -> entry
+  | _ -> raise (WrongTypeIdentifier ("Expected a state name", ident))
+
+let lookupAutomaton symtab ident = 
+  let entry = lookupOrFail symtab ident in
+  match entry with
+  | AutomatonName _ -> entry
+  | _ -> raise (WrongTypeIdentifier ("Expected an automaton name", ident))
+
+let lookupConst symtab ident =
+  let entry = lookupOrFail symtab ident in
+  match entry with
+  | SymtypeConst _ -> entry
+  | _ -> raise (WrongTypeIdentifier ("Expected a symmetric type constructor", ident))

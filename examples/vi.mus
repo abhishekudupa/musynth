@@ -5,17 +5,29 @@ symmetrictypes {
 
 Automaton Environment[c] foreach c in CacheIDType
 {
-    states : { InitState };
+    states : { InitState[d] foreach d in DataType, 
+               IssuedGet, IssuedPut, 
+               IssuedHavoc[d] foreach d in DataType };
+    
+    inputs {
+        GetDone[d] foreach d in DataType,
+        HavocDone[d] foreach d in DataType,
+        PutDone
+    };
 
     outputs {
-        Get, Put, 
+        Get, Put,
         Havoc[d] foreach d in DataType
     };
 
     transitions {
-        (InitState, Get, InitState),
-        (InitState, Put, InitState),
-        (InitState, Havoc[d], InitState foreach d in DataType)
+        (InitState[d], Get, IssuedGet foreach d in DataType),
+        (InitState[d], Put, IssuedPut foreach d in DataType),
+        (InitState[d1], Havoc[d2], IssuedHavoc[d2] foreach d1, d2 in DataType),
+
+        (IssuedGet, GetDone[d], InitState[d] foreach d in DataType),
+        (IssuedPut, PutDone, InitState[d] foreach d in DataType),
+        (IssuedHavoc[d], HavocDone[d], InitState[d] foreach d in DataType)
     };
 }
 
@@ -24,11 +36,11 @@ Automaton Oracle
     states : { Data[d] foreach d in DataType };
 
     inputs {
-        Havoc[d] foreach d in DataType
+        HavocDone[d] foreach d in DataType
     };
 
     transitions {
-        (Data[d], Havoc[d], Data[d] foreach d in DataType)
+        (Data[d1], HavocDone[d2], Data[d2] foreach d1, d2 in DataType)
     };
 }
 
@@ -59,60 +71,83 @@ ChannelAutomaton RspChannel[c] foreach c in CacheIDType
 
 PartialAutomaton Cache[c] foreach c in CacheIDType
 {
-    states : { I : complete, 
-               IV1 : complete,
-               IV2 : complete,
-               IV3[d] foreach d in DataType : complete, 
-               V[d] foreach d in DataType : complete, 
-               VI1[d] foreach d in DataType : complete,
-               VI2 : incomplete, 
-               VI3[d] foreach d in DataType : complete };
+    states : { CI : incomplete, 
+               CIV1 : complete,
+               CIV2 : complete,
+               CIV3[d] foreach d in DataType : complete,
+               CIV4[d] foreach d in DataType : complete,
+               CIVH1[d] foreach d in DataType : complete,
+               CIVH2[d] foreach d in DataType : complete,
+               CIVH3[d] foreach d in DataType : complete,
+               CIVH4[d] foreach d in DataType : complete,
+               CV[d] foreach d in DataType : complete, 
+               CVP[d] foreach d in DataType : complete,
+               CVH[d] foreach d in DataType : complete,
+               CVI1[d] foreach d in DataType : complete,
+               CVI2 : incomplete, 
+               CVI3 : complete,
+               CVI4[d] foreach d in DataType : complete };
 
     inputs {
-        Get, Put, Havoc,
-        Rsp[d] foreach d in DataType,
-        WBAck, Inv 
+        Get, Put, 
+        Havoc[d] foreach d in DataType,
+        Rsp'[d] foreach d in DataType,
+        WBAck', Inv'
     };
 
     outputs {
         Req2Dir, 
         WB2Dir[d] foreach d in DataType, 
         InvAck2Dir[d] foreach d in DataType,
-        Ack2Dir
+        Ack2Dir,
+        GetDone[d] foreach d in DataType,
+        PutDone,
+        HavocDone[d] foreach d in DataType
     };
 
     transitions {
-        (I, Get, IV1),
-        (IV1, Req2Dir, IV2),
-        (IV2, Rsp[d], IV3[d] foreach d in DataType),
-        (IV3[d], Ack2Dir, V[d] foreach d in DataType),
+        (CI, Get, CIV1),
+        (CIV1, Req2Dir, CIV2),
+        (CIV2, Rsp'[d], CIV3[d] foreach d in DataType),
+        (CIV3[d], Ack2Dir, CIV4[d] foreach d in DataType),
+        (CIV4[d], GetDone[d], CV[d] foreach d in DataType),
 
-        (V[d1], Havoc[d2], V[d2] foreach d1, d2 in DataType),
+        (CI, Havoc[d], CIVH1[d] foreach d in DataType),
+        (CIVH1[d], Req2Dir, CIVH2[d] foreach d in DataType),
+        (CIVH2[d1], Rsp'[d2], CIVH3[d1] foreach d1, d2 in DataType),
+        (CIVH3[d], Ack2Dir, CIVH4[d] foreach d in DataType),
+        (CIVH4[d], HavocDone[d], CV[d] foreach d in DataType),
 
-        (V[d], Put, VI1[d] foreach d in DataType),
-        (VI1[d], WB2Dir[d], VI2 foreach d in DataType),
-        (VI2, WBAck', I),
+        (CV[d], Get, CVP[d] foreach d in DataType),
+        (CVP[d], GetDone[d], CV[d] foreach d in DataType),
+        (CV[d1], Havoc[d2], CVH[d2] foreach d1, d2 in DataType),
+        (CVH[d], HavocDone[d], CV[d] foreach d in DataType),
 
-        (V[d], Inv', VI3[d] foreach d in DataType),
-        (VI3[d], InvAck2Dir[d], I foreach d in DataType)
+        (CV[d], Put, CVI1[d] foreach d in DataType),
+        (CVI1[d], WB2Dir[d], CVI2 foreach d in DataType),
+        (CVI2, WBAck', CVI3),
+        (CVI3, PutDone, CI),
+
+        (CV[d], Inv', CVI4[d] foreach d in DataType),
+        (CVI4[d], InvAck2Dir[d], CI foreach d in DataType)
         
         /*
-        (VI2, Inv', I)
+        (CVI2, Inv', CI)
         */
     };
 }
 
 PartialAutomaton Directory
 {
-    states : { I[d] foreach d in DataType : complete,
-               IV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
-               IV2[c] foreach c in CacheIDType : complete,
-               V[c] foreach c in CacheIDType : complete,
-               VV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
-               VV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : incomplete,
-               VV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
-               VV4[c] foreach c in CacheIDType : complete,
-               VI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
+    states : { DI[d] foreach d in DataType : complete,
+               DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               DIV2[c] foreach c in CacheIDType : complete,
+               DV[c] foreach c in CacheIDType : complete,
+               DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
+               DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : incomplete,
+               DVV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               DVV4[c] foreach c in CacheIDType : complete,
+               DVI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
 
     inputs {
         Req2Dir'[c] foreach c in CacheIDType,
@@ -128,37 +163,37 @@ PartialAutomaton Directory
     };
 
     transitions {
-        (I[d], Req2Dir'[c], IV1[c][d] foreach d in DataType foreach c in CacheIDType),
-        (IV1[c][d], Rsp[c][d], IV2[c] foreach d in DataType foreach c in CacheIDType),
-        (IV2[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
+        (DI[d], Req2Dir'[c], DIV1[c][d] foreach d in DataType foreach c in CacheIDType),
+        (DIV1[c][d], Rsp[c][d], DIV2[c] foreach d in DataType foreach c in CacheIDType),
+        (DIV2[c], Ack2Dir'[c], DV[c] foreach c in CacheIDType),
         
-        (V[c1], Req2Dir'[c2], VV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
-        (VV1[c1][c2], Inv[c1], VV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
-        (VV2[c1][c2], InvAck2Dir'[c1][d], VV3[c2][d] 
+        (DV[c1], Req2Dir'[c2], DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (DVV1[c1][c2], Inv[c1], DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (DVV2[c1][c2], InvAck2Dir'[c1][d], DVV3[c2][d] 
          foreach c1, c2 in CacheIDType 
          foreach d in DataType (!= c1 c2)),
-        (VV3[c][d], Rsp[c][d], VV4[c] foreach c in CacheIDType foreach d in DataType),
-        (VV4[c], Ack2Dir'[c], V[c] foreach c in CacheIDType),
+        (DVV3[c][d], Rsp[c][d], DVV4[c] foreach c in CacheIDType foreach d in DataType),
+        (DVV4[c], Ack2Dir'[c], DV[c] foreach c in CacheIDType),
 
-        (V[c], WB2Dir'[c][d], VI1[c][d] foreach c in CacheIDType foreach d in DataType),
-        (VI1[c][d], WBAck[c], I[d] foreach c in CacheIDType foreach d in DataType)
+        (DV[c], WB2Dir'[c][d], DVI1[c][d] foreach c in CacheIDType foreach d in DataType),
+        (DVI1[c][d], WBAck[c], DI[d] foreach c in CacheIDType foreach d in DataType)
         
         /*
-        (VV2[c1, c2], WB2Dir'[c1,d], VV3[c2,d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
+        (DVV2[c1][c2], WB2Dir'[c1][d], DVV3[c2][d] foreach c1, c2 in CacheIDType foreach d in DataType (c1 != c2))
         */
     };
 }
 
 init {
-    Environment[c].state = Environment[c].InitState foreach c in CacheIDType;
-    Oracle.state = Oracle.Data[d], Directory.state = Directory.I[d] foreach d in DataType;
-    Cache[c].state = Cache[c].I foreach c in CacheIDType;
+    Environment[c].state = InitState[d] foreach c in CacheIDType foreach d in DataType;
+    Oracle.state = Data[d], Directory.state = Directory.DI[d] foreach d in DataType;
+    Cache[c].state = CI foreach c in CacheIDType;
 }
 
 invariant "Coherence Invariant" {
     (forall d in DataType 
      (forall c in CacheIDType
-      (-> (= Cache[c].state Cache[c].V[d]) (= Oracle.state Oracle.Data[d]))))
+      (-> (= Cache[c].state CV[d]) (= Oracle.state Data[d]))))
 }
 
 invariant "One Valid Invariant" {
@@ -166,12 +201,24 @@ invariant "One Valid Invariant" {
      (forall c2 in CacheIDType
       (forall d1 in DataType
        (forall d2 in DataType
-        (-> (!= c1 c2) (-> (= Cache[c1].state Cache[c1].V[d1]) 
-                           (!= Cache[c2].state Cache[c2].V[d2])))))))
+        (-> (!= c1 c2) (-> (= Cache[c1].state CV[d1]) 
+                           (!= Cache[c2].state CV[d2])))))))
 }
 
-ctlspec "I-V liveness" {
+ctlspec "I-V liveness on Get" {
     (forall c in CacheIDType
      (exists d in DataType
-      (AG (-> (= Cache[c].state Cache[c].IV1) (EF (= Cache[c].state Cache[c].V[d]))))))
+      (AG (-> (= Environment[c].state IssuedGet) (EF (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+}
+
+ctlspec "I-V liveness on Havoc" {
+    (forall c in CacheIDType
+     (forall d in DataType
+      (AG (-> (= Environment[c].state IssuedHavoc[d]) (EF (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+}
+
+ctlspec "V-I liveness" {
+    (forall c in CacheIDType
+     (exists d in DataType
+      (AG (-> (= Environment[c].state IssuedPut) (EF (= Environment[c].state InitState[d]))))))
 }

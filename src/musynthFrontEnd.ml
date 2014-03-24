@@ -2,28 +2,12 @@
 
 open MusynthParser
 open MusynthAST
+open MusynthASTChecker
 open MusynthTypes
+module ST = MusynthSymTab
 open Format
 open Buffer
 open Lexing
-
-let locToStr loc =
-  let buf = Buffer.create 16 in
-  let sline, scol, eline, ecol = loc in
-  let fmt = formatter_of_buffer buf in
-  fprintf fmt "%d:%d - %d:%d" sline scol eline ecol;
-  pp_print_flush fmt ();
-  Buffer.contents buf
-
-let pLoc fmt loc =
-  let locstr = locToStr loc in
-  fprintf fmt "%s" locstr;
-  pp_print_flush fmt ()
-
-let pLocOpt fmt loc =
-  match loc with
-  | Some locn -> pLoc fmt locn
-  | None -> ()
 
 let musynthParse filename =
   let inchan = 
@@ -33,14 +17,14 @@ let musynthParse filename =
   let lexbuf = Lexing.from_channel inchan in
   try 
     let prog = MusynthParser.prog MusynthLexer.token lexbuf in
+    let symtab = ST.createSymTab () in
+    checkProg symtab prog;
+    fprintf err_formatter "Semantic checks complete\n";
     pProg std_formatter prog
   with
   | ParseError (errstr, loc) -> 
       printf "%s\n%a\n" errstr pLoc loc; 
       raise (ParseError (errstr, loc))
-  | SemanticError (errstr, loc) -> 
-      printf "%s\n%a\n" errstr pLocOpt loc;
-      raise (SemanticError (errstr, loc))
   | Parsing.Parse_error ->
       begin
           let startpos = Lexing.lexeme_start_p lexbuf in

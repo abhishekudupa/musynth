@@ -1,9 +1,20 @@
 open MusynthFrontEnd
+open MusynthTypes
+
+let debug = ref true
 
 let _ =
+  if !debug then Printexc.record_backtrace true else ();
+  let filename = 
   try 
-    let filename = Sys.argv.(1) in
-    musynthParse (Some filename)
+    Some (Sys.argv.(1))
   with
   | Invalid_argument _ ->
-      musynthParse None
+      None
+  in
+  try
+    musynthParse filename
+  with
+  | _ as ex ->
+      Printf.fprintf stderr "Exception: %s\n" (exToString ex);
+      Printf.fprintf stderr "Backtrace:\n%s" (Printexc.get_backtrace ())

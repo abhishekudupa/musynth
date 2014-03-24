@@ -1,3 +1,5 @@
+val pLoc : Format.formatter -> int * int * int * int -> unit
+val pLocOpt : Format.formatter -> (int * int * int * int) option -> unit
 val pIdentifier : Format.formatter -> string * 'a -> unit
 val identToName : 'a * 'b -> 'a
 val astToString : (Format.formatter -> 'a -> 'b) -> 'a -> string

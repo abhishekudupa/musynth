@@ -1,62 +1,109 @@
 module ST :
   sig
     val createSymTab : unit -> 'a MusynthTypes.IdentMap.t ref list ref
-    val push : MusynthTypes.symTableT -> unit
-    val pushScope :
-      MusynthTypes.symTableT -> MusynthTypes.symTabScope -> unit
-    val pop : MusynthTypes.symTableT -> MusynthTypes.symTabScope
-    val peek : MusynthTypes.symTableT -> MusynthTypes.symTabScope
-    val getNumScopes : MusynthTypes.symTableT -> int
+    val push : 'a MusynthTypes.IdentMap.t ref list ref -> unit
+    val pushScope : 'a list ref -> 'a -> unit
+    val pop : 'a list ref -> 'a
+    val peek : 'a list ref -> 'a
+    val getNumScopes : 'a list ref -> int
     val lookup :
-      MusynthTypes.symTableT ->
-      MusynthTypes.identifierT -> MusynthTypes.symtabEntry option
+      'a MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> 'a option
     val bind :
-      MusynthTypes.symTableT ->
-      MusynthTypes.identifierT -> MusynthTypes.symtabEntry -> unit
+      'a MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> 'a -> unit
+    val bindGlobal :
+      'a MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> 'a -> unit
     val lookupOrFail :
-      MusynthTypes.symTableT ->
-      MusynthTypes.identifierT -> MusynthTypes.symtabEntry
+      'a MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> 'a
     val lookupVar :
-      MusynthTypes.symTableT ->
-      MusynthTypes.identifierT -> MusynthTypes.musSymTypeT
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT
     val lookupType :
-      MusynthTypes.symTableT ->
-      MusynthTypes.identifierT -> MusynthTypes.musSymTypeT
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT
+    val lookupMsg :
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+    val lookupState :
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+    val lookupAutomaton :
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+    val lookupConst :
+      MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+      MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
   end
+val curAutomatonName : string ref
 val resolveSymType :
-  MusynthTypes.symTableT ->
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musSymTypeT -> MusynthTypes.musSymTypeT
 val checkSymTypeDecl :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT * MusynthTypes.musSymTypeT -> unit
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT -> unit
 val destructDesigDecl :
   MusynthTypes.musDesignatorT ->
   MusynthTypes.identifierT * MusynthTypes.identifierT list
 val getTypeListForIdent :
-  MusynthTypes.symTableT ->
-  MusynthTypes.identifierT -> MusynthTypes.musSymTypeT list
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT list
 val checkTypeLists :
   MusynthTypes.musSymTypeT list ->
   (MusynthTypes.musSymTypeT * (string * MusynthTypes.sourcelocation option))
   list -> unit
-val checkDesigRVal :
-  MusynthTypes.symTableT -> MusynthTypes.musDesignatorT -> unit
-val checkPureProp : MusynthTypes.symTableT -> MusynthTypes.musPropT -> unit
+val getRValType :
+  MusynthTypes.symTabScope list ref ->
+  MusynthTypes.musDesignatorT -> MusynthTypes.symtabEntry
+val checkTypeCompatibility :
+  MusynthTypes.symtabEntry ->
+  MusynthTypes.symtabEntry -> MusynthTypes.sourcelocation option -> unit
+val checkPureProp :
+  MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
 val checkDesigDecl :
-  MusynthTypes.symTableT ->
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musDesignatorT ->
-  MusynthTypes.identifierT * MusynthTypes.musSymTypeT list option
+  'a -> MusynthTypes.identifierT * MusynthTypes.musSymTypeT list
 val checkTransDecl :
-  MusynthTypes.symTableT ->
+  MusynthTypes.symTabScope list ref ->
   MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
-  MusynthTypes.musDesignatorT -> unit
+  MusynthTypes.musDesignatorT ->
+  MusynthTypes.sourcelocation option -> string * 'a list
 val checkDecl :
-  MusynthTypes.symTableT ->
-  (MusynthTypes.symTableT -> 'a -> 'b) -> 'a MusynthTypes.musDeclType -> 'b
+  MusynthTypes.symTabScope list ref ->
+  (MusynthTypes.symTabScope list ref ->
+   'a -> MusynthTypes.sourcelocation option -> 'b * 'c) ->
+  'a MusynthTypes.musDeclType ->
+  'b * 'c * MusynthTypes.musPropT option * MusynthTypes.symTabScope
 val checkStateDecl :
-  MusynthTypes.symTableT ->
+  MusynthTypes.symTabScope list ref ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
 val checkMsgDecl :
-  MusynthTypes.symTableT ->
+  MusynthTypes.symTabScope list ref ->
   MusynthTypes.msgType ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+val checkStateDeclBlock :
+  MusynthTypes.symTabScope list ref ->
+  (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
+   MusynthTypes.musStateAnnotationT)
+  list -> bool -> unit
+val checkAutDef :
+  MusynthTypes.symTabScope list ref ->
+  MusynthTypes.musAutomatonDeclType ->
+  'a -> MusynthTypes.identifierT * MusynthTypes.musSymTypeT list
+val checkInitStateDecl :
+  MusynthTypes.symTabScope list ref ->
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
+  MusynthTypes.sourcelocation option -> string * 'a list
+val checkProp :
+  MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
+val checkSpec :
+  MusynthTypes.symTabScope list ref -> MusynthTypes.musSpecT -> unit
+val checkProg :
+  MusynthTypes.symTabScope list ref ->
+  (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list *
+  MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
+  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit

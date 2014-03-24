@@ -24,8 +24,8 @@ module IdentMap = Map.Make
     end)
     
 type musSymTypeT = 
-  | SymTypeNamed of identifierT
-  | SymTypeAnon of identifierT list
+  | SymTypeNamed of identifierT * sourcelocation option
+  | SymTypeAnon of identifierT list * sourcelocation option
         
 type musSymTypeDeclT = identifierT * musSymTypeT
   
@@ -33,34 +33,34 @@ type musSymTypeDeclBlockT = musSymTypeDeclT list
   
 type musDesignatorT =
   | SimpleDesignator of identifierT
-  | IndexDesignator of musDesignatorT * identifierT
-  | FieldDesignator of musDesignatorT * identifierT
+  | IndexDesignator of musDesignatorT * identifierT * sourcelocation option
+  | FieldDesignator of musDesignatorT * identifierT * sourcelocation option
         
 (* Only CTL at present *)
 type musPropT =
-  | PropTrue
-  | PropFalse
-  | PropEquals of (musDesignatorT * musDesignatorT)
-  | PropNEquals of (musDesignatorT * musDesignatorT)
-  | PropNot of musPropT
-  | PropAnd of musPropT * musPropT
-  | PropOr of musPropT * musPropT
-  | PropImplies of musPropT * musPropT
-  | PropIff of musPropT * musPropT
-  | PropForall of identifierT list * musSymTypeT * musPropT
-  | PropExists of identifierT list * musSymTypeT * musPropT
-  | PropCTLAG of musPropT
-  | PropCTLAF of musPropT
-  | PropCTLAX of musPropT
-  | PropCTLEG of musPropT
-  | PropCTLEF of musPropT
-  | PropCTLEX of musPropT
-  | PropCTLAU of musPropT * musPropT
-  | PropCTLEU of musPropT * musPropT
+  | PropTrue of sourcelocation option
+  | PropFalse of sourcelocation option
+  | PropEquals of (musDesignatorT * musDesignatorT * sourcelocation option)
+  | PropNEquals of (musDesignatorT * musDesignatorT * sourcelocation option)
+  | PropNot of musPropT * sourcelocation option
+  | PropAnd of musPropT * musPropT * sourcelocation option
+  | PropOr of musPropT * musPropT * sourcelocation option
+  | PropImplies of musPropT * musPropT * sourcelocation option
+  | PropIff of musPropT * musPropT * sourcelocation option
+  | PropForall of identifierT list * musSymTypeT * musPropT * sourcelocation option
+  | PropExists of identifierT list * musSymTypeT * musPropT * sourcelocation option
+  | PropCTLAG of musPropT * sourcelocation option
+  | PropCTLAF of musPropT * sourcelocation option
+  | PropCTLAX of musPropT * sourcelocation option
+  | PropCTLEG of musPropT * sourcelocation option
+  | PropCTLEF of musPropT * sourcelocation option
+  | PropCTLEX of musPropT * sourcelocation option
+  | PropCTLAU of musPropT * musPropT * sourcelocation option
+  | PropCTLEU of musPropT * musPropT * sourcelocation option
     
 type 'a  musDeclType = 
-  | DeclSimple of 'a
-  | DeclQuantified of 'a * (musSymTypeT IdentMap.t) * musPropT option
+  | DeclSimple of 'a * sourcelocation option
+  | DeclQuantified of 'a * (musSymTypeT IdentMap.t) * musPropT option * sourcelocation option
 
 type musMsgDeclT = musDesignatorT musDeclType
 
@@ -68,11 +68,11 @@ type musMsgDeclBlockT = musMsgDeclT list
 
 type musStateAnnotationT = 
   | AnnotNone
-  | AnnotComplete
-  | AnnotIncomplete
-  | AnnotIncompleteEventList of musMsgDeclT list
-  | AnnotIncompleteNum of int
-  | AnnotIncompleteNumEventList of int * musMsgDeclT list
+  | AnnotComplete of sourcelocation option
+  | AnnotIncomplete of sourcelocation option
+  | AnnotIncompleteEventList of musMsgDeclT list * sourcelocation option
+  | AnnotIncompleteNum of int * sourcelocation option
+  | AnnotIncompleteNumEventList of int * musMsgDeclT list * sourcelocation option
 
 type musStateDeclT = musDesignatorT musDeclType * musStateAnnotationT
 
@@ -83,16 +83,16 @@ type musTransDeclT = (musDesignatorT * musDesignatorT * musDesignatorT) musDeclT
 type musTransDeclBlockT = musTransDeclT list
 
 type musChanDupT = 
-  | ChanDuplicating
-  | ChanNonDuplicating
+  | ChanDuplicating of sourcelocation option
+  | ChanNonDuplicating of sourcelocation option
 
 type musChanOrdT = 
-  | ChanOrdered
-  | ChanUnordered
+  | ChanOrdered of sourcelocation option 
+  | ChanUnordered of sourcelocation option
 
 type musChanLossT = 
-  | ChanLossy
-  | ChanLossless
+  | ChanLossy of sourcelocation option
+  | ChanLossless of sourcelocation option
 
 type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
 
@@ -102,16 +102,16 @@ type musInitStateDeclBlockT = musInitStateDeclT list
 
 type musAutomatonDeclType = 
   | CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
+        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT
-  | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT
+        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
+  | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT * sourcelocation option
 
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 
 type musSpecT = 
-  | SpecInvar of string * musPropT
-  | SpecCTL of string * musPropT
+  | SpecInvar of string * musPropT * sourcelocation option
+  | SpecCTL of string * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * 
       musInitStateDeclBlockT * musSpecT list
@@ -130,40 +130,59 @@ type autType =
   | CompleteAutType
 
 type symtabEntry =
-  | VarEntry of musSymTypeT
-  | TypeEntry of musSymTypeT
-  | ConstEntry of musSymTypeT
-  | StateEntry of (musSymTypeT list) option
-  | MsgEntry of msgType * (musSymTypeT list) option
-  | AutomatonEntry of autType * (musSymTypeT list) option * symTabScope
+  | SymtypeConst of string * musSymTypeT
+  | StateName of string * musSymTypeT list * musPropT option * string
+  | MsgName of string * msgType * musSymTypeT list * musPropT option
+  | SymtypeName of string * musSymTypeT
+  | StateVar of string list * string
+  | SymVarName of string * musSymTypeT
+  | AutomatonName of string * autType * musSymTypeT list * musPropT option * symTabScope
+  | InvariantName of string * musPropT
+  | CTLSpecName of string * musPropT
 
 and symTabScope = symtabEntry IdentMap.t ref
 
 type symTableT = (symTabScope list) ref
 
-let locToString loc =
-  match loc with
-  | None -> ""
-  | Some locn ->
-      let sline, scol, eline, ecol = locn in
-      (string_of_int sline) ^ ":" ^ (string_of_int scol) ^ " - " ^
-      (string_of_int eline) ^ ":" ^ (string_of_int ecol)
-
 (* checker exceptions *)
 exception ImpurePropException of string
 exception UndeclaredIdentifier of identifierT
+exception WrongTypeIdentifier of (string * identifierT)
+exception ConstantExpression of sourcelocation option
+
+(* stringification of source locations *)
+let locToString loc =
+  let sline, scol, eline, ecol = loc in
+  (string_of_int sline) ^ ":" ^ (string_of_int scol) ^ " - " ^
+  (string_of_int eline) ^ ":" ^ (string_of_int ecol)
+  
+let locOptToString locOpt =
+  match locOpt with
+  | None -> "No source location information found"
+  | Some locn -> locToString locn
 
 (* exception printing routines *)
 let exToString ex =
   match ex with
   | ParseError (msg, loc) ->
-      "Parse Error: " ^ msg ^ "\nAt: " ^ (locToString (Some loc))
+      "Parse Error: " ^ msg ^ "\nAt: " ^ (locOptToString (Some loc))
   | SemanticError (msg, loc) ->
-      "Semantic Error: " ^ msg ^ "\nAt:" ^ (locToString loc)
-  | SymtabUnderflow -> "Symbol table underflow"
+      "Semantic Error: " ^ msg ^ "\nAt:" ^ (locOptToString loc)
+  | SymtabUnderflow -> "Error: Symbol table underflow"
   | DuplicateSymbol ident ->
       let name, loc = ident in
-      "Identifier \"" ^ name ^ "\" already declared\nAt: " ^ 
-      (locToString loc)
+      "Error: Identifier \"" ^ name ^ "\" already declared\nAt: " ^ 
+      (locOptToString loc)
+
+  | WrongTypeIdentifier (msg, ident) ->
+      let name, loc = ident in
+      "Error: Identifier \"" ^ name ^ "\" has wrong type.\n" ^ msg ^ "\nAt: " ^ 
+      (locOptToString loc)
+
+  | ConstantExpression loc ->
+      "Error: Constant Expression at: " ^ (locOptToString loc)
+  | UndeclaredIdentifier ident ->
+      let name, loc = ident in
+      "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | _ -> Printexc.to_string ex
 

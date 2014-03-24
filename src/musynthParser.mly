@@ -78,9 +78,9 @@ oneSymTypeDecl : IDENT COLON symType SEMICOLON
         { ($1, $3) }
 
 symType : IDENT
-        { SymTypeNamed $1 }
+        { SymTypeNamed ($1, (Some (getlhsloc ()))) }
     | LBRACE identList RBRACE
-        { SymTypeAnon $2 }
+        { SymTypeAnon ($2, (Some (getlhsloc ()))) }
 
 identList : identList COMMA IDENT
         { $1 @ [ $3 ] }
@@ -90,49 +90,49 @@ identList : identList COMMA IDENT
 designator : IDENT
         { SimpleDesignator $1 }
     | designator LSQUARE IDENT RSQUARE
-        { IndexDesignator ($1, $3) }
+        { IndexDesignator ($1, $3, (Some (getlhsloc ()))) }
     | designator DOT IDENT
-        { FieldDesignator ($1, $3) }
+        { FieldDesignator ($1, $3, (Some (getlhsloc ()))) }
 
 /* lisp style prefix expressions to avoid ambiguity */
 prop : BCTRUE
-        { PropTrue }
+        { PropTrue (Some (getlhsloc ())) }
     | BCFALSE
-        { PropFalse }
+        { PropFalse (Some (getlhsloc ())) }
     | LPAREN EQUALS designator designator RPAREN
-        { PropEquals ($3, $4) }
+        { PropEquals ($3, $4, Some (getlhsloc ())) }
     | LPAREN NEQUALS designator designator RPAREN
-        { PropNEquals ($3, $4) }
+        { PropNEquals ($3, $4, Some (getlhsloc ())) }
     | LPAREN AND prop prop RPAREN
-        { PropAnd ($3, $4) }
+        { PropAnd ($3, $4, Some (getlhsloc ())) }
     | LPAREN OR prop prop RPAREN
-        { PropOr ($3, $4) }
+        { PropOr ($3, $4, Some (getlhsloc ())) }
     | LPAREN IMPLIES prop prop RPAREN
-        { PropImplies ($3, $4) }
+        { PropImplies ($3, $4, Some (getlhsloc ())) }
     | LPAREN IFF prop prop RPAREN
-        { PropIff ($3, $4) }
+        { PropIff ($3, $4, Some (getlhsloc ())) }
     | LPAREN prop RPAREN
         { $2 }
     | LPAREN FORALL identList IN symType prop RPAREN
-        { PropForall ($3, $5, $6) }
+        { PropForall ($3, $5, $6, Some (getlhsloc ())) }
     | LPAREN EXISTS identList IN symType prop RPAREN
-        { PropExists ($3, $5, $6) }
+        { PropExists ($3, $5, $6, Some (getlhsloc ())) }
     | LPAREN TLAG prop RPAREN
-        { PropCTLAG $3 }
+        { PropCTLAG ($3, Some (getlhsloc ())) }
     | LPAREN TLAF prop RPAREN
-        { PropCTLAF $3 }
+        { PropCTLAF ($3, Some (getlhsloc ())) }
     | LPAREN TLAX prop RPAREN
-        { PropCTLAX $3 }
+        { PropCTLAX ($3, Some (getlhsloc ())) }
     | LPAREN TLEG prop RPAREN
-        { PropCTLEG $3 }
+        { PropCTLEG ($3, Some (getlhsloc ())) }
     | LPAREN TLEF prop RPAREN
-        { PropCTLEF $3 }
+        { PropCTLEF ($3, Some (getlhsloc ())) }
     | LPAREN TLEX prop RPAREN
-        { PropCTLEX $3 }
+        { PropCTLEX ($3, Some (getlhsloc ())) }
     | LPAREN TLAU prop prop RPAREN
-        { PropCTLAU ($3, $4) }
+        { PropCTLAU ($3, $4, Some (getlhsloc ())) }
     | LPAREN TLEU prop prop RPAREN
-        { PropCTLEU ($3, $4) }
+        { PropCTLEU ($3, $4, Some (getlhsloc ())) }
 
 msgList : msgList COMMA oneMsg
         { $1 @ [ $3 ] }
@@ -143,8 +143,8 @@ oneMsg : designator optQuants
         {
           let q = $2 in
           match q with
-          | Some (qMap, propOpt) -> DeclQuantified ($1, qMap, propOpt)
-          | None -> DeclSimple $1
+          | Some (qMap, propOpt) -> DeclQuantified ($1, qMap, propOpt, Some (getlhsloc ()))
+          | None -> DeclSimple ($1, Some (getlhsloc ()))
         }
           
 optProp : prop
@@ -167,47 +167,47 @@ oneAutomatonDecl : oneCompAutomatonDecl
 oneCompAutomatonDecl : AUTOMATON designator optQuants LBRACE 
         stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = CompleteAutomaton ($2, $5, $6, $7, $8) in
+          let aut = CompleteAutomaton ($2, $5, $6, $7, $8, Some (getlhsloc ())) in
           match $3 with
-          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt)
-          | None -> DeclSimple aut
+          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
+          | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
 oneIncompAutomatonDecl : PARTIALAUTOMATON designator optQuants LBRACE
         stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = IncompleteAutomaton ($2, $5, $6, $7, $8) in
+          let aut = IncompleteAutomaton ($2, $5, $6, $7, $8, Some (getlhsloc ())) in
           match $3 with
-          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt)
-          | None -> DeclSimple aut
+          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
+          | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
 oneChannelAutomatonDecl : CHANNELAUTOMATON designator optQuants LBRACE
         chanPropDecl MESSAGES LBRACE msgList RBRACE SEMICOLON RBRACE
         {
-          let aut = ChannelAutomaton ($2, $5, $8) in
+          let aut = ChannelAutomaton ($2, $5, $8, Some (getlhsloc ())) in
           match $3 with
-          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt)
-          | None -> DeclSimple aut
+          | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
+          | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
 chanPropDecl : orderDecl COMMA lossDecl COMMA dupDecl SEMICOLON chanCapDecl
         { ($1, $3, $5, $7) }
 
 orderDecl : ORDERED
-        { ChanOrdered }
+        { ChanOrdered (Some (getlhsloc ())) }
     | UNORDERED
-        { ChanUnordered }
+        { ChanUnordered (Some (getlhsloc ())) }
 
 lossDecl : LOSSLESS 
-        { ChanLossless }
+        { ChanLossless (Some (getlhsloc ())) }
     | LOSSY
-        { ChanLossy }
+        { ChanLossy (Some (getlhsloc ())) }
 
 dupDecl : DUPLICATING
-        { ChanDuplicating }
+        { ChanDuplicating (Some (getlhsloc ())) }
     | NONDUPLICATING
-        { ChanNonDuplicating }
+        { ChanNonDuplicating (Some (getlhsloc ())) }
 
 chanCapDecl : CAPACITY EQUALS INTCONST SEMICOLON
         { $3 }
@@ -249,15 +249,15 @@ oneQuant : FOREACH identList IN symType
 
 stateAnnotation : 
     | COLON COMPLETE
-        { AnnotComplete }
+        { AnnotComplete (Some (getlhsloc ())) }
     | COLON INCOMPLETE
-        { AnnotIncomplete }
+        { AnnotIncomplete (Some (getlhsloc ())) }
     | COLON INCOMPLETE INTCONST
-        { AnnotIncompleteNum $3 }
+        { AnnotIncompleteNum ($3, Some (getlhsloc ())) }
     | COLON INCOMPLETE LPAREN msgList RPAREN
-        { AnnotIncompleteEventList $4 }
+        { AnnotIncompleteEventList ($4, Some (getlhsloc ())) }
     | COLON INCOMPLETE INTCONST LPAREN msgList RPAREN
-        { AnnotIncompleteNumEventList ($3, $5) }
+        { AnnotIncompleteNumEventList ($3, $5, Some (getlhsloc ())) }
     | /* empty */
         { AnnotNone }
       
@@ -272,8 +272,8 @@ stateDecls : stateDecls COMMA oneStateDecl
 oneStateDecl : designator optQuants stateAnnotation
         {
           match $2 with
-          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt), $3)
-          | None -> (DeclSimple $1, $3)
+          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt, Some (getlhsloc ())), $3)
+          | None -> (DeclSimple ($1, Some (getlhsloc ())), $3)
         }
 
 initStateDecl : INIT LBRACE initStateConstraintList RBRACE
@@ -287,8 +287,8 @@ initStateConstraintList : initStateConstraintList initStateConstraint
 initStateConstraint : stateEqList optQuants SEMICOLON
         {
           match $2 with
-          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt))
-          | None -> (DeclSimple $1)
+          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt, Some (getlhsloc ())))
+          | None -> (DeclSimple ($1, Some (getlhsloc ())))
         }
 
 stateEqList : stateEqList COMMA oneStateEq
@@ -320,8 +320,8 @@ transList : transList COMMA oneTrans
 oneTrans : LPAREN designator COMMA designator COMMA designator optQuants RPAREN
         { 
           match $7 with
-          | Some (qMap, propOpt) -> DeclQuantified (($2, $4, $6), qMap, propOpt)
-          | None -> DeclSimple (($2, $4, $6))
+          | Some (qMap, propOpt) -> DeclQuantified (($2, $4, $6), qMap, propOpt, Some (getlhsloc ()))
+          | None -> DeclSimple (($2, $4, $6), Some (getlhsloc ()))
         }
 
 specs : specs oneSpec
@@ -335,7 +335,7 @@ oneSpec : invariant
         { $1 }
 
 invariant : INVARIANT STRINGCONST LBRACE prop RBRACE
-        { SpecInvar ($2, $4) }
+        { SpecInvar ($2, $4, Some (getlhsloc ())) }
 
 ctlspec : CTLSPEC STRINGCONST LBRACE prop RBRACE
-        { SpecCTL ($2, $4) }
+        { SpecCTL ($2, $4, Some (getlhsloc ())) }
