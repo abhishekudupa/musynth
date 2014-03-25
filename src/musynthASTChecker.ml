@@ -146,6 +146,39 @@ let rec checkPureProp symtab prop =
   | _ -> raise (SemanticError ("Expected pure propositional formula, but got:\n" ^ 
                                (astToString pProp prop), None))
 
+let rec checkPureQProp symtab prop = 
+  match prop with
+  | PropTrue _
+  | PropFalse _ -> ()
+  | PropEquals (desig1, desig2, locopt)
+  | PropNEquals (desig1, desig2, locopt) -> 
+      let entry1 = getRValType symtab desig1 in
+      let entry2 = getRValType symtab desig2 in
+      checkTypeCompatibility entry1 entry2 locopt;
+      (match entry1, entry2 with
+      | SymVarName _, SymVarName _ -> ()
+      | _ -> raise (SemanticError ("Quantifier constraint can only contain locally declared vars", 
+                                   locopt)))
+
+  | PropNot (prop1, _) -> checkPureQProp symtab prop1
+  | PropAnd (prop1, prop2, _)
+  | PropOr (prop1, prop2, _)
+  | PropImplies (prop1, prop2, _)
+  | PropIff (prop1, prop2, _) ->
+      checkPureQProp symtab prop1;
+      checkPureQProp symtab prop2
+  | PropForall (idlist, typ, prop1, _)
+  | PropExists (idlist, typ, prop1, _) ->
+      let acttype = resolveSymType symtab typ in
+      ST.push symtab;
+      List.iter (fun ident -> 
+        let name, _ = ident in
+        ST.bind symtab ident (SymVarName (name, acttype))) idlist;
+      checkPureQProp symtab prop1;
+      ignore (ST.pop symtab)
+  | _ -> raise (SemanticError ("Expected pure propositional formula, but got:\n" ^ 
+                               (astToString pProp prop), None))
+
 (* checker for declarations which involve a designator *)
 let checkDesigDecl symtab desig loc =
   let ident, paramlist = destructDesigDecl desig in

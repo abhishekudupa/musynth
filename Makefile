@@ -22,10 +22,12 @@ GENSRC= \
 MODULES= \
 	musynthTypes \
 	musynthAST \
+	musynthUtils \
 	musynthParser \
 	musynthLexer \
 	musynthSymTab \
 	musynthASTChecker \
+	musynthASTLower \
 	musynthFrontEnd \
 	main \
 

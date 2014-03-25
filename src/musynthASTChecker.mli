@@ -62,6 +62,8 @@ val checkTypeCompatibility :
   MusynthTypes.symtabEntry -> MusynthTypes.sourcelocation option -> unit
 val checkPureProp :
   MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
+val checkPureQProp :
+  MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
 val checkDesigDecl :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musDesignatorT ->

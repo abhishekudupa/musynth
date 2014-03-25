@@ -11,6 +11,13 @@ module StringMap = Map.Make
       type t = string 
       let compare = Pervasives.compare 
     end)
+
+module StringSet = Set.Make
+    (struct
+        type t = string
+      let compare = Pervasives.compare
+    end)
+
   
 type identifierT = string * sourcelocation option
 
@@ -35,7 +42,7 @@ type musDesignatorT =
   | SimpleDesignator of identifierT
   | IndexDesignator of musDesignatorT * identifierT * sourcelocation option
   | FieldDesignator of musDesignatorT * identifierT * sourcelocation option
-        
+
 (* Only CTL at present *)
 type musPropT =
   | PropTrue of sourcelocation option
@@ -58,7 +65,7 @@ type musPropT =
   | PropCTLAU of musPropT * musPropT * sourcelocation option
   | PropCTLEU of musPropT * musPropT * sourcelocation option
     
-type 'a  musDeclType = 
+type 'a musDeclType = 
   | DeclSimple of 'a * sourcelocation option
   | DeclQuantified of 'a * (musSymTypeT IdentMap.t) * musPropT option * sourcelocation option
 
@@ -186,3 +193,66 @@ let exToString ex =
       "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | _ -> Printexc.to_string ex
 
+
+(* low level IR types *)
+type llIdentT = string * string list
+
+type llAnnotT =
+  | LLAnnotComplete
+  | LLAnnotIncomplete
+  | LLAnnotIncompleteNum of int
+  | LLAnnotIncompleteEventList of llIdentT list
+  | LLAnnotIncompleteNumEventList of int * llIdentT list
+
+type llStateT = llIdentT * llAnnotT
+
+module LLIdentSet = Set.Make
+    (struct 
+      type t = llIdentT
+      let compare = Pervasives.compare
+    end)
+
+module LLIdentMap = Map.Make
+    (struct
+      type t = llIdentT
+      let compare = Pervasives.compare
+    end)
+
+type llCompleteTransT = (llIdentT * llIdentT * llIdentT)
+
+type llParametricTransT = (llIdentT * llIdentT * LLIdentSet.t)
+
+(* name, state set, inmsgs, outmsgs, transitions *)
+type llAutomatonT = 
+  | LLCompleteAutomaton of (llIdentT * llIdentT list * 
+                              llIdentT list * llIdentT list * llCompleteTransT list)
+  | LLIncompleteAutomaton of (llIdentT * llIdentT list * 
+                                llIdentT list * llIdentT list * llParametricTransT list)
+
+type llDesignatorT = 
+  | LLDesigConst of llIdentT
+  | LLDesigState of llIdentT
+
+type llPropT = 
+  | LLPropTrue
+  | LLPropFalse
+  | LLPropEquals of (llDesignatorT * llDesignatorT)
+  | LLPropNEquals of (llDesignatorT * llDesignatorT)
+  | LLPropNot of llPropT
+  | LLPropAnd of (llPropT * llPropT)
+  | LLPropOr of (llPropT * llPropT)
+  | LLPropCTLAG of llPropT
+  | LLPropCTLAF of llPropT
+  | LLPropCTLAX of llPropT
+  | LLPropCTLEG of llPropT
+  | LLPropCTLEF of llPropT
+  | LLPropCTLEX of llPropT
+  | LLPropCTLAU of (llPropT * llPropT)
+  | LLPropCTLEU of (llPropT * llPropT)
+
+type llSpecT =
+  | LLSpecInvar of (string * llPropT)
+  | LLSpecCTL of (string * llPropT)
+
+(* automata, initstate list, spec list *)
+type llProgT = llAutomatonT list * (llIdentT LLIdentMap.t) list *  llSpecT list
