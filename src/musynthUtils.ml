@@ -20,3 +20,33 @@ let crossProduct lstlst =
   else
     crossProductRec lstlst
 
+module StringMap = Map.Make
+    (struct
+      type t = string
+      let compare = Pervasives.compare
+    end)
+
+let makeEmptyMS () =
+  StringMap.empty
+
+let addToMS elem ms =
+  let count =
+    (try
+      StringMap.find elem ms
+    with
+    | Not_found -> 0) 
+  in
+  StringMap.add elem (count + 1) ms
+
+let rec splatList elem count =
+  match count with
+  | 0 -> []
+  | n -> elem :: splatList elem (n - 1)
+
+let msToList ms =
+  let retval = ref [] in
+  StringMap.iter 
+    (fun key count -> 
+      retval := !retval @ (splatList key count)) ms;
+  !retval
+  

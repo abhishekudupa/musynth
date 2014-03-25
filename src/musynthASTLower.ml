@@ -173,6 +173,10 @@ let lowerCompleteTransDecl symtab trans qMap propOpt =
           let clist = List.combine clist fstatelist in
           List.map (fun ((a, b), c) -> (a, b, c)) clist
       end
+
+let lowerAutomatonDecl symtab aut qMap propOpt =
+  match aut with 
+  | 
           
 let lowerDecl symtab declParamLowerer decl =
   match decl with
@@ -207,3 +211,4 @@ let lowerMsgDeclBlock symtab block =
 
 let lowerCompleteTransDeclBlock symtab block = 
   List.concat (List.map (lowerDecl symtab lowerCompleteTransDecl) block)
+
