@@ -3,6 +3,29 @@ symmetrictypes {
     DataType : { D0, D1 };
 }
 
+messages {
+    Get[c] foreach c in CacheIDType,
+    Put[c] foreach c in CacheIDType,
+    Havoc[c][d] foreach c in CacheIDType foreach d in DataType,
+    GetDone[c][d] foreach c in CacheIDType foreach d in DataType,
+    HavocDone[c][d] foreach c in CacheIDType foreach d in DataType,
+    PutDone[c] foreach c in CacheIDType,
+    Req2Dir[c] foreach c in CacheIDType,
+    Req2Dir'[c] foreach c in CacheIDType,
+    WB2Dir[c][d] foreach c in CacheIDType foreach d in DataType,
+    WB2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+    InvAck2Dir[c][d] foreach c in CacheIDType foreach d in DataType,
+    InvAck2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+    Ack2Dir[c] foreach c in CacheIDType,
+    Ack2Dir'[c] foreach c in CacheIDType,
+    Rsp[c][d] foreach c in CacheIDType foreach d in DataType,
+    Rsp'[c][d] foreach c in CacheIDType foreach d in DataType,
+    WBAck[c] foreach c in CacheIDType,
+    WBAck'[c] foreach c in CacheIDType,
+    Inv[c] foreach c in CacheIDType,
+    Inv'[c] foreach c in CacheIDType 
+}
+
 Automaton Environment[c] foreach c in CacheIDType
 {
     states : { InitState[d] foreach d in DataType, 

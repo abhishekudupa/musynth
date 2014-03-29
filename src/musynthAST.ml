@@ -155,6 +155,10 @@ let pMsgDeclBlock name fmt block =
   musMakeIndentedBox fmt pp_print_string (name ^ " {")
     (pList "," true false pMsgDecl) block fprintf "};"
 
+let pMessagesDeclBlock fmt block =
+  musMakeIndentedBox fmt pp_print_string ("messages {")
+    (pList "," true false pMsgDecl) block fprintf "}"
+
 let pStateAnnot fmt annot =
   match annot with
   | AnnotNone -> ()
@@ -284,9 +288,11 @@ let pSpec fmt spec =
     pProp prop pp_print_string "}"
 
 let pProg fmt prog =
-  let symtypes, automata, initblock, specs = prog in
+  let symtypes, msgdecls, automata, initblock, specs = prog in
   fprintf fmt "@[<v 0>";
   pSymTypeDeclBlock fmt symtypes;
+  fprintf fmt "@,@,";
+  pMessagesDeclBlock fmt msgdecls;
   fprintf fmt "@,@,";
   List.iter (pAutomatonDecl fmt) automata;
   pInitStateDeclBlock fmt initblock;

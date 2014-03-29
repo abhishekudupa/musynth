@@ -27,7 +27,6 @@ MODULES= \
 	musynthLexer \
 	musynthSymTab \
 	musynthASTChecker \
-	musynthASTLower \
 	musynthFrontEnd \
 	main \
 

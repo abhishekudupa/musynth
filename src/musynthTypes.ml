@@ -47,6 +47,7 @@ type musDesignatorT =
 type musPropT =
   | PropTrue of sourcelocation option
   | PropFalse of sourcelocation option
+  | PropDefine of identifierT
   | PropEquals of (musDesignatorT * musDesignatorT * sourcelocation option)
   | PropNEquals of (musDesignatorT * musDesignatorT * sourcelocation option)
   | PropNot of musPropT * sourcelocation option
@@ -119,9 +120,10 @@ type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT = 
   | SpecInvar of string * musPropT * sourcelocation option
   | SpecCTL of string * musPropT * sourcelocation option
+  | SpecDefine of identifierT * musPropT * sourcelocation option
 
-type musProgT = musSymTypeDeclBlockT * musAutomatonDeclT list * 
-      musInitStateDeclBlockT * musSpecT list
+type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
+      musAutomatonDeclT list * musInitStateDeclBlockT * musSpecT list
 
 (* Symbol table types *)
 exception SymtabUnderflow
@@ -136,16 +138,20 @@ type autType =
   | PartialAutType
   | CompleteAutType
 
+type 'a declEntry = ('a * (string * musSymTypeT) list * musPropT option)
+
 type symtabEntry =
   | SymtypeConst of string * musSymTypeT
-  | StateName of string * musSymTypeT list * musPropT option * string
-  | MsgName of string * msgType * musSymTypeT list * musPropT option
+  | StateName of string declEntry
+  | MessageName of string declEntry
+  | AutomataMsgName of (string * msgType) declEntry
   | SymtypeName of string * musSymTypeT
-  | StateVar of string list * string
+  | StateVar of string list
   | SymVarName of string * musSymTypeT
   | AutomatonName of string * autType * musSymTypeT list * musPropT option * symTabScope
   | InvariantName of string * musPropT
   | CTLSpecName of string * musPropT
+  | DeclaredExpr of string * musPropT
 
 and symTabScope = symtabEntry IdentMap.t ref
 

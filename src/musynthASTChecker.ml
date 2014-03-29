@@ -100,13 +100,8 @@ let getRValType symtab rval =
 let checkTypeCompatibility entry1 entry2 locopt = 
   match entry1, entry2 with
   | StateName _, StateName _ -> raise (ConstantExpression locopt)
-  | StateVar (memlist, autname1), StateName (name, _, _, autname2)
-  | StateName (name, _, _, autname2), StateVar (memlist, autname1) ->
-      if (autname1 <> autname2) then
-        raise (SemanticError ("Statename \"" ^ autname2 ^ "\" is part of automaton \"" ^
-                              autname2 ^ "\" and not of \"" ^ autname1 ^ "\"", locopt))
-      else 
-        ();
+  | StateVar memlist, StateName (name, _, _)
+  | StateName (name, _, _), StateVar memlist ->
       if ((List.mem name memlist) <> true) then
         raise (SemanticError ("Invalid types in comparison", locopt))
       else
@@ -122,6 +117,25 @@ let rec checkPureProp symtab prop =
   match prop with
   | PropTrue _
   | PropFalse _ -> ()
+  | PropDefine ident ->
+      let name, loc = ident in
+      let entry = ST.lookupOrFail symtab ident in
+      begin
+        match entry with
+        | DeclaredExpr (_, prop1) -> 
+            begin
+              try
+                checkPureProp symtab prop1
+              with
+              | SemanticError (msg, locopt) ->
+                  let newmsg = msg ^ "\nError encountered in named/declared " ^ 
+                    "expression macro:\n" ^ name
+                  in
+                  raise (SemanticError (newmsg, loc))
+            end
+        | _ -> raise (SemanticError ("Identifier \"" ^ name "\" does not refer to a " ^ 
+                                     "pre-defined proposition/macro", loc))
+      end
   | PropEquals (desig1, desig2, locopt)
   | PropNEquals (desig1, desig2, locopt) -> 
       let entry1 = getRValType symtab desig1 in
@@ -157,9 +171,8 @@ let rec checkPureQProp symtab prop =
       checkTypeCompatibility entry1 entry2 locopt;
       (match entry1, entry2 with
       | SymVarName _, SymVarName _ -> ()
-      | _ -> raise (SemanticError ("Quantifier constraint can only contain locally declared vars", 
-                                   locopt)))
-
+      | _ -> raise (SemanticError ("Quantifier constraint can only refer to variables " ^ 
+                                   "quantified over symmetric types", locopt)))
   | PropNot (prop1, _) -> checkPureQProp symtab prop1
   | PropAnd (prop1, prop2, _)
   | PropOr (prop1, prop2, _)
@@ -167,15 +180,6 @@ let rec checkPureQProp symtab prop =
   | PropIff (prop1, prop2, _) ->
       checkPureQProp symtab prop1;
       checkPureQProp symtab prop2
-  | PropForall (idlist, typ, prop1, _)
-  | PropExists (idlist, typ, prop1, _) ->
-      let acttype = resolveSymType symtab typ in
-      ST.push symtab;
-      List.iter (fun ident -> 
-        let name, _ = ident in
-        ST.bind symtab ident (SymVarName (name, acttype))) idlist;
-      checkPureQProp symtab prop1;
-      ignore (ST.pop symtab)
   | _ -> raise (SemanticError ("Expected pure propositional formula, but got:\n" ^ 
                                (astToString pProp prop), None))
 
@@ -225,9 +229,11 @@ let checkStateDecl symtab statedecl =
   ST.bindGlobal symtab ident entry
 
 let checkMsgDecl symtab msgtype msgdecl =
-  let ident, typelist, propOpt, _ = checkDecl symtab checkDesigDecl msgdecl in
+
+let checkGlobalMsgDecl symtab msgtype msgdecl =
+  let ident typelist, propOpt, _ = checkDecl symtab checkDesigDecl msgdecl in
   let name, _ = ident in
-  ST.bind symtab ident (MsgName (name, msgtype, typelist, propOpt))
+  ST.bind symtab ident (MessageName (name, msgtype, typelist, propOpt))
 
 let checkStateDeclBlock symtab block annotallowed =
   List.iter 
@@ -324,8 +330,9 @@ let rec checkSpec symtab spec =
       ignore (ST.bindGlobal symtab (specname, None) (CTLSpecName (specname, prop)))
 
 let checkProg symtab prog =
-  let symtypedecls, autodecls, initstatedecls, specs = prog in
+  let symtypedecls, msgdecls, autodecls, initstatedecls, specs = prog in
   List.iter (checkSymTypeDecl symtab) symtypedecls;
+  List.iter (checkGlobalMsgDecl symtab) msgdecls;
   List.iter
     (fun aut -> 
       let autname, autparamlist, autPropOpt, autscope = checkDecl symtab checkAutDef aut in

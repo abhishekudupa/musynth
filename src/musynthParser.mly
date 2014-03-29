@@ -61,8 +61,8 @@ let getlhsloc () =
 
 /* productions */
 
-prog : symTypeDecls automatonDecls initStateDecl specs
-    { ($1, $2, $3, $4) }
+prog : symTypeDecls msgDecls automatonDecls initStateDecl specs
+    { ($1, $2, $3, $4, $5) }
 
 symTypeDecls : SYMMETRICTYPES LBRACE symTypeDeclList RBRACE
     { $3 }
@@ -99,6 +99,8 @@ prop : BCTRUE
         { PropTrue (Some (getlhsloc ())) }
     | BCFALSE
         { PropFalse (Some (getlhsloc ())) }
+    | IDENT
+        { PropDefine (Some (getlhsloc ())) }
     | LPAREN EQUALS designator designator RPAREN
         { PropEquals ($3, $4, Some (getlhsloc ())) }
     | LPAREN NEQUALS designator designator RPAREN
@@ -133,6 +135,9 @@ prop : BCTRUE
         { PropCTLAU ($3, $4, Some (getlhsloc ())) }
     | LPAREN TLEU prop prop RPAREN
         { PropCTLEU ($3, $4, Some (getlhsloc ())) }
+
+msgDecls : MESSAGES LBRACE msgList RBRACE
+        { $3 }
 
 msgList : msgList COMMA oneMsg
         { $1 @ [ $3 ] }
@@ -333,9 +338,14 @@ oneSpec : invariant
         { $1 }
     | ctlspec
         { $1 }
+    | definespec
+        { $1 }
 
 invariant : INVARIANT STRINGCONST LBRACE prop RBRACE
         { SpecInvar ($2, $4, Some (getlhsloc ())) }
 
 ctlspec : CTLSPEC STRINGCONST LBRACE prop RBRACE
         { SpecCTL ($2, $4, Some (getlhsloc ())) }
+
+definespec : DEFINE IDENT prop
+        { SpecDefine ($2, $3, Some (getlhsloc ())) }
