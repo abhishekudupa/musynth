@@ -21,6 +21,7 @@
 \newcommand{\pgood}{\ensuremath{P_{\mathrm{good}}}\xspace}
 \newcommand{\post}[2]{\ensuremath{\mathsf{img}(#1, #2)}\xspace}
 \newcommand{\pre}[2]{\ensuremath{\mathsf{pre}(#1, #2)}\xspace}
+\newcommand{\prestar}[2]{\ensuremath{\mathsf{pre}^*(#1, #2)}\xspace}
 \newcommand{\todo}[1]{\paragraph{\textcolor{Red}{\textbf{TODO:}}} #1}
 \newcommand{\lsub}[2]{\ensuremath{\mathsf{lsub}(#1, #2)}\xspace}
 
@@ -92,14 +93,44 @@ $$t_1 = \mu Z. S \wedge \post{\lsub{Z}{\psi_1}}{\ctrans}$$
 consists of states $t$ such that $t$ is reachable from some state in $S$
 through a path along which $\psi_1$ holds at least until the predecessor of
 $t$. Now,
-$$t_2 = \lsub{t_1}{\psi_2}$$ gives us precisely the set of states $s$ such
-that $s \models \eu{\psi_1}{\psi_2}$
+$$t_2 = \lsub{t_1}{\psi_2}$$ gives us the set of states $t_2$ such that
+given a state in $s \in S$ then $s \models \eu{\psi_1}{\psi_2}$ iff
+some $t \in t_2$ is reachable from $s$. We can obtain the set of all
+such states by computing $\prestar{t_2, \ctrans}$.
 
 \section{The \eg{} Operator}
 Suppose the \ctl formula has the form $\eg{\psi}$, then we compute
-$$t_1 = \lsub{S}{\eu{\psi}{\psi}}$$,
-which is the set of all $\psi$ states that can be reached from some state
-in $S$
+$$t_1 = \lsub{S}{\eu{\psi}{\psi}}$$
+which is the set of all $\psi$ states that can be be reached from some
+state in $S$ by a path where $\psi$ holds at all points. We now
+compute 
+$$t_2 = \nu Z. t_1 \wedge \post{Z}{\ctrans}$$
+which gives us the set of all states which are reachable from $S$ such
+that they satisfy $\psi$ and can reach themselves. Now computing
+$\prestar{t_2}{\ctrans}$, gives us the set of all states in $S$ which
+satisfy $\eg{\psi}$.
+
+The complete algorithm is as follows:
+\begin{verbatim}
+lsub S F =
+match F with
+| F1 & F2 -> lsub S F1 intersect lsub S F2
+| !F1 -> S difference lsub S F1
+| EX F1 -> S intersect pre(F1)
+| EU F1 F2 -> lsubeu S F1 F2
+| EG F1 -> lsubeg S F1
+| prop -> S intersect F
+
+lsubeu S F1 F2 =
+  t1 = lfp Z [ S union img(lsub Z F1) ]
+  t2 = lsub t1 F2
+  pre*(t2) intersect S
+
+lsub eg S F1 =
+  t1 = lsubeu S F1 F1
+  t2 = gfp Z [ t1 intersect img(Z) ]
+  pre*(t2) intersect S
+\end{verbatim}
 
 \bibliographystyle{plain}
 \bibliography{alg01}

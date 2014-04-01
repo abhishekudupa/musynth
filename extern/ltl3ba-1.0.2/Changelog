@@ -1,0 +1,25 @@
+
+version 1.0.2 (2012-12-13)
+
+  -- R, G and F operators are used to dump formulas when -d, -T options are used.
+  -- When a VWAA state is removed, it is removed from accepting states set as well.
+  -- Fix segmentation fault when a VWAA state without any transition was degeneralized.
+  -- Fix some formula reductions for X operator that were not applied under some conditions.
+  -- Method count_predecessors_sets was rewriten to gain some speedup.
+  -- Add options -T and -U to output TGBA and BA in SPOT format, respectively.
+  -- Add option -v to display version number.
+
+version 1.0.1 (2012-05-21)
+
+  -- Fix bug in alternating automata construction for conjunction.
+  -- Fix segmentation fault when only -C option is used.
+  -- Fix that some formula reductions for disjunction were not applied.
+  -- Fix some mistypes.
+  -- Fix useless calls of formulae reductions when extra parenthesis are added.
+  -- Add option -h and some error explanations.
+  -- Fix to call bdd_done even when an error occurs.
+  -- The check, whether a TGBA state can be suspended, is done only if there is
+     some alternating formula in that state.
+  -- Do not display unnecessary auxiliary information in alternating automata.
+  -- When doing rewriting of R formulae with alternating subformulae,
+     formula simplifications are called only if the formula is changed.

@@ -10,4 +10,4 @@ alg01.pdf : alg01.tex
 .PHONY: clean
 
 clean:
-	rm -rf alg01.pdf *.aux *.lot *.lof *.out *.log
+	rm -rf alg01.pdf *.aux *.lot *.lof *.out *.log *.bbl *.blg
