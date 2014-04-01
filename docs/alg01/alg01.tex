@@ -6,6 +6,7 @@
 \usepackage{mdwtab}
 \usepackage{mathenv}
 \usepackage{xspace}
+\usepackage[usenames,dvipsnames]{color}
 
 \newcommand{\ctl}{\textsc{ctl}\xspace}
 \newcommand{\ptrans}{\ensuremath{\mathbf{R}_p}\xspace}
@@ -19,6 +20,7 @@
 \newcommand{\pgood}{\ensuremath{P_{\mathrm{good}}}\xspace}
 \newcommand{\post}[2]{\ensuremath{\mathsf{post}(#1, #2)}\xspace}
 \newcommand{\pre}[2]{\ensuremath{\mathsf{pre}(#1, #2)}\xspace}
+\newcommand{\todo}[1]{\paragraph{\textcolor{Red}{\textbf{TODO:}}} #1}
 
 
 \title{A Symbolic Algorithm for Automata Completion with \ctl
@@ -75,16 +77,17 @@ propositional formulas. Note that even with this restriction, we can still
 express any \ctl formula with the vocabulary of operators we consider.
 
 \section{The \eg{} Operator}
-Suppose that the specification is of the form \eg{\psi}. We first describe
-an algorithm to determine if a given set of states $S$ satisfies
-\eg{\psi}, with respect to a fixed (concrete) transition relation
-$\ctrans$, which we then extend to obtain the set of all valuations $\pgood
-\subseteq P$ which result in the parametric transition relation $\ptrans$
-satisfying the specification $\eg{\psi}$.
+Suppose that the specification is of the form \eg{\psi} and a set of
+states $S$. We describe an algorithm to determine the largest subset
+of states $S' \subseteq S$, such that each state $s \in S' \models
+\eg{\psi}$, with respect to a fixed (concrete) transition relation
+$\ctrans$. We will then describe how this algorithm can be extended to
+obtain a set of all valuations $\pgood \subseteq P$ such that a given
+set of state, parameter pairs satisfies \eg{\psi}.
 
 \subsection{Model Checking for $\eg{\psi}$}
-Observe that a given set of states $S \models \eg{\psi}$ if and only if at
-least one state $s \in S \models \psi$ and there exists an infinite path
+Observe that a state $s \models \eg{\psi}$ if and only if at
+$s \models \psi$ and there exists an infinite path
 beginning at $s$ where $\psi$ holds everywhere. To state this formally, we
 use the notation $\post{S}{\ctrans}$ to denote the set of states reachable
 from any state $s \in S$ in one step with respect to the transition
@@ -96,15 +99,16 @@ with respect to $\ctrans$. We then obtain the following sequence of
 equivalences:
 
 \begin{eqnarray*}[ll]
-& \ S \models \eg{\psi}\\
-\Leftrightarrow & \ S \models \psi \wedge (\exists s' \in
-\post{S}{\ctrans}. s' \models \eg{\psi})\\
-\Leftrightarrow & \ S \models \psi \wedge (\exists s' \in
-\post{S}{\ctrans}. s' \models \psi \wedge (\exists s'' \in
+& \ s \models \eg{\psi}\\
+\Leftrightarrow & \ s \models \psi \wedge (\exists s' \in
+\post{s}{\ctrans}. s' \models \eg{\psi})\\
+\Leftrightarrow & \ s \models \psi \wedge (\exists s' \in
+\post{s}{\ctrans}. s' \models \psi \wedge (\exists s'' \in
 \post{s'}{\ctrans}. s'' \models \eg{\psi}))
 \end{eqnarray*}
 and so on. This sequence of equivalences suggests the following technique
-to determine if a given set of states $S \models \eg{\psi}$: We construct a
+to determine the largest subset $S'$ of a given set of states $S$,
+such that every state $s \in S' \models \eg{\psi}$: We construct a
 sequence of sets of states $F_i, i \geq 1$ such that each state in $F_i$ is (1)
 reachable from some state in $s \in S$ in $i$ steps, and (2)
 each state $s \in F_i \models \eg{\psi}$. The set $\bigcup_i F_i$ thus
@@ -123,36 +127,49 @@ in $i$ steps \emph{and} satisfies the property \eg{\psi} for \emph{at
 arrows indicating the dependencies between constructions, and where each
 entry is a set of states:
 
-\begin{eqnarray*}[lclclclclcl]
-& & U_1 & & U_2 & & U_3 & & U_4 & & \ldots \\
-& \nearrow & & \nearrow & & \nearrow & &\nearrow \\
-F_1^0 & \rightarrow & F_1^1 & \rightarrow & F_1^2 & \rightarrow & F_1^3 &
-\rightarrow & \ldots\\
-\downarrow & \nearrow & & \nearrow & &\nearrow&\\
-F_2^0 & \rightarrow & F_2^1 & \rightarrow & F_2^2 & & \rightarrow & \ldots &\\
-\downarrow & \nearrow & & \nearrow & & &\\
-F_3^0 & \rightarrow & F_3^1 & \rightarrow & \ldots & & & &\\
-\downarrow & \nearrow & & & & &\\
-F_4^0 & \rightarrow & \ldots & & & & &\\
-\vdots
+\begin{eqnarray*}[lclclclclclcl]
+& & U_0 & & U_1 & & U_2 & & U_3 & & U_4 & & \ldots\\
+& \nearrow & & \nearrow & & \nearrow & & \nearrow & & \nearrow &\\
+F_0^0 & \rightarrow & F_0^1 & \rightarrow & F_0^2 & \rightarrow & F_0^3 &
+\rightarrow & F_0^4 & \rightarrow & \ldots\\
+\downarrow & \nearrow & & \nearrow & & \nearrow & & \nearrow\\
+F_1^0 & \rightarrow & F_1^1 & \rightarrow & F_1^2 & \rightarrow &
+F_1^3 & \rightarrow & \ldots\\
+\downarrow & \nearrow & & \nearrow & & \nearrow \\
+F_2^0 & \rightarrow & F_2^1 & \rightarrow & F_2^2 & \rightarrow &
+\ldots\\
+\downarrow & \nearrow & & \nearrow\\
+F_3^0 & \rightarrow & F_3^1 & \rightarrow & \ldots\\
+\downarrow & \nearrow\\
+F_4^0 & \rightarrow & \ldots\\
+\ \vdots
 \end{eqnarray*}
-Assuming that all states $s \in S \models \psi$, we construct the sets
-$F_i^j$ and $U_i$ using the following recurrences:
+We construct the sets $F_i^j$ and $U_i$ using the following
+recurrences:
 \begin{eqnarray*}[lcll]
-F_1^0 & = & \post{S}{\ctrans} \wedge \psi &\\
-F_i^0 & = & \post{F_{i-1}^0}{\ctrans} \wedge \psi, & \ i > 1\\
-F_i^j & = & F_i^{j-1} \wedge \pre{F_{i+1}^{j-1}}{\ctrans}, & \ i > 1,\ j >
-1\\
-U_i & = & \bigcup_{k \in [0,i-1]} F_{i-k}^{k}, &\ i > 0
+F_0^0 & = & S \wedge \psi &\\
+F_i^0 & = & \post{F_{i-1}^0}{\ctrans} \wedge \psi, & \ i > 0\\
+F_i^j & = & F_i^{j-1} \wedge \pre{F_{i+1}^{j-1}}{\ctrans}, & \ i \geq 0,\ j >
+0\\
+U_i & = & \bigcup_{k \in [0,i]} F_{i-k}^{k}, &\ i \geq 0
 \end{eqnarray*}
-The sets $U_i$ are essentially \emph{upper bounds} of the sets of states
-reachable in $i$ or fewer steps from $S$ which also satisfy
-$\eg{\psi}$. The fixpoint where $U_k = U_{k+1}$ is the set of \emph{all}
-states reachable from $S$ which satisfy \eg{\psi}. On the other hand, if
-any set $F_i^j$ becomes empty during the construction, then $S \not\models
-\eg{\psi}$.
+The sets $U_i$ are essentially \emph{upper bounds} of the sets of
+states reachable in $i$ or fewer steps from $S$ which also satisfy
+$\eg{\psi}$. The fixpoint where $U_k = U_{k+1}$ is the set of
+\emph{all} states reachable from $S$ which satisfy \eg{\psi}. On the
+other hand, if any set $F_i^j$ becomes empty during the construction,
+observe that it will eventually cause some set $F_o^k$ to become empty
+as well (because $\pre{\bot}{\ctrans} = \bot$), and thus, for every
+state $s \in S$, we can conclude that $s \not\models \eg{\psi}$.
+
+\todo{Proofs for existence of fixpoint and emptiness if unsat}
+
+\paragraph{Optimizations.} Note that if the sets $F_i^0$ become too
+large, then the process can be restarted at any time using the last
+computed $F_0^k$ as $F_0^0$ after restarting.
 
 \subsection{Synthesizing for $\eg{\psi}$}
+
 
 \end{spacing}
 \end{document}
