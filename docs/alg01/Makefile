@@ -2,6 +2,8 @@ default: alg01.pdf
 
 alg01.pdf : alg01.tex
 	pdflatex alg01.tex
+	bibtex alg01
+	pdflatex alg01.tex
 	pdflatex alg01.tex
 	pdflatex alg01.tex
 

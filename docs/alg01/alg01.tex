@@ -7,6 +7,7 @@
 \usepackage{mathenv}
 \usepackage{xspace}
 \usepackage[usenames,dvipsnames]{color}
+\usepackage{natbib}
 
 \newcommand{\ctl}{\textsc{ctl}\xspace}
 \newcommand{\ptrans}{\ensuremath{\mathbf{R}_p}\xspace}
@@ -18,9 +19,10 @@
 \newcommand{\au}[2]{\ensuremath{\mathsf{A}#1 \mathsf{U} #2\xspace}}
 \newcommand{\eu}[2]{\ensuremath{\mathsf{E}#1 \mathsf{U} #2\xspace}}
 \newcommand{\pgood}{\ensuremath{P_{\mathrm{good}}}\xspace}
-\newcommand{\post}[2]{\ensuremath{\mathsf{post}(#1, #2)}\xspace}
+\newcommand{\post}[2]{\ensuremath{\mathsf{img}(#1, #2)}\xspace}
 \newcommand{\pre}[2]{\ensuremath{\mathsf{pre}(#1, #2)}\xspace}
 \newcommand{\todo}[1]{\paragraph{\textcolor{Red}{\textbf{TODO:}}} #1}
+\newcommand{\lsub}[2]{\ensuremath{\mathsf{lsub}(#1, #2)}\xspace}
 
 
 \title{A Symbolic Algorithm for Automata Completion with \ctl
@@ -71,105 +73,36 @@ problem by using a \emph{forward} analysis, in which only reachable states
 are considered and valuations of the parameters which can be certified as
 ``bad'' are eagerly, but conservatively, pruned.
 
-We present algorithms for the \ctl operators \ag{}, \eg{}, \au{}{},
-\eu{}{}, \ax{} and \ex{}. We also assume that negations are applied only to
-propositional formulas. Note that even with this restriction, we can still
-express any \ctl formula with the vocabulary of operators we consider.
+We present an algorithm which given a set of states $S$ and a \ctl formula
+$\varphi$, produces the largest subset $S' \subseteq S$, such that for
+every $s \in S'$, $s \models \varphi$. The algorithm is inspired by the
+forward \ctl model checking algorithm by Iwashita,
+et. al.~\cite{ctl-forward}. Such a procedure could then be trivially used
+to solve the synthesis problem, by finding the largest subset of the set of
+(parametrized) initial states $s_0^p$.
+
+We use the following notations in the presentation: \lsub{S}{\varphi}
+refers to the largest subset of $S' \subseteq S$ such that for every state
+$s \in S'$, $s \models \varphi$.
+
+\section{The \eu{}{} Operator}
+Suppose we are given a set $S$ and a \ctl formula of the form
+\eu{\psi_1}{\psi_2}, observe that the fixpoint
+$$t_1 = \mu Z. S \wedge \post{\lsub{Z}{\psi_1}}{\ctrans}$$
+consists of states $t$ such that $t$ is reachable from some state in $S$
+through a path along which $\psi_1$ holds at least until the predecessor of
+$t$. Now,
+$$t_2 = \lsub{t_1}{\psi_2}$$ gives us precisely the set of states $s$ such
+that $s \models \eu{\psi_1}{\psi_2}$
 
 \section{The \eg{} Operator}
-Suppose that the specification is of the form \eg{\psi} and a set of
-states $S$. We describe an algorithm to determine the largest subset
-of states $S' \subseteq S$, such that each state $s \in S' \models
-\eg{\psi}$, with respect to a fixed (concrete) transition relation
-$\ctrans$. We will then describe how this algorithm can be extended to
-obtain a set of all valuations $\pgood \subseteq P$ such that a given
-set of state, parameter pairs satisfies \eg{\psi}.
+Suppose the \ctl formula has the form $\eg{\psi}$, then we compute
+$$t_1 = \lsub{S}{\eu{\psi}{\psi}}$$,
+which is the set of all $\psi$ states that can be reached from some state
+in $S$
 
-\subsection{Model Checking for $\eg{\psi}$}
-Observe that a state $s \models \eg{\psi}$ if and only if at
-$s \models \psi$ and there exists an infinite path
-beginning at $s$ where $\psi$ holds everywhere. To state this formally, we
-use the notation $\post{S}{\ctrans}$ to denote the set of states reachable
-from any state $s \in S$ in one step with respect to the transition
-relation \ctrans. We abuse notation and use $\post{s}{\ctrans}$ to refer to
-the set of states reachable from the single state $s$ in one step with
-respect to the \ctrans. Similarly, we use the notation $\pre{S}{\ctrans}$
-to refer to the set of states which can reach a state in $S$ in one step
-with respect to $\ctrans$. We then obtain the following sequence of
-equivalences:
-
-\begin{eqnarray*}[ll]
-& \ s \models \eg{\psi}\\
-\Leftrightarrow & \ s \models \psi \wedge (\exists s' \in
-\post{s}{\ctrans}. s' \models \eg{\psi})\\
-\Leftrightarrow & \ s \models \psi \wedge (\exists s' \in
-\post{s}{\ctrans}. s' \models \psi \wedge (\exists s'' \in
-\post{s'}{\ctrans}. s'' \models \eg{\psi}))
-\end{eqnarray*}
-and so on. This sequence of equivalences suggests the following technique
-to determine the largest subset $S'$ of a given set of states $S$,
-such that every state $s \in S' \models \eg{\psi}$: We construct a
-sequence of sets of states $F_i, i \geq 1$ such that each state in $F_i$ is (1)
-reachable from some state in $s \in S$ in $i$ steps, and (2)
-each state $s \in F_i \models \eg{\psi}$. The set $\bigcup_i F_i$ thus
-gives the set of \emph{all} states reachable from $S$ which satisfy
-$\eg{\psi}$. There are two questions that need to be answered to construct
-an algorithm that implements the technique described: (1) When do we
-terminate? (2) How do we construct the sets $F_i$? For the first question,
-we terminate either when (1) some $F_i$ becomes empty, implying that the
-property is false, or (2) when a fixpoint is reached, i.e., $F_i = F_{i+1}$
-for some $i$, implying that the property is true. For the second question,
-instead of maintaining the sets $F_i$ exactly, we construct a sequence of
-\emph{over-approximations} $F_i^0, F_i^1, \ldots,$, such that $F_i^j$
-represents the set of states which are reachable from some state $s \in S$
-in $i$ steps \emph{and} satisfies the property \eg{\psi} for \emph{at
-  least} $j$ more steps. Intuitively, we construct the following table with
-arrows indicating the dependencies between constructions, and where each
-entry is a set of states:
-
-\begin{eqnarray*}[lclclclclclcl]
-& & U_0 & & U_1 & & U_2 & & U_3 & & U_4 & & \ldots\\
-& \nearrow & & \nearrow & & \nearrow & & \nearrow & & \nearrow &\\
-F_0^0 & \rightarrow & F_0^1 & \rightarrow & F_0^2 & \rightarrow & F_0^3 &
-\rightarrow & F_0^4 & \rightarrow & \ldots\\
-\downarrow & \nearrow & & \nearrow & & \nearrow & & \nearrow\\
-F_1^0 & \rightarrow & F_1^1 & \rightarrow & F_1^2 & \rightarrow &
-F_1^3 & \rightarrow & \ldots\\
-\downarrow & \nearrow & & \nearrow & & \nearrow \\
-F_2^0 & \rightarrow & F_2^1 & \rightarrow & F_2^2 & \rightarrow &
-\ldots\\
-\downarrow & \nearrow & & \nearrow\\
-F_3^0 & \rightarrow & F_3^1 & \rightarrow & \ldots\\
-\downarrow & \nearrow\\
-F_4^0 & \rightarrow & \ldots\\
-\ \vdots
-\end{eqnarray*}
-We construct the sets $F_i^j$ and $U_i$ using the following
-recurrences:
-\begin{eqnarray*}[lcll]
-F_0^0 & = & S \wedge \psi &\\
-F_i^0 & = & \post{F_{i-1}^0}{\ctrans} \wedge \psi, & \ i > 0\\
-F_i^j & = & F_i^{j-1} \wedge \pre{F_{i+1}^{j-1}}{\ctrans}, & \ i \geq 0,\ j >
-0\\
-U_i & = & \bigcup_{k \in [0,i]} F_{i-k}^{k}, &\ i \geq 0
-\end{eqnarray*}
-The sets $U_i$ are essentially \emph{upper bounds} of the sets of
-states reachable in $i$ or fewer steps from $S$ which also satisfy
-$\eg{\psi}$. The fixpoint where $U_k = U_{k+1}$ is the set of
-\emph{all} states reachable from $S$ which satisfy \eg{\psi}. On the
-other hand, if any set $F_i^j$ becomes empty during the construction,
-observe that it will eventually cause some set $F_o^k$ to become empty
-as well (because $\pre{\bot}{\ctrans} = \bot$), and thus, for every
-state $s \in S$, we can conclude that $s \not\models \eg{\psi}$.
-
-\todo{Proofs for existence of fixpoint and emptiness if unsat}
-
-\paragraph{Optimizations.} Note that if the sets $F_i^0$ become too
-large, then the process can be restarted at any time using the last
-computed $F_0^k$ as $F_0^0$ after restarting.
-
-\subsection{Synthesizing for $\eg{\psi}$}
-
+\bibliographystyle{plain}
+\bibliography{alg01}
 
 \end{spacing}
 \end{document}
