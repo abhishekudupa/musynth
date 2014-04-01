@@ -1,5 +1,4 @@
 #!/bin/bash
 
-make uninstall
-make clean
-make distclean
+rm -rf ./build/libbdd.*
+rm -rf ./build/include/*
