@@ -33,9 +33,9 @@
 # Algorithms for the Construction and Analysis of Systems (TACAS 2012)   
 
 # Set PATH to "bdd.h" BuDDy file.
-BUDDY_INCLUDE=/usr/local/include/
+BUDDY_INCLUDE=../buddy-2.4/build/include
 # Set PATH to "libbdd.a" BuDDy file.
-BUDDY_LIB=/usr/local/lib/
+BUDDY_LIB=../buddy-2.4/build
 
 # to obtain BuDDy run:
 # $ cd some_directory

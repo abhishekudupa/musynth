@@ -167,7 +167,7 @@ tl_main(std::string &argv)
 		||  argv[i] == '\n')
 			argv[i] = ' ';
 	}
-  uform = argv;
+    uform = argv;
 	hasuform = uform.length();
 	if (hasuform == 0) usage(1);
 	tl_parse();
