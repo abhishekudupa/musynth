@@ -32,6 +32,11 @@
 # presented at the 18th International Conference on Tools and            
 # Algorithms for the Construction and Analysis of Systems (TACAS 2012)   
 
+# modifications to build system for lib generation as well as 
+# ocaml bindings by
+# Abhishek Udupa, University of Pennsylvania, Copyright 2014
+# audupa@cis.upenn.edu
+
 # Set PATH to "bdd.h" BuDDy file.
 BUDDY_INCLUDE=../buddy-2.4/build/include
 # Set PATH to "libbdd.a" BuDDy file.
@@ -53,15 +58,41 @@ BUDDY_LIB=../buddy-2.4/build
 
 CC=g++
 CXX=g++
-CPPFLAGS= -O3 -DNXT -I$(BUDDY_INCLUDE)
+CPPFLAGS=-fPIC -O3 -std=c++11 -DNXT -I$(BUDDY_INCLUDE)
 
 LTL3BA=	parse.o lex.o main.o trans.o buchi.o cset.o set.o \
-	mem.o rewrt.o cache.o alternating.o generalized.o optim.o queue.o
+	mem.o rewrt.o cache.o alternating.o generalized.o optim.o queue.o \
+
+
+LIBLTL3BAOBJS=	parse.o lex.o trans.o buchi.o cset.o set.o \
+	mem.o rewrt.o cache.o alternating.o generalized.o optim.o queue.o \
+	libmain.o \
+
+
+default: all
+
+all: ltl3ba libltl3ba
 
 ltl3ba:	$(LTL3BA)
-	$(CXX) $(CPPFLAGS) -o ltl3ba $(LTL3BA) -L$(BUDDY_LIB) -lbdd -static
+	$(CXX)  $(CPPFLAGS)  -o ltl3ba $(LTL3BA) -L$(BUDDY_LIB) -Wl,-Bstatic -lbdd -Wl,-Bdynamic
+
+libltl3ba: libltl3ba.so libltl3ba.a
+
+libltl3ba.so: $(LIBLTL3BAOBJS)
+	rm -rf .temp2; mkdir .temp2; cp $(BUDDY_LIB)/libbdd.a .temp2; cd .temp2; ar -x libbdd.a
+	$(CXX)  $(CPPFLAGS) -shared -o $@ $(LIBLTL3BAOBJS) .temp2/*.o
+	rm -rf .temp2
+
+libltl3ba.a: $(LIBLTL3BAOBJS)
+	rm -rf .temp; mkdir .temp; cp $(BUDDY_LIB)/libbdd.a .temp; cd .temp; ar -x libbdd.a; \
+		cd ..; ar -rcs $@ $(LIBLTL3BAOBJS) .temp/*.o; rm -rf .temp
 
 $(LTL3BA): ltl3ba.h
 
+libmain.o: main.cpp
+	$(CXX)  $(CPPFLAGS)  -c -DLTL3BA_LIB_BUILD -o libmain.o main.cpp
+
+.PHONY: clean all default
+
 clean:
-	rm -f ltl3ba *.o core
+	rm -f ltl3ba *.o core libltl3ba.*

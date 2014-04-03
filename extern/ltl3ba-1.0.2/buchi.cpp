@@ -43,7 +43,6 @@
 /* among existing states.             Comment to disable.              */
 #define DICT
 
-using namespace std;
 
 /********************************************************************\
 |*              Structures and shared variables                     *|
@@ -65,16 +64,20 @@ extern FILE *tl_out;
 BState *bstack, *bstates, *bremoved;
 BScc *bscc_stack;
 #ifdef DICT
-map<GState*, BState*>** bsDict;
+std::map<GState*, BState*>** bsDict;
 #endif
 int accept, bstate_count = 0, btrans_count = 0, b_rank;
+
+// Disjuncts for the visitor
+static std::vector<Cube> GSCurDisjuncts;
+
 
 /********************************************************************\
 |*              Simplification of the Buchi automaton               *|
 \********************************************************************/
 
-void decrement_incoming(map<BState*, bdd> *trans) {
-  map<BState*, bdd>::iterator t;
+void decrement_incoming(std::map<BState*, bdd> *trans) {
+  std::map<BState*, bdd>::iterator t;
   for(t = trans->begin(); t != trans->end(); t++)
       t->first->incoming--;
 }
@@ -94,7 +97,7 @@ BState *remove_bstate(BState *s, BState *s1) /* removes a state */
   s->nxt->prv = s->prv;
   if (s->trans)
     delete s->trans;
-  s->trans = (map<BState*, bdd> *)0;
+  s->trans = (std::map<BState*, bdd> *)0;
   s->nxt = bremoved->nxt;
   bremoved->nxt = s;
   s->prv = s1;
@@ -107,7 +110,7 @@ BState *remove_bstate(BState *s, BState *s1) /* removes a state */
 void retarget_all_btrans()
 {             /* redirects transitions before removing a state from the automaton */
   BState *s;
-  map<BState*, bdd>::iterator t, tx;
+  std::map<BState*, bdd>::iterator t, tx;
   for (s = bstates->nxt; s != bstates; s = s->nxt)
     for (t = s->trans->begin(); t != s->trans->end(); )
       if (!t->first->trans) { /* t->to has been removed */
@@ -136,7 +139,7 @@ void retarget_all_btrans()
 
 int all_btrans_match(BState *a, BState *b) /* decides if the states are equivalent */
 {
-  map<BState*, bdd>::iterator s, t;
+  std::map<BState*, bdd>::iterator s, t;
   bdd loop_a, loop_b;
   if (((a->final == accept) || (b->final == accept)) &&
       (a->final + b->final != 2 * accept) && 
@@ -239,7 +242,7 @@ int simplify_bstates() /* eliminates redundant states */
 }
 
 int bdfs(BState *s) {
-  map<BState*, bdd>::iterator t;
+  std::map<BState*, bdd>::iterator t;
   BScc *c;
   BScc *scc = (BScc *)tl_emalloc(sizeof(BScc));
   scc->bstate = s;
@@ -292,26 +295,26 @@ void simplify_bscc() {
       s = remove_bstate(s, 0);
 }
 
-typedef pair<int, bdd> pair_col;
-typedef list<pair_col> set_next_col;
-typedef pair<int, set_next_col> pair_set_col;
+typedef std::pair<int, bdd> pair_col;
+typedef std::list<pair_col> set_next_col;
+typedef std::pair<int, set_next_col> pair_set_col;
 
 void insert_edge(set_next_col& L, const pair_col& E);
-int insert_color(list<pair_set_col>& L, const pair_set_col& C);
+int insert_color(std::list<pair_set_col>& L, const pair_set_col& C);
 bool equiv_set_col(const set_next_col& S1, const set_next_col& S2);
-BState* add_state(int col, map<int, BState*>& color_dict);
+BState* add_state(int col, std::map<int, BState*>& color_dict);
 void delete_bstack(BState* stack);
 
 void basic_bisim_reduction() {
   BState *s, *stack, *to;
   pair_col P_COL; // transition
   pair_set_col P_S_COL; // collor
-  list<pair_set_col> COL; // list of collors
-  map<int, list<BState*> > color_nodes; // <color, list of nodes>
-  map<int, list<BState*> >::iterator cn_i;
-  list<BState*>::iterator ln_i;
-  map<int, BState*> color_dict;
-  map<BState*, bdd>::iterator t;
+  std::list<pair_set_col> COL; // list of collors
+  std::map<int, std::list<BState*> > color_nodes; // <color, list of nodes>
+  std::map<int, std::list<BState*> >::iterator cn_i;
+  std::list<BState*>::iterator ln_i;
+  std::map<int, BState*> color_dict;
+  std::map<BState*, bdd>::iterator t;
   int max_old = 0, max_new = 0;
   int i;
   
@@ -401,8 +404,8 @@ void basic_bisim_reduction() {
   bstates = stack;
 }
 
-BState* add_state(int col, map<int, BState*>& color_dict) {
-  map<int, BState*>::iterator it = color_dict.find(col);
+BState* add_state(int col, std::map<int, BState*>& color_dict) {
+  std::map<int, BState*>::iterator it = color_dict.find(col);
   
   if (it !=  color_dict.end()) {
     return color_dict[col];
@@ -413,7 +416,7 @@ BState* add_state(int col, map<int, BState*>& color_dict) {
   s->id = col;
   s->incoming = col;
   s->final = -1;
-  s->trans = new map<BState*, bdd>();
+  s->trans = new std::map<BState*, bdd>();
   color_dict[col] = s;
   bstate_count++;
   return s;
@@ -443,9 +446,9 @@ void insert_edge(set_next_col& L, const pair_col& E) {
   }
 }
 
-int insert_color(list<pair_set_col>& L, const pair_set_col& C)
+int insert_color(std::list<pair_set_col>& L, const pair_set_col& C)
 {
-  list<pair_set_col>::iterator l_i, l_e;
+  std::list<pair_set_col>::iterator l_i, l_e;
   int i = 1;
 
   if (L.empty()) {
@@ -497,13 +500,13 @@ void strong_fair_sim_reduction() {
   BState *s, *stack, *to;
   pair_col P_COL; // transition
   pair_set_col P_S_COL; // collor
-  list<pair_set_col> COL; // list of collors
-  list<pair_set_col>::iterator col_i, col_j;
-  map<int, list<BState*> > color_nodes; // <color, list of nodes>
-  map<int, list<BState*> >::iterator cn_i;
-  list<BState*>::iterator ln_i;
-  map<BState*, bdd>::iterator t;
-  map<int, BState*> color_dict;
+  std::list<pair_set_col> COL; // list of collors
+  std::list<pair_set_col>::iterator col_i, col_j;
+  std::map<int, std::list<BState*> > color_nodes; // <color, list of nodes>
+  std::map<int, std::list<BState*> >::iterator cn_i;
+  std::list<BState*>::iterator ln_i;
+  std::map<BState*, bdd>::iterator t;
+  std::map<int, BState*> color_dict;
   int max_old = 0, max_new = 0;
   int size_old = 1, size_new = 1;
   int i, i1, i2;
@@ -663,7 +666,7 @@ void remove_non_imaximal(set_next_col& L, bool **par_ord) {
 }
 
 void add_opt_trans(BState *s, BState *to, bdd& label, bool **par_ord) {
-  map<BState*, bdd>::iterator t_i, t_j;
+  std::map<BState*, bdd>::iterator t_i, t_j;
   int c, c1;
   c = to->incoming - 1;
   
@@ -784,7 +787,7 @@ BState *find_bstate(GState *state, int final, BState *s)
   s->id = (state)->id;
   s->incoming = 0;
   s->final = final;
-  s->trans = new map<BState*, bdd>();
+  s->trans = new std::map<BState*, bdd>();
   s->nxt = bstack->nxt;
   bstack->nxt = s;
 
@@ -805,9 +808,9 @@ int next_final(const cset &set, int fin) /* computes the 'final' value */
 void make_btrans(BState *s) /* creates all the transitions from a state */
 {
   int state_trans = 0;
-  map<GState*, map<cset, bdd> >::iterator gt;
-  map<cset, bdd>::iterator gt2;
-  map<BState*, bdd>::iterator t1, tx;
+  std::map<GState*, std::map<cset, bdd> >::iterator gt;
+  std::map<cset, bdd>::iterator gt2;
+  std::map<BState*, bdd>::iterator t1, tx;
   BState *s1;
   if(s->gstate->trans)
     for(gt = s->gstate->trans->begin(); gt != s->gstate->trans->end(); gt++) {
@@ -847,7 +850,7 @@ void make_btrans(BState *s) /* creates all the transitions from a state */
   if(tl_simp_fly) {
     if(s->trans->empty()) { /* s has no transitions */
       delete s->trans;
-      s->trans = (map<BState*, bdd> *)0;
+      s->trans = (std::map<BState*, bdd> *)0;
       s->prv = (BState *)0;
       s->nxt = bremoved->nxt;
       bremoved->nxt = s;
@@ -864,7 +867,7 @@ void make_btrans(BState *s) /* creates all the transitions from a state */
     if(s1 != bstates) { /* s and s1 are equivalent */
       decrement_incoming(s->trans);
       delete s->trans;
-      s->trans = (map<BState*, bdd> *)0;
+      s->trans = (std::map<BState*, bdd> *)0;
       s->prv = s1;
       s->nxt = bremoved->nxt;
       bremoved->nxt = s;
@@ -890,7 +893,7 @@ extern int print_or;
 
 void print_buchi(BState *s) /* dumps the Buchi automaton */
 {
-  map<BState*, bdd>::iterator t;
+  std::map<BState*, bdd>::iterator t;
   if(s == bstates) return;
 
   print_buchi(s->nxt); /* begins with the last state */
@@ -931,7 +934,7 @@ void print_buchi(BState *s) /* dumps the Buchi automaton */
 }
 
 void print_spin_buchi() {
-  map<BState*, bdd>::iterator t;
+  std::map<BState*, bdd>::iterator t;
   BState *s;
   int accept_all = 0;
   if(bstates->nxt == bstates) { /* empty automaton */
@@ -1001,6 +1004,111 @@ void print_spin_buchi() {
   fprintf(tl_out, "}\n");
 }
 
+static inline std::string GetStateName(const BState* State, bool& Accepting, bool& Initial)
+{
+    std::string Retval;
+    if (State->final == accept) {
+        Accepting = true;
+        Retval = "accept_";
+    } else {
+        Retval = (std::string)"T" + std::to_string(State->final) + "_";
+    }
+    if (State->id == -1) {
+        Initial = true;
+        Retval += "init";
+    } else {
+        Retval += (std::string)"S" + std::to_string(State->id);
+    }
+    return Retval;
+}
+
+void allsatPrintHandlerLib(char* VarSet, int Size)
+{
+    Cube CurCube;
+    for (int i = 0; i < Size; ++i) {
+        if (VarSet[i] < 0) {
+            continue;
+        } else if (VarSet[i] == 0) {
+            CurCube.push_back(PropLiteral(sym_table[i], true));
+        } else {
+            CurCube.push_back(PropLiteral(sym_table[i]));
+        }
+    }
+    GSCurDisjuncts.push_back(CurCube);
+}
+
+void CreateLibBA(BAutomaton& Aut)
+{
+    Aut.clear();
+    std::vector<BAEdge> CurEdges;
+    std::vector<Cube> CurDisjuncts;
+    Cube CurCube;
+
+    std::map<BState*, bdd>::iterator t;
+    BState *s;
+    int accept_all = 0;
+    if(bstates->nxt == bstates) { /* empty automaton */
+        return;
+    }
+    if(bstates->nxt->nxt == bstates && bstates->nxt->id == 0) { /* true */
+        CurCube.push_back(PropLiteral(true));
+        CurDisjuncts.push_back(CurCube);
+        CurEdges.push_back(BAEdge("accept_init", CurDisjuncts, "accept_init"));
+        Aut["accept_init"] = BANode("accept_init", CurEdges, true, true);
+        return;
+    }
+
+    fprintf(tl_out, "never { /* ");
+    put_uform();
+    fprintf(tl_out, " */\n");
+    for(s = bstates->prv; s != bstates; s = s->prv) {
+        bool Accepting = false;
+        bool Initial = false;
+        std::string StateName;
+        CurEdges.clear();
+
+        if(s->id == 0) { /* accept_all at the end */
+            accept_all = 1;
+            continue;
+        }
+
+        StateName = GetStateName(s, Accepting, Initial);
+
+        for(t = s->trans->begin(); t != s->trans->end(); t++) {
+            CurDisjuncts.clear();
+            CurCube.clear();
+
+            if (t->second == bdd_true()) {
+                CurCube.push_back(PropLiteral(true));
+                CurDisjuncts.push_back(CurCube);
+            } else {
+                GSCurDisjuncts.clear();
+                bdd_allsat(t->second, allsatPrintHandlerLib);
+                CurDisjuncts = GSCurDisjuncts;
+            }
+
+            bool Dummy1, Dummy2;
+
+            auto FinalStateName = GetStateName(t->first, Dummy1, Dummy2);
+            CurEdges.push_back(BAEdge(StateName, CurDisjuncts, FinalStateName));
+        }
+        
+        Aut[StateName] = BANode(StateName, CurEdges, Initial, Accepting);
+    }
+
+    if(accept_all) {
+        CurEdges.clear();
+        CurDisjuncts.clear();
+        CurCube.clear();
+        std::string StateName = "accept_all";
+        std::string FinalStateName = "accept_all";
+        CurCube.push_back(PropLiteral(true));
+        CurDisjuncts.push_back(CurCube);
+        CurEdges.push_back(BAEdge(StateName, CurDisjuncts, FinalStateName));
+        Aut["accept_all"] = BANode("accept_all", CurEdges, false, true);
+    }
+}
+
 void print_ba_state(BState* s) {
   if(s->final == accept)
     fprintf(tl_out, "accept_");
@@ -1011,7 +1119,7 @@ void print_ba_state(BState* s) {
 }
 
 void print_ba() {
-  map<BState*, bdd>::iterator t;
+  std::map<BState*, bdd>::iterator t;
   BState *s;
   int accept_all = 0;
 
@@ -1060,8 +1168,10 @@ void allsatPrintHandlerDve(char* varset, int size)
   print_or = 1;
 }
 
-void print_dve_buchi(ostream& o_stream) {
-  map<BState*, bdd>::iterator t;
+
+
+void print_dve_buchi(std::ostream& o_stream) {
+  std::map<BState*, bdd>::iterator t;
   int i = 1;
   BState *s;
   std::ostringstream states, a_states, i_states;
@@ -1140,14 +1250,14 @@ void mk_buchi()
 {/* generates a Buchi automaton from the generalized Buchi automaton */
   int i;
   BState *s = (BState *)tl_emalloc(sizeof(BState));
-  map<GState*, map<cset, bdd> >::iterator gt;
-  map<cset, bdd>::iterator gt2;
-  map<BState*, bdd>::iterator t1, tx;
+  std::map<GState*, std::map<cset, bdd> >::iterator gt;
+  std::map<cset, bdd>::iterator gt2;
+  std::map<BState*, bdd>::iterator t1, tx;
   accept = final[0] - 1;
 #ifdef DICT
-  bsDict = (map<GState*, BState*> **) tl_emalloc(final[0]*sizeof(map<GState*, BState*>*));
+  bsDict = (std::map<GState*, BState*> **) tl_emalloc(final[0]*sizeof(std::map<GState*, BState*>*));
   for (i = 0; i < final[0]; i++) {
-    bsDict[i] = new map<GState*, BState*>();
+    bsDict[i] = new std::map<GState*, BState*>();
   }
 #endif
   
@@ -1169,9 +1279,9 @@ void mk_buchi()
   s->incoming = 1;
   s->final = 0;
   s->gstate = 0;
-  s->trans = new map<BState*, bdd>();
+  s->trans = new std::map<BState*, bdd>();
 #ifdef DICT
-  bsDict[0]->insert(pair<GState*, BState*>(0, s));
+  bsDict[0]->insert(std::pair<GState*, BState*>(0, s));
 #endif
   for(i = 0; i < init_size; i++) 
     if(init[i])
@@ -1275,9 +1385,13 @@ void mk_buchi()
     } while (bstate_count < states || btrans_count < trans);
   }
 
-  if (tl_ba_out) {
-    print_ba(); 
+  if (!IsCalledFromLib) {
+      if (tl_ba_out) {
+          print_ba(); 
+      } else {
+          print_spin_buchi();
+      }
   } else {
-    print_spin_buchi();
+      CreateLibBA(LibLTL3BAGenAut);
   }
 }

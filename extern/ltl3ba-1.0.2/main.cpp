@@ -69,6 +69,9 @@ int tl_verbose   = 0;
 int tl_terse     = 0;
 unsigned long	All_Mem = 0;
 
+bool IsCalledFromLib = false;
+BAutomaton LibLTL3BAGenAut;
+
 std::string uform;
 static int	hasuform=0, cnt=0;
 std::string ltl_file;
@@ -177,6 +180,8 @@ tl_main(std::string &argv)
 	return tl_errs;
 }
 
+#if !defined LTL3BA_LIB_BUILD
+
 int
 main(int argc, char *argv[])
 {	int i;
@@ -240,6 +245,12 @@ main(int argc, char *argv[])
         }
         usage(1);
 }
+
+#else /* LTL3BA_LIB_BUILD */
+
+
+
+#endif /* LTL3BA_LIB_BUILD */
 
 #ifdef STATS
 /* Subtract the `struct timeval' values X and Y, storing the result X-Y in RESULT.

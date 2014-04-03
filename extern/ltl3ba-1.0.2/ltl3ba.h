@@ -42,6 +42,7 @@
 #include <sys/resource.h>
 #include <bdd.h>
 #include <map>
+#include <vector>
 
 /* Set LTL3BA's version number */
 #define VERSION_NUM "1.0.2"
@@ -489,3 +490,63 @@ typedef Node	*Nodeptr;
 #define Assert(x, y)	{ if (!(x)) { tl_explain(y); \
 			  Fatal(": assertion failed\n",(char *)0); } }
 #define min(x,y)        ((x<y)?x:y)
+
+/* audupa: additional decls for lib main */
+
+struct PropLiteral {
+    bool Negated;
+    bool IsTrue;
+    bool IsFalse;
+    std::string Name;
+
+    PropLiteral(const std::string& Name, bool Negated = false) 
+    : Negated(Negated), IsTrue(false), IsFalse(false), Name(Name) {}
+    PropLiteral(bool ConstVal)
+    : Negated(false), IsTrue(ConstVal), IsFalse(!ConstVal), Name("") {}
+};
+
+typedef std::vector<PropLiteral> Cube;
+
+struct BAEdge {
+    std::string FromState;
+    std::vector<Cube> Disjuncts;
+    std::string ToState;
+
+    BAEdge(const std::string& FromState,
+           const std::vector<Cube>& Disjuncts,
+           const std::string& ToState)
+    : FromState(FromState), Disjuncts(Disjuncts), ToState(ToState) {}
+
+};
+
+struct BANode {
+    std::string NodeName;
+    bool Initial;
+    bool Accepting;
+    std::vector<BAEdge> Edges;
+
+    BANode(const std::string& NodeName, const std::vector<BAEdge>& Edges,
+           bool Initial = false, bool Accepting = false)
+    : NodeName(NodeName), Initial(Initial), Accepting(Accepting), Edges(Edges) {}
+    BANode()
+    : NodeName(""), Initial(false), Accepting(false) {}
+};
+
+// Macros for conditional printing
+#define CHECKED_PRINTF (args...) \
+    if (!IsCalledFromLib) {      \
+        printf(args);            \
+    }
+
+#define CHECKED_FPRINTF (_handle_, args...) \
+    if (!IsCalledFromLib) {                 \
+        fprintf(_handle_, args);            \
+    }
+
+// Flag indicating whether we're called from libmain
+extern bool IsCalledFromLib;
+
+typedef std::map<std::string, BANode> BAutomaton;
+extern BAutomaton LibLTL3BAGenAut;
+
+extern "C" int libltl3ba_main(const std::string& LTLProp, BAutomaton& Aut);
