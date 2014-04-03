@@ -232,9 +232,9 @@ int simplify_bstates() /* eliminates redundant states */
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nSimplification of the Buchi automaton - states: %li.%06lis",
+    CHECKED_FPRINTF(tl_out, "\nSimplification of the Buchi automaton - states: %li.%06lis",
                 t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i states removed\n", changed);
+    CHECKED_FPRINTF(tl_out, "\n%i states removed\n", changed);
   }
 #endif
 
@@ -898,37 +898,41 @@ void print_buchi(BState *s) /* dumps the Buchi automaton */
 
   print_buchi(s->nxt); /* begins with the last state */
 
-  fprintf(tl_out, "state ");
-  if(s->id == -1)
-    if(s->final == accept)
-      fprintf(tl_out, "accept_init");
-    else
-      fprintf(tl_out, "init");
-  else {
-    if(s->final == accept)
-      fprintf(tl_out, "accept");
-    else
-      fprintf(tl_out, "T%i", s->final);
-    fprintf(tl_out, "_%i", s->id);
+  CHECKED_FPRINTF(tl_out, "state ");
+  if(s->id == -1) {
+      if(s->final == accept) {
+          CHECKED_FPRINTF(tl_out, "accept_init");
+      } else {
+          CHECKED_FPRINTF(tl_out, "init");
+      }
   }
-  fprintf(tl_out, "\t %d", s->incoming);
-  fprintf(tl_out, "\n");
+  else {
+      if(s->final == accept) {
+          CHECKED_FPRINTF(tl_out, "accept");
+      } else {
+          CHECKED_FPRINTF(tl_out, "T%i", s->final);
+      }
+      CHECKED_FPRINTF(tl_out, "_%i", s->id);
+  }
+  CHECKED_FPRINTF(tl_out, "\t %d", s->incoming);
+  CHECKED_FPRINTF(tl_out, "\n");
   for(t = s->trans->begin(); t != s->trans->end(); t++) {
     if (t->second == bdd_true()) {
-      fprintf(tl_out, "(1)");
+      CHECKED_FPRINTF(tl_out, "(1)");
     } else {
       print_or = 0;
       bdd_allsat(t->second, allsatPrintHandler);
     }
-    fprintf(tl_out, " -> ");
-    if(t->first->id == -1) 
-      fprintf(tl_out, "init\n");
-    else {
-      if(t->first->final == accept)
-        fprintf(tl_out, "accept");
-      else
-        fprintf(tl_out, "T%i", t->first->final);
-      fprintf(tl_out, "_%i\n", t->first->id);
+    CHECKED_FPRINTF(tl_out, " -> ");
+    if(t->first->id == -1) {
+        CHECKED_FPRINTF(tl_out, "init\n");
+    } else {
+        if(t->first->final == accept) {
+            CHECKED_FPRINTF(tl_out, "accept");
+        } else {
+            CHECKED_FPRINTF(tl_out, "T%i", t->first->final);
+        }
+        CHECKED_FPRINTF(tl_out, "_%i\n", t->first->id);
     }
   }
 }
@@ -938,70 +942,79 @@ void print_spin_buchi() {
   BState *s;
   int accept_all = 0;
   if(bstates->nxt == bstates) { /* empty automaton */
-    fprintf(tl_out, "never {    /* ");
+    CHECKED_FPRINTF(tl_out, "never {    /* ");
     put_uform();
-    fprintf(tl_out, " */\n");
-    fprintf(tl_out, "T0_init:\n");
-    fprintf(tl_out, "\tfalse;\n");
-    fprintf(tl_out, "}\n");
+    CHECKED_FPRINTF(tl_out, " */\n");
+    CHECKED_FPRINTF(tl_out, "T0_init:\n");
+    CHECKED_FPRINTF(tl_out, "\tfalse;\n");
+    CHECKED_FPRINTF(tl_out, "}\n");
     return;
   }
   if(bstates->nxt->nxt == bstates && bstates->nxt->id == 0) { /* true */
-    fprintf(tl_out, "never {    /* ");
+    CHECKED_FPRINTF(tl_out, "never {    /* ");
     put_uform();
-    fprintf(tl_out, " */\n");
-    fprintf(tl_out, "accept_init:\n");
-    fprintf(tl_out, "\tif\n");
-    fprintf(tl_out, "\t:: (1) -> goto accept_init\n");
-    fprintf(tl_out, "\tfi;\n");
-    fprintf(tl_out, "}\n");
+    CHECKED_FPRINTF(tl_out, " */\n");
+    CHECKED_FPRINTF(tl_out, "accept_init:\n");
+    CHECKED_FPRINTF(tl_out, "\tif\n");
+    CHECKED_FPRINTF(tl_out, "\t:: (1) -> goto accept_init\n");
+    CHECKED_FPRINTF(tl_out, "\tfi;\n");
+    CHECKED_FPRINTF(tl_out, "}\n");
     return;
   }
 
-  fprintf(tl_out, "never { /* ");
+  CHECKED_FPRINTF(tl_out, "never { /* ");
   put_uform();
-  fprintf(tl_out, " */\n");
+  CHECKED_FPRINTF(tl_out, " */\n");
   for(s = bstates->prv; s != bstates; s = s->prv) {
     if(s->id == 0) { /* accept_all at the end */
       accept_all = 1;
       continue;
     }
-    if(s->final == accept)
-      fprintf(tl_out, "accept_");
-    else fprintf(tl_out, "T%i_", s->final);
-    if(s->id == -1)
-      fprintf(tl_out, "init:\n");
-    else fprintf(tl_out, "S%i:\n", s->id);
+    if(s->final == accept) {
+        CHECKED_FPRINTF(tl_out, "accept_");
+    } else {
+        CHECKED_FPRINTF(tl_out, "T%i_", s->final);
+    }
+    if(s->id == -1) {
+      CHECKED_FPRINTF(tl_out, "init:\n");
+    } else {
+        CHECKED_FPRINTF(tl_out, "S%i:\n", s->id);
+    }
     if(s->trans->empty()) {
-      fprintf(tl_out, "\tfalse;\n");
+      CHECKED_FPRINTF(tl_out, "\tfalse;\n");
       continue;
     }
-    fprintf(tl_out, "\tif\n");
+    CHECKED_FPRINTF(tl_out, "\tif\n");
      for(t = s->trans->begin(); t != s->trans->end(); t++) {
-      fprintf(tl_out, "\t:: ");
+      CHECKED_FPRINTF(tl_out, "\t:: ");
       if (t->second == bdd_true()) {
-        fprintf(tl_out, "(1)");
+        CHECKED_FPRINTF(tl_out, "(1)");
       } else {
         print_or = 0;
         bdd_allsat(t->second, allsatPrintHandler);
       }
-      fprintf(tl_out, " -> goto ");
-      if(t->first->final == accept)
-        fprintf(tl_out, "accept_");
-      else fprintf(tl_out, "T%i_", t->first->final);
-      if(t->first->id == 0)
-        fprintf(tl_out, "all\n");
-      else if(t->first->id == -1)
-        fprintf(tl_out, "init\n");
-      else fprintf(tl_out, "S%i\n", t->first->id);
+      CHECKED_FPRINTF(tl_out, " -> goto ");
+      if(t->first->final == accept) {
+          CHECKED_FPRINTF(tl_out, "accept_");
+      } else { 
+          CHECKED_FPRINTF(tl_out, "T%i_", t->first->final);
+      }
+      if(t->first->id == 0) {
+          CHECKED_FPRINTF(tl_out, "all\n");
+      } else if(t->first->id == -1) {
+          CHECKED_FPRINTF(tl_out, "init\n");
+      }
+      else {
+          CHECKED_FPRINTF(tl_out, "S%i\n", t->first->id);
+      }
     }
-    fprintf(tl_out, "\tfi;\n");
+    CHECKED_FPRINTF(tl_out, "\tfi;\n");
   }
   if(accept_all) {
-    fprintf(tl_out, "accept_all:\n");
-    fprintf(tl_out, "\tskip\n");
+    CHECKED_FPRINTF(tl_out, "accept_all:\n");
+    CHECKED_FPRINTF(tl_out, "\tskip\n");
   }
-  fprintf(tl_out, "}\n");
+  CHECKED_FPRINTF(tl_out, "}\n");
 }
 
 static inline std::string GetStateName(const BState* State, bool& Accepting, bool& Initial)
@@ -1058,9 +1071,9 @@ void CreateLibBA(BAutomaton& Aut)
         return;
     }
 
-    fprintf(tl_out, "never { /* ");
+    CHECKED_FPRINTF(tl_out, "never { /* ");
     put_uform();
-    fprintf(tl_out, " */\n");
+    CHECKED_FPRINTF(tl_out, " */\n");
     for(s = bstates->prv; s != bstates; s = s->prv) {
         bool Accepting = false;
         bool Initial = false;
@@ -1110,12 +1123,16 @@ void CreateLibBA(BAutomaton& Aut)
 }
 
 void print_ba_state(BState* s) {
-  if(s->final == accept)
-    fprintf(tl_out, "accept_");
-  else fprintf(tl_out, "T%i_", s->final);
-  if(s->id == -1)
-    fprintf(tl_out, "init");
-  else fprintf(tl_out, "S%i", s->id);
+    if(s->final == accept) {
+        CHECKED_FPRINTF(tl_out, "accept_");
+    } else {
+        CHECKED_FPRINTF(tl_out, "T%i_", s->final);
+    }
+    if(s->id == -1) {
+        CHECKED_FPRINTF(tl_out, "init");
+    } else {
+        CHECKED_FPRINTF(tl_out, "S%i", s->id);
+    }
 }
 
 void print_ba() {
@@ -1123,24 +1140,24 @@ void print_ba() {
   BState *s;
   int accept_all = 0;
 
-  fprintf(tl_out, "acc = \"1\";\n");
+  CHECKED_FPRINTF(tl_out, "acc = \"1\";\n");
   for(s = bstates->prv; s != bstates; s = s->prv) {
     if (!s->trans->empty()) {
       for(t = s->trans->begin(); t != s->trans->end(); t++) {
         print_ba_state(s);
-        fprintf(tl_out, ", ");
+        CHECKED_FPRINTF(tl_out, ", ");
         print_ba_state(t->first);
-        fprintf(tl_out, ", \"");
+        CHECKED_FPRINTF(tl_out, ", \"");
         if (t->second == bdd_true()) {
-          fprintf(tl_out, "(1)");
+          CHECKED_FPRINTF(tl_out, "(1)");
         } else {
           print_or = 0;
           bdd_allsat(t->second, allsatPrintHandler);
         }
-        fprintf(tl_out, "\",");
+        CHECKED_FPRINTF(tl_out, "\",");
         if(s->final == accept)
-          fprintf(tl_out, " \"1\"");
-        fprintf(tl_out, ";\n");
+          CHECKED_FPRINTF(tl_out, " \"1\"");
+        CHECKED_FPRINTF(tl_out, ";\n");
       }
     }
   }
@@ -1325,17 +1342,17 @@ void mk_buchi()
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nBuilding the Buchi automaton : %li.%06lis",
+    CHECKED_FPRINTF(tl_out, "\nBuilding the Buchi automaton : %li.%06lis",
                 t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i states, %i transitions\n", bstate_count, btrans_count);
+    CHECKED_FPRINTF(tl_out, "\n%i states, %i transitions\n", bstate_count, btrans_count);
   }
 #endif
 
   if(tl_verbose) {
-    fprintf(tl_out, "\nBuchi automaton before simplification\n");
+    CHECKED_FPRINTF(tl_out, "\nBuchi automaton before simplification\n");
     print_buchi(bstates->nxt);
     if(bstates == bstates->nxt) 
-      fprintf(tl_out, "empty automaton, refuses all words\n");  
+      CHECKED_FPRINTF(tl_out, "empty automaton, refuses all words\n");  
   }
 
   if(tl_simp_diff) {
@@ -1346,11 +1363,11 @@ void mk_buchi()
     }
     
     if(tl_verbose) {
-      fprintf(tl_out, "\nBuchi automaton after simplification\n");
+      CHECKED_FPRINTF(tl_out, "\nBuchi automaton after simplification\n");
       print_buchi(bstates->nxt);
       if(bstates == bstates->nxt) 
-        fprintf(tl_out, "empty automaton, refuses all words\n");
-      fprintf(tl_out, "\n");
+        CHECKED_FPRINTF(tl_out, "empty automaton, refuses all words\n");
+      CHECKED_FPRINTF(tl_out, "\n");
     }
   }
 

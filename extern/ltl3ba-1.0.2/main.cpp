@@ -109,7 +109,7 @@ tl_Getchar(void)
 void
 put_uform(void)
 {
-	fprintf(tl_out, "%s", uform.c_str());
+	CHECKED_FPRINTF(tl_out, "%s", uform.c_str());
 }
 
 void
@@ -121,35 +121,35 @@ tl_UnGetchar(void)
 void
 usage(int estatus)
 {
-        printf("usage: ltl3ba [-flag] -f formula\n");
-        printf("                   or -F file\n");
-        printf(" -f \"formula\"\ttranslate LTL ");
-        printf("into never claim\n");
-        printf(" -F file\tlike -f, but with the LTL ");
-        printf("formula stored in a 1-line file\n");
-        printf(" -d\t\tdisplay automata (D)escription at each step\n");
+        CHECKED_PRINTF("usage: ltl3ba [-flag] -f formula\n");
+        CHECKED_PRINTF("                   or -F file\n");
+        CHECKED_PRINTF(" -f \"formula\"\ttranslate LTL ");
+        CHECKED_PRINTF("into never claim\n");
+        CHECKED_PRINTF(" -F file\tlike -f, but with the LTL ");
+        CHECKED_PRINTF("formula stored in a 1-line file\n");
+        CHECKED_PRINTF(" -d\t\tdisplay automata (D)escription at each step\n");
 #ifdef STATS
-        printf(" -s\t\tcomputing time and automata sizes S(t)atistics\n");
+        CHECKED_PRINTF(" -s\t\tcomputing time and automata sizes S(t)atistics\n");
 #endif
-        printf(" -l\t\tdisable (L)ogic formula simplification\n");
-        printf(" -p\t\tdisable a-(P)osteriori simplification\n");
-        printf(" -o\t\tdisable (O)n-the-fly simplification\n");
-        printf(" -c\t\tdisable strongly (C)onnected components simplification\n");
-        printf(" -a\t\tdisable trick in (A)ccepting conditions\n");
-        printf("\n  LTL3BA specific options:\n");
-        printf(" -P\t\tdisable (P)ostponing/suspension in TGBA construction\n");
-        printf(" -D\t\tdisable (D)irect building of final components\n");
-        printf(" -C\t\tdisable removing non-accepting strongly (C)onnected components\n");
-        printf(" -A\t\tdisable suspension in (A)lternating automaton construction\n");
-        printf(" -R\t\tdisable rewriting R formulae with alternating subformulae\n");
-        printf(" -M\t\ttry to produce more deter(M)inistic automaton (recomended)\n");
-        printf(" -B\t\tenable basic (B)isimulation reduction of BA\n");
-        printf(" -S\t\tenable strong fair (S)imulation reduction of BA\n");
-        printf(" -T\t\tconstruct only the TGBA and output it in SPOT's format\n");
-        printf(" -U\t\toutput final BA in SPOT's format\n");
-        printf(" -x\t\tdisable all LTL3BA specific improvements (act like LTL2BA)\n");
-        printf(" -v\t\tprint LTL3BA's version and exit\n");
-        printf(" -h\t\tprint this help\n");
+        CHECKED_PRINTF(" -l\t\tdisable (L)ogic formula simplification\n");
+        CHECKED_PRINTF(" -p\t\tdisable a-(P)osteriori simplification\n");
+        CHECKED_PRINTF(" -o\t\tdisable (O)n-the-fly simplification\n");
+        CHECKED_PRINTF(" -c\t\tdisable strongly (C)onnected components simplification\n");
+        CHECKED_PRINTF(" -a\t\tdisable trick in (A)ccepting conditions\n");
+        CHECKED_PRINTF("\n  LTL3BA specific options:\n");
+        CHECKED_PRINTF(" -P\t\tdisable (P)ostponing/suspension in TGBA construction\n");
+        CHECKED_PRINTF(" -D\t\tdisable (D)irect building of final components\n");
+        CHECKED_PRINTF(" -C\t\tdisable removing non-accepting strongly (C)onnected components\n");
+        CHECKED_PRINTF(" -A\t\tdisable suspension in (A)lternating automaton construction\n");
+        CHECKED_PRINTF(" -R\t\tdisable rewriting R formulae with alternating subformulae\n");
+        CHECKED_PRINTF(" -M\t\ttry to produce more deter(M)inistic automaton (recomended)\n");
+        CHECKED_PRINTF(" -B\t\tenable basic (B)isimulation reduction of BA\n");
+        CHECKED_PRINTF(" -S\t\tenable strong fair (S)imulation reduction of BA\n");
+        CHECKED_PRINTF(" -T\t\tconstruct only the TGBA and output it in SPOT's format\n");
+        CHECKED_PRINTF(" -U\t\toutput final BA in SPOT's format\n");
+        CHECKED_PRINTF(" -x\t\tdisable all LTL3BA specific improvements (act like LTL2BA)\n");
+        CHECKED_PRINTF(" -v\t\tprint LTL3BA's version and exit\n");
+        CHECKED_PRINTF(" -h\t\tprint this help\n");
 	
         alldone(estatus);
 }
@@ -157,7 +157,7 @@ usage(int estatus)
 void
 print_version()
 {
-        printf("LTL3BA %s\n", VERSION_NUM);
+        CHECKED_PRINTF("LTL3BA %s\n", VERSION_NUM);
 }
 
 int
@@ -218,20 +218,20 @@ main(int argc, char *argv[])
                 case 'x': tl_postpone = 0; tl_f_components = 0; tl_ltl3ba = 0; tl_rem_scc = 0; tl_alt = 0; tl_rew_f = 0; break;
                 case 'v': print_version(); alldone(0);
                 case 'h': usage(0); break;
-                default : printf("ltl3ba: unknown option -- %c\n\n", argv[1][1]); usage(1); break;
+                default : CHECKED_PRINTF("ltl3ba: unknown option -- %c\n\n", argv[1][1]); usage(1); break;
                 }
                 argc--, argv++;
         }
   
         if(ltl_file.empty() && add_ltl.empty()) {
-          printf("ltl3ba: no formula given at input\n\n");
+          CHECKED_PRINTF("ltl3ba: no formula given at input\n\n");
           usage(1);
         }
 
         if (!ltl_file.empty())
         {       std::ifstream in_file(ltl_file.c_str(), std::ifstream::in);
                 if (!in_file.is_open())
-                {       printf("ltl3ba: cannot open %s\n", ltl_file.c_str());
+                {       CHECKED_PRINTF("ltl3ba: cannot open %s\n", ltl_file.c_str());
                         alldone(1);
                 }
                 std::getline(in_file, add_ltl, '\0');
@@ -248,7 +248,32 @@ main(int argc, char *argv[])
 
 #else /* LTL3BA_LIB_BUILD */
 
-
+int libltl3ba_main(const std::string &LTLProp, BAutomaton &Aut,
+                   bool Det, bool Simp)
+{
+    if (Det) {
+        tl_determinize = 1;
+    } else {
+        tl_determinize = 0;
+    }
+    if (Simp) {
+        tl_bisim = 1;
+        tl_bisim_r = 1;
+        tl_sim = 1;
+        tl_sim_r = 1;
+    } else {
+        tl_bisim = 0;
+        tl_bisim_r = 0;
+        tl_sim = 0;
+        tl_sim_r = 0;
+    }
+    IsCalledFromLib = true;
+    std::string PropLocal = LTLProp;
+    int retval = tl_main(PropLocal);
+    Aut = LibLTL3BAGenAut;
+    IsCalledFromLib = false;
+    return retval;
+}
 
 #endif /* LTL3BA_LIB_BUILD */
 
@@ -277,19 +302,19 @@ int timeval_subtract (timeval *result, timeval *x, timeval *y)
 static void
 tl_endstats(void)
 {	extern int Stack_mx;
-	printf("\ntotal memory used: %9ld\n", All_Mem);
-	/*printf("largest stack sze: %9d\n", Stack_mx);*/
+	CHECKED_PRINTF("\ntotal memory used: %9ld\n", All_Mem);
+	/*CHECKED_PRINTF("largest stack sze: %9d\n", Stack_mx);*/
 	/*cache_stats();*/
 	a_stats();
 }
 #endif
 
 #define Binop(a)		\
-		fprintf(tl_out, "(");	\
+		CHECKED_FPRINTF(tl_out, "(");	\
 		dump(n->lft);		\
-		fprintf(tl_out, a);	\
+		CHECKED_FPRINTF(tl_out, a);	\
 		dump(n->rgt);		\
-		fprintf(tl_out, ")")
+		CHECKED_FPRINTF(tl_out, ")")
 
 void
 dump(Node *n)
@@ -301,7 +326,7 @@ dump(Node *n)
 	case AND:	Binop(" && "); break;
 	case U_OPER:
 	  if(is_F(n)) {
-	    fprintf(tl_out, "F");
+	    CHECKED_FPRINTF(tl_out, "F");
 	    dump(n->rgt);
 	  } else {
 	    Binop(" U ");
@@ -309,7 +334,7 @@ dump(Node *n)
 	  break;
 	case V_OPER:
 	  if(is_G(n)) {
-	    fprintf(tl_out, "G");
+	    CHECKED_FPRINTF(tl_out, "G");
 	    dump(n->rgt);
 	  } else {
 	   	Binop(" R ");
@@ -317,32 +342,32 @@ dump(Node *n)
 	  break;
 #ifdef NXT
 	case NEXT:
-		fprintf(tl_out, "X");
-		fprintf(tl_out, " (");
+		CHECKED_FPRINTF(tl_out, "X");
+		CHECKED_FPRINTF(tl_out, " (");
 		dump(n->lft);
-		fprintf(tl_out, ")");
+		CHECKED_FPRINTF(tl_out, ")");
 		break;
 #endif
 	case NOT:
-		fprintf(tl_out, "!");
-		fprintf(tl_out, "(");
+		CHECKED_FPRINTF(tl_out, "!");
+		CHECKED_FPRINTF(tl_out, "(");
 		dump(n->lft);
-		fprintf(tl_out, ")");
+		CHECKED_FPRINTF(tl_out, ")");
 		break;
 	case FALSE:
-		fprintf(tl_out, "false");
+		CHECKED_FPRINTF(tl_out, "false");
 		break;
 	case TRUE:
-		fprintf(tl_out, "true");
+		CHECKED_FPRINTF(tl_out, "true");
 		break;
 	case PREDICATE:
-		fprintf(tl_out, "(%s)", n->sym->name);
+		CHECKED_FPRINTF(tl_out, "(%s)", n->sym->name);
 		break;
 	case -1:
-		fprintf(tl_out, " D ");
+		CHECKED_FPRINTF(tl_out, " D ");
 		break;
 	default:
-		printf("Unknown token: ");
+		CHECKED_PRINTF("Unknown token: ");
 		tl_explain(n->ntyp);
 		break;
 	}
@@ -352,23 +377,23 @@ void
 tl_explain(int n)
 {
 	switch (n) {
-	case ALWAYS:	printf("[]"); break;
-	case EVENTUALLY: printf("<>"); break;
-	case IMPLIES:	printf("->"); break;
-	case EQUIV:	printf("<->"); break;
-	case PREDICATE:	printf("predicate"); break;
-	case OR:	printf("||"); break;
-	case AND:	printf("&&"); break;
-	case NOT:	printf("!"); break;
-	case U_OPER:	printf("U"); break;
-	case V_OPER:	printf("V"); break;
+	case ALWAYS:	CHECKED_PRINTF("[]"); break;
+	case EVENTUALLY: CHECKED_PRINTF("<>"); break;
+	case IMPLIES:	CHECKED_PRINTF("->"); break;
+	case EQUIV:	CHECKED_PRINTF("<->"); break;
+	case PREDICATE:	CHECKED_PRINTF("predicate"); break;
+	case OR:	CHECKED_PRINTF("||"); break;
+	case AND:	CHECKED_PRINTF("&&"); break;
+	case NOT:	CHECKED_PRINTF("!"); break;
+	case U_OPER:	CHECKED_PRINTF("U"); break;
+	case V_OPER:	CHECKED_PRINTF("V"); break;
 #ifdef NXT
-	case NEXT:	printf("X"); break;
+	case NEXT:	CHECKED_PRINTF("X"); break;
 #endif
-	case TRUE:	printf("true"); break;
-	case FALSE:	printf("false"); break;
-	case ';':	printf("end of formula"); break;
-	default:	printf("%c", n); break;
+	case TRUE:	CHECKED_PRINTF("true"); break;
+	case FALSE:	CHECKED_PRINTF("false"); break;
+	case ';':	CHECKED_PRINTF("end of formula"); break;
+	default:	CHECKED_PRINTF("%c", n); break;
 	}
 }
 
@@ -377,20 +402,22 @@ non_fatal(const char *s1, char *s2)
 {	extern int tl_yychar;
 	int i;
 
-	printf("ltl3ba: ");
-	if (s2)
-		printf(s1, s2);
-	else
-		printf("%s",s1);
+	CHECKED_PRINTF("ltl3ba: ");
+	if (s2) {
+		CHECKED_PRINTF(s1, s2);
+	} else {
+		CHECKED_PRINTF("%s",s1);
+    }
 	if (tl_yychar != -1 && tl_yychar != 0)
-	{	printf(", saw '");
+	{	CHECKED_PRINTF(", saw '");
 		tl_explain(tl_yychar);
-		printf("'");
+		CHECKED_PRINTF("'");
 	}
-	printf("\nltl3ba: %s\n-------", uform.c_str());
-	for (i = 0; i < cnt; i++)
-		printf("-");
-	printf("^\n");
+	CHECKED_PRINTF("\nltl3ba: %s\n-------", uform.c_str());
+	for (i = 0; i < cnt; i++) {
+		CHECKED_PRINTF("-");
+    }
+	CHECKED_PRINTF("^\n");
 	fflush(stdout);
 	tl_errs++;
 }

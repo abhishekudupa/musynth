@@ -74,35 +74,36 @@ dump_cond(Node *pp, Node *r, int first)
         ||  q->ntyp == OR
 #endif
         ||  q->ntyp == FALSE)
-        {       if (!frst) fprintf(tl_out, " && ");
+        {       if (!frst) CHECKED_FPRINTF(tl_out, " && ");
                 dump(q);
                 frst = 0;
 #ifdef NXT
-        } else if (q->ntyp == OR)
-        {       if (!frst) fprintf(tl_out, " && ");
-                fprintf(tl_out, "((");
-                frst = dump_cond(q->lft, r, 1);
-
-                if (!frst)
-                        fprintf(tl_out, ") || (");
-                else
-                {       if (only_nxt(q->lft))
-                        {       fprintf(tl_out, "1))");
-                                return 0;
-                        }
+        } else if (q->ntyp == OR) {
+            if (!frst) CHECKED_FPRINTF(tl_out, " && ");
+            CHECKED_FPRINTF(tl_out, "((");
+            frst = dump_cond(q->lft, r, 1);
+            
+            if (!frst) {
+                CHECKED_FPRINTF(tl_out, ") || (");
+            } else {
+                if (only_nxt(q->lft)) {
+                    CHECKED_FPRINTF(tl_out, "1))");
+                    return 0;
                 }
-
-                frst = dump_cond(q->rgt, r, 1);
-
-                if (frst)
-                {       if (only_nxt(q->rgt))
-                                fprintf(tl_out, "1");
-                        else
-                                fprintf(tl_out, "0");
-                        frst = 0;
+            }
+            
+            frst = dump_cond(q->rgt, r, 1);
+            
+            if (frst) {       
+                if (only_nxt(q->rgt)) {
+                    CHECKED_FPRINTF(tl_out, "1");
+                } else {
+                    CHECKED_FPRINTF(tl_out, "0");
                 }
-
-                fprintf(tl_out, "))");
+                frst = 0;
+            }
+            
+            CHECKED_FPRINTF(tl_out, "))");
 #endif
         } else  if (q->ntyp == V_OPER
                 && !anywhere(AND, q->rgt, r))
@@ -165,9 +166,9 @@ void trans(Node *p)
   if (!p || tl_errs) return;
   
   if (tl_verbose || tl_terse) {	
-    fprintf(tl_out, "\t/* Normlzd: ");
+    CHECKED_FPRINTF(tl_out, "\t/* Normlzd: ");
     dump(p);
-    fprintf(tl_out, " */\n");
+    CHECKED_FPRINTF(tl_out, " */\n");
   }
   if (tl_terse)
     return;

@@ -710,11 +710,6 @@ tl_factor(void)
 		break;
 	}
 	if (!ptr) tl_yyerror("expected predicate");
-#if 0
-	printf("factor:	");
-	tl_explain(ptr->ntyp);
-	printf("\n");
-#endif
 	return ptr;
 }
 
@@ -737,11 +732,6 @@ again:
 			goto again;
 		}
 	if (!ptr) tl_yyerror("syntax error");
-#if 0
-	printf("level %d:	", nr);
-	tl_explain(ptr->ntyp);
-	printf("\n");
-#endif
 	return ptr;
 }
 
@@ -785,7 +775,7 @@ static Node* rewrite_V(Node *ptr, bool& changed) {
 	case PREDICATE:
 	  break;
 	default:
-	  printf("Unknown token: ");
+	  CHECKED_PRINTF("Unknown token: ");
 	  tl_explain(ptr->ntyp);
 	  break;
 	}
@@ -838,7 +828,7 @@ static Node* negate(Node *ptr) {
 	  ptr = tl_nn(NOT, dupnode(ptr), ZN);
 		break;
 	default:
-		printf("Unknown token: ");
+		CHECKED_PRINTF("Unknown token: ");
 		tl_explain(ptr->ntyp);
 		break;
 	}
@@ -880,7 +870,7 @@ static Node* determ(Node *ptr) {
 	case PREDICATE:
 		break;
 	default:
-		printf("Unknown token: ");
+		CHECKED_PRINTF("Unknown token: ");
 		tl_explain(ptr->ntyp);
 		break;
 	}
@@ -890,17 +880,18 @@ static Node* determ(Node *ptr) {
 
 void
 tl_parse(void)
-{       Node *n = tl_formula();
-        if (tl_verbose)
-	{	printf("formula: ");
-		put_uform();
-		printf("\n");
-	}
-	if (tl_rew_f) {
-	  bool changed = false;
-	  n = rewrite_V(n, changed);
-	  if (tl_simp_log && changed)
-	    n = bin_simpler(n);
-	}
-	trans(n);
+{       
+    Node *n = tl_formula();
+    if (tl_verbose) {
+        CHECKED_PRINTF("formula: ");
+        put_uform();
+        CHECKED_PRINTF("\n");
+    }
+    if (tl_rew_f) {
+        bool changed = false;
+        n = rewrite_V(n, changed);
+        if (tl_simp_log && changed)
+            n = bin_simpler(n);
+    }
+    trans(n);
 }

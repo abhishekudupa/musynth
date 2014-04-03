@@ -306,9 +306,9 @@ int simplify_gtrans() /* simplifies the transitions */
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nSimplification of the generalized Buchi automaton - transitions: %li.%06lis",
+    CHECKED_FPRINTF(tl_out, "\nSimplification of the generalized Buchi automaton - transitions: %li.%06lis",
     t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i transitions removed\n", changed);
+    CHECKED_FPRINTF(tl_out, "\n%i transitions removed\n", changed);
   }
 #endif
 
@@ -451,9 +451,9 @@ int simplify_gstates() /* eliminates redundant states */
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nSimplification of the generalized Buchi automaton - states: %li.%06lis",
+    CHECKED_FPRINTF(tl_out, "\nSimplification of the generalized Buchi automaton - states: %li.%06lis",
                 t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i states removed\n", changed);
+    CHECKED_FPRINTF(tl_out, "\n%i states removed\n", changed);
   }
 #endif
 
@@ -888,37 +888,37 @@ void reverse_print_generalized(GState *s) /* dumps the generalized Buchi automat
   std::map<GState*, std::map<cset, bdd> >::iterator t;
   std::map<cset, bdd>::iterator t2;
   
-  fprintf(tl_out, "state %i (", s->id);
+  CHECKED_FPRINTF(tl_out, "state %i (", s->id);
   s->nodes_set->print();
-  fprintf(tl_out, ") : %i\n", s->incoming);
+  CHECKED_FPRINTF(tl_out, ") : %i\n", s->incoming);
     for(t = s->trans->begin(); t != s->trans->end(); t++) {
       for(t2 = t->second.begin(); t2 != t->second.end(); t2++) {
         if (t2->second == bdd_true()) {
-          fprintf(tl_out, "(1)");
+          CHECKED_FPRINTF(tl_out, "(1)");
         } else {
           print_or = 0;
           bdd_allsat(t2->second, allsatPrintHandler);
         }
-        fprintf(tl_out, " -> %i : ", t->first->id);
+        CHECKED_FPRINTF(tl_out, " -> %i : ", t->first->id);
         t2->first.print();
-        fprintf(tl_out, "\n");
+        CHECKED_FPRINTF(tl_out, "\n");
       }
     }
 }
 
 void print_generalized() { /* prints intial states and calls 'reverse_print' */
   int i;
-  fprintf(tl_out, "init :\n");
+  CHECKED_FPRINTF(tl_out, "init :\n");
   for(i = 0; i < init_size; i++)
     if(init[i])
-      fprintf(tl_out, "%i\n", init[i]->id);
+      CHECKED_FPRINTF(tl_out, "%i\n", init[i]->id);
   reverse_print_generalized(gstates->nxt);
 }
 
 void print_tgba_acc(int i) {
-  fprintf(tl_out, " \"");
+  CHECKED_FPRINTF(tl_out, " \"");
   dump(label[i]);
-  fprintf(tl_out, "\"");
+  CHECKED_FPRINTF(tl_out, "\"");
 }
 
 void print_tgba_acc_set(const cset& set) {
@@ -934,17 +934,17 @@ void print_tgba_state_name(const cset* set) {
   int i;
   
   if (list[0] <= 1) {
-    fprintf(tl_out, "\"1\"");
+    CHECKED_FPRINTF(tl_out, "\"1\"");
   } else {
-    fprintf(tl_out, "\"");
+    CHECKED_FPRINTF(tl_out, "\"");
     for(i = 1; i < list[0];) {
      	dump(label[list[i]]);
      	i++;
      	if (i < list[0]) {
-     	  fprintf(tl_out, " && ");
+     	  CHECKED_FPRINTF(tl_out, " && ");
      	}
    	}
-    fprintf(tl_out, "\"");
+    CHECKED_FPRINTF(tl_out, "\"");
   }
 }
 
@@ -955,19 +955,19 @@ void print_tgba_all_transitions_of(const GState* s) {
   for(t = s->trans->begin(); t != s->trans->end(); t++) {
     for(t2 = t->second.begin(); t2 != t->second.end(); t2++) {
       print_tgba_state_name(s->nodes_set);
-      fprintf(tl_out, ", ");
+      CHECKED_FPRINTF(tl_out, ", ");
       print_tgba_state_name(t->first->nodes_set);
-      fprintf(tl_out, ", \"");
+      CHECKED_FPRINTF(tl_out, ", \"");
       if (t2->second == bdd_true()) {
-        fprintf(tl_out, "1");
+        CHECKED_FPRINTF(tl_out, "1");
       } else {
         print_or = 0;
         bdd_allsat(t2->second, allsatPrintHandler);
       }
-      fprintf(tl_out, "\",");
+      CHECKED_FPRINTF(tl_out, "\",");
 
       print_tgba_acc_set(t2->first);
-      fprintf(tl_out, ";\n");
+      CHECKED_FPRINTF(tl_out, ";\n");
     }
   }
 }
@@ -976,23 +976,23 @@ void print_tgba() {
   int i;
   GState *s;
   
-  fprintf(tl_out, "acc =");
+  CHECKED_FPRINTF(tl_out, "acc =");
   for(i = 1; i < final[0]; i++) {
     print_tgba_acc(final[i]);
   }
-  fprintf(tl_out, ";\n");
+  CHECKED_FPRINTF(tl_out, ";\n");
 
   for (s = gstates->prv; s != gstates; s = s->prv)
     s->incoming = 0;
 
   if(init_size > 1) {
-    fprintf(tl_out, "init =");
+    CHECKED_FPRINTF(tl_out, "init =");
     for(i = 0; i < init_size; i++)
       if(init[i]) {
-        fprintf(tl_out, " ");
+        CHECKED_FPRINTF(tl_out, " ");
         print_tgba_state_name(init[i]->nodes_set);
       }
-    fprintf(tl_out, ";\n");
+    CHECKED_FPRINTF(tl_out, ";\n");
   }
 
   for(i = 0; i < init_size; i++) {
@@ -1085,9 +1085,9 @@ void mk_generalized()
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nBuilding the generalized Buchi automaton : %li.%06lis",
+    CHECKED_FPRINTF(tl_out, "\nBuilding the generalized Buchi automaton : %li.%06lis",
     t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i states, %i transitions\n", gstate_count, gtrans_count);
+    CHECKED_FPRINTF(tl_out, "\n%i states, %i transitions\n", gstate_count, gtrans_count);
   }
 #endif
 
@@ -1099,7 +1099,7 @@ void mk_generalized()
   tfree(transition);
 
   if(tl_verbose) {
-    fprintf(tl_out, "\nGeneralized Buchi automaton before simplification\n");
+    CHECKED_FPRINTF(tl_out, "\nGeneralized Buchi automaton before simplification\n");
     print_generalized();
   }
 
@@ -1114,7 +1114,7 @@ void mk_generalized()
     }
     
     if(tl_verbose) {
-      fprintf(tl_out, "\nGeneralized Buchi automaton after simplification\n");
+      CHECKED_FPRINTF(tl_out, "\nGeneralized Buchi automaton after simplification\n");
       print_generalized();
     }
   }

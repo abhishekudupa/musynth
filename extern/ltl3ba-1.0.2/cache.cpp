@@ -50,13 +50,13 @@ void
 cache_dump(void)
 {	Cache *d; int nr=0;
 
-	printf("\nCACHE DUMP:\n");
+	CHECKED_PRINTF("\nCACHE DUMP:\n");
 	for (d = stored; d; d = d->nxt, nr++)
 	{	if (d->same) continue;
-		printf("B%3d: ", nr); dump(d->before); printf("\n");
-		printf("A%3d: ", nr); dump(d->after); printf("\n");
+		CHECKED_PRINTF("B%3d: ", nr); dump(d->before); CHECKED_PRINTF("\n");
+		CHECKED_PRINTF("A%3d: ", nr); dump(d->after); CHECKED_PRINTF("\n");
 	}
-	printf("============\n");
+	CHECKED_PRINTF("============\n");
 }
 
 Node *
@@ -99,8 +99,8 @@ cached(Node *n)
 void
 cache_stats(void)
 {
-	printf("cache stores     : %9ld\n", Caches);
-	printf("cache hits       : %9ld\n", CacheHits);
+	CHECKED_PRINTF("cache stores     : %9ld\n", Caches);
+	CHECKED_PRINTF("cache hits       : %9ld\n", CacheHits);
 }
 
 void
@@ -236,7 +236,7 @@ sameform(Node *a, Node *b)
 		return sametrees(a->ntyp, a, b);
 
 	default:
-		printf("type: %d\n", a->ntyp);
+		CHECKED_PRINTF("type: %d\n", a->ntyp);
 		fatal("cannot happen, sameform", (char *) 0);
 	}
 

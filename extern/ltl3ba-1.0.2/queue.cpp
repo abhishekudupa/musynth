@@ -60,11 +60,12 @@ int pop(Queue *q) {
 
 void print_queue(Queue *q) {
   int i, start = 1;
-  fprintf(tl_out, "[");
+  CHECKED_FPRINTF(tl_out, "[");
   for (i=0; i<q->size; i++) {
-    if (!start)
-      fprintf(tl_out, ", ");
-    fprintf(tl_out, "%d", q->data[(q->front+i)%q->max]);
+      if (!start) {
+          CHECKED_FPRINTF(tl_out, ", ");
+      }
+      CHECKED_FPRINTF(tl_out, "%d", q->data[(q->front+i)%q->max]);
   }
-  fprintf(tl_out, "]");
+  CHECKED_FPRINTF(tl_out, "]");
 }

@@ -92,9 +92,6 @@ follow(int tok, int ifyes, int ifno)
 int
 tl_yylex(void)
 {	int c = tl_lex();
-#if 0
-	printf("c = %d\n", c);
-#endif
 	return c;
 }
 

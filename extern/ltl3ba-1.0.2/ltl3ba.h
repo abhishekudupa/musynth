@@ -157,6 +157,23 @@ enum {
 #endif
 };
 
+// Macros for conditional printing
+#define CHECKED_PRINTF(args...)  \
+    {                            \
+        if (!IsCalledFromLib) {  \
+            printf(args);        \
+        }                        \
+    }
+
+
+#define CHECKED_FPRINTF(_handle_, args...)      \
+    {                                           \
+        if (!IsCalledFromLib) {                 \
+            fprintf(_handle_, args);            \
+        }                                       \
+    }
+
+
 Node	*Canonical(Node *);
 Node	*canonical(Node *);
 Node	*cached(Node *);
@@ -482,8 +499,8 @@ inline void cGTrans::erase(std::map<GState*, std::map<cset, bdd> >::iterator &tx
 typedef Node	*Nodeptr;
 #define YYSTYPE	 Nodeptr
 
-#define Debug(x)	{ if (0) printf(x); }
-#define Debug2(x,y)	{ if (tl_verbose) printf(x,y); }
+#define Debug(x)	{ if (0) CHECKED_PRINTF(x); }
+#define Debug2(x,y)	{ if (tl_verbose) CHECKED_PRINTF(x,y); }
 #define Dump(x)		{ if (0) dump(x); }
 #define Explain(x)	{ if (tl_verbose) tl_explain(x); }
 
@@ -532,16 +549,6 @@ struct BANode {
     : NodeName(""), Initial(false), Accepting(false) {}
 };
 
-// Macros for conditional printing
-#define CHECKED_PRINTF (args...) \
-    if (!IsCalledFromLib) {      \
-        printf(args);            \
-    }
-
-#define CHECKED_FPRINTF (_handle_, args...) \
-    if (!IsCalledFromLib) {                 \
-        fprintf(_handle_, args);            \
-    }
 
 // Flag indicating whether we're called from libmain
 extern bool IsCalledFromLib;
@@ -549,4 +556,5 @@ extern bool IsCalledFromLib;
 typedef std::map<std::string, BANode> BAutomaton;
 extern BAutomaton LibLTL3BAGenAut;
 
-extern "C" int libltl3ba_main(const std::string& LTLProp, BAutomaton& Aut);
+extern "C" int libltl3ba_main(const std::string& LTLProp, BAutomaton& Aut, 
+                              bool Det = false, bool Simp = false);

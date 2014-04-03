@@ -564,7 +564,7 @@ std::map<cset, ATrans*> *build_alternating(Node *p) /* builds an alternating aut
   }
 
 #if SUPP_OUT == YES
-          printf("\n");
+          CHECKED_PRINTF("\n");
 #endif
 
   transition[node_id] = result;
@@ -640,19 +640,20 @@ void allsatPrintHandler(char* varset, int size)
 {
   int print_and = 0;
   
-  if (print_or) fprintf(tl_out, " || ");
-  fprintf(tl_out, "(");
+  if (print_or) CHECKED_FPRINTF(tl_out, " || ");
+  CHECKED_FPRINTF(tl_out, "(");
   for (int v=0; v<size; v++)
   {
     if (varset[v] < 0) continue;       
-    if (print_and) fprintf(tl_out, " && ");
-    if (varset[v] == 0)
-      fprintf(tl_out, "!%s", sym_table[v]);
-    else
-      fprintf(tl_out, "%s", sym_table[v]);
+    if (print_and) CHECKED_FPRINTF(tl_out, " && ");
+    if (varset[v] == 0) {
+        CHECKED_FPRINTF(tl_out, "!%s", sym_table[v]);
+    } else {
+        CHECKED_FPRINTF(tl_out, "%s", sym_table[v]);
+    }
     print_and = 1;
   }
-  fprintf(tl_out, ")");
+  CHECKED_FPRINTF(tl_out, ")");
   print_or = 1;
 }
 
@@ -661,30 +662,30 @@ void print_alternating() /* dumps the alternating automaton */
   int i;
   std::map<cset, ATrans*>::iterator t;
 
-  fprintf(tl_out, "init :\n");
+  CHECKED_FPRINTF(tl_out, "init :\n");
   if (transition[0])
     for(t = transition[0]->begin(); t != transition[0]->end(); t++) {
       t->first.print();
-      fprintf(tl_out, "\n");
+      CHECKED_FPRINTF(tl_out, "\n");
     }
   
   for(i = node_id - 1; i > 0; i--) {
     if(!label[i])
       continue;
-    fprintf(tl_out, "state %i : ", i);
+    CHECKED_FPRINTF(tl_out, "state %i : ", i);
     dump(label[i]);
-    fprintf(tl_out, "\n");
+    CHECKED_FPRINTF(tl_out, "\n");
     if (transition[i])
       for(t = transition[i]->begin(); t != transition[i]->end(); t++) {
         if (t->second->label == bdd_true()) {
-          fprintf(tl_out, "(1)");
+          CHECKED_FPRINTF(tl_out, "(1)");
         } else {
           print_or = 0;
           bdd_allsat(t->second->label, allsatPrintHandler);
         }
-        fprintf(tl_out, " -> ");
+        CHECKED_FPRINTF(tl_out, " -> ");
         t->first.print();
-        fprintf(tl_out, "\n");
+        CHECKED_FPRINTF(tl_out, "\n");
       }
   }
 }
@@ -803,7 +804,7 @@ void oteckuj(int nodes_num) {
           }
           break;
         default:
-          printf("Unknown token: ");
+          CHECKED_PRINTF("Unknown token: ");
           tl_explain(n->ntyp);
           break;
         }
@@ -862,7 +863,7 @@ void mk_alternating(Node *p) /* generates an alternating automaton for p */
   }
 
   if(tl_verbose) {
-    fprintf(tl_out, "\nAlternating automaton before simplification\n");
+    CHECKED_FPRINTF(tl_out, "\nAlternating automaton before simplification\n");
     print_alternating();
   }
 
@@ -870,7 +871,7 @@ void mk_alternating(Node *p) /* generates an alternating automaton for p */
     simplify_astates(); /* keeps only accessible states */
     oteckuj(nodes_num);
     if(tl_verbose) {
-      fprintf(tl_out, "\nAlternating automaton after simplification\n");
+      CHECKED_FPRINTF(tl_out, "\nAlternating automaton after simplification\n");
       print_alternating();
     }
   } else {
@@ -882,9 +883,9 @@ void mk_alternating(Node *p) /* generates an alternating automaton for p */
   if(tl_stats) {
     getrusage(RUSAGE_SELF, &tr_fin);
     timeval_subtract (&t_diff, &tr_fin.ru_utime, &tr_debut.ru_utime);
-    fprintf(tl_out, "\nBuilding and simplification of the alternating automaton: %li.%06lis",
-		t_diff.tv_sec, t_diff.tv_usec);
-    fprintf(tl_out, "\n%i states, %i transitions\n", astate_count, atrans_count);
+    CHECKED_FPRINTF(tl_out, "\nBuilding and simplification of the alternating automaton: %li.%06lis",
+                    t_diff.tv_sec, t_diff.tv_usec);
+    CHECKED_FPRINTF(tl_out, "\n%i states, %i transitions\n", astate_count, atrans_count);
   }
 #endif
 
