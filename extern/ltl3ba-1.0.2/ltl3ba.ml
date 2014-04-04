@@ -25,6 +25,8 @@ type ltl3banode = (string * bool * bool * ltl3baedge list)
 (* node name to node map, initial state list *)
 type ltl3baautomaton = ltl3banode StringMap.t * string list
 
+type ltl3bautomatonlow = ltl3banode list
+
 let rec ltl3baproptostring prop = 
   let rec listFolder lst sep =
     match lst with
@@ -77,5 +79,5 @@ let ltl3baToDot aut fname =
   close_out oc
 
 (* defs for externals *)
-external ltl3ba : string -> bool -> bool -> ltl3baautomaton =
+external ltl3ba : string -> bool -> bool -> ltl3baautomatonlow =
   "ltl3ba_native"
