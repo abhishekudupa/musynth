@@ -268,10 +268,12 @@ int libltl3ba_main(const std::string &LTLProp, BAutomaton &Aut,
         tl_sim_r = 0;
     }
     IsCalledFromLib = true;
+    LibLTL3BAGenAut.clear();
     std::string PropLocal = LTLProp;
     int retval = tl_main(PropLocal);
     Aut = LibLTL3BAGenAut;
     IsCalledFromLib = false;
+    LibLTL3BAGenAut.clear();
     return retval;
 }
 

@@ -47,9 +47,74 @@
 #include <caml/fail.h>
 #include <caml/custom.h>
 
-CAMLprim value ltl3ba_native(value PropString, val Det, val Simp)
+value ProcessString (const std::string& Str)
+{
+    CAMLlocal1(Retval);
+    Retval = caml_copy_string(Str.c_str());
+    return Retval;
+}
+
+value ProcessCube (const Cube& TheCube)
+{
+
+}
+
+value ProcessCubeList (const std::vector<Cube>& Disjuncts)
 {
     
+}
+
+value ProcessOneEdge (const BAEdge& Edge)
+{
+    CAMLlocal1(Retval);
+    Retval = caml_alloc(0, 3);
+    Store_field(Retval, 0, ProcessString(Edge.FromState));
+    Store_field(Retval, 1, ProcessCubeList(Edge.Disjuncts));
+    Store_field(Retval, 2, ProcessString(Edge.ToState));
+    return Retval;
+}
+
+value ProcessEdgeList (const std::vector<BAEdge>& Edges)
+{
+    for (auto const& Edge : Edges) {
+        
+    }
+}
+
+
+value ProcessOneNode (const BANode& Node)
+{
+    CAMLlocal2(Retval);
+    Retval = caml_alloc(0, 4);
+    Field(Retval, 0) = ProcessString(Node.NodeName);
+    Field(Retval, 1) = Node.Initial ? Val_true : Val_false;
+    Field(Retval, 2) = Node.Accepting ? Val_true : Val_false;
+    Field(Retval, 3) = ProcessEdgeList(Node.Edges);
+    return Retval;
+}
+
+value ProcessNodes(const BAutomaton& Aut)
+{
+    CAMLlocal2(Retval, CurNode)
+    for (auto it = Aut.rbegin(); it != Aut.rend(); ++it) {
+        CurNode = caml_alloc(2, 0);
+        Field(CurNode, 0) = ProcessOneNode()
+    }
+}
+
+CAMLprim value ltl3ba_native(value PropString, val Det, val Simp)
+{
+    CAMLparam3(PropString, Det, Simp);
+    std::string StringProp(String_val(PropString));
+    bool BoolDet = Bool_val(Det) == 0 ? false : true;
+    bool BoolSimp = Bool_val(Simp) == 0 ? false : true;
+    BAutomaton Aut;
+    int Retval = libltl3ba_main(StringProp, BAutomaton &Aut, BoolDet, BoolSimp);
+    if (Retval != 0) {
+        caml_invalid_argument("Conversion of LTL specification to BA failed");
+    }
+
+    // All good
 }
 
 // 
