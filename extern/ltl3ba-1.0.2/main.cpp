@@ -186,6 +186,7 @@ int
 main(int argc, char *argv[])
 {	int i;
 	tl_out = stdout;
+    IsCalledFromLib = false;
 
 	while (argc > 1 && argv[1][0] == '-')
         {       switch (argv[1][1]) {

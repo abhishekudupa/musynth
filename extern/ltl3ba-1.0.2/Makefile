@@ -58,6 +58,8 @@ BUDDY_LIB=../buddy-2.4/build
 
 CC=g++
 CXX=g++
+OCAMLC=ocamlc.opt
+OCAMLOPT=ocamlopt.opt
 CPPFLAGS=-fPIC -O3 -std=c++11 -DNXT -I$(BUDDY_INCLUDE)
 
 LTL3BA=	parse.o lex.o main.o trans.o buchi.o cset.o set.o \
@@ -71,7 +73,7 @@ LIBLTL3BAOBJS=	parse.o lex.o trans.o buchi.o cset.o set.o \
 
 default: all
 
-all: ltl3ba libltl3ba
+all: ltl3ba libltl3ba ltl3ba.cma ltl3ba.cmxa
 
 ltl3ba:	$(LTL3BA)
 	$(CXX)  $(CPPFLAGS)  -o ltl3ba $(LTL3BA) -L$(BUDDY_LIB) -Wl,-Bstatic -lbdd -Wl,-Bdynamic
@@ -92,7 +94,22 @@ $(LTL3BA): ltl3ba.h
 libmain.o: main.cpp
 	$(CXX)  $(CPPFLAGS)  -c -DLTL3BA_LIB_BUILD -o libmain.o main.cpp
 
+ltl3ba.cma: ltl3ba_stubs.o ltl3ba.cmi ltl3ba.cmo
+	$(OCAMLC) -a -o $@ ltl3ba_stubs.o ltl3ba.cmo
+
+ltl3ba.cmxa: ltl3ba_stubs.o ltl3ba.cmi ltl3ba.cmx
+	$(OCAMLOPT) -a -o $@ ltl3ba_stubs.o ltl3ba.cmx
+
+ltl3ba.cmi: ltl3ba.mli
+	$(OCAMLC) -c ltl3ba.mli
+
+ltl3ba.cmo: ltl3ba.ml ltl3ba.cmi
+	$(OCAMLC) -c ltl3ba.ml
+
+ltl3ba.cmx: ltl3ba.ml ltl3ba.cmi
+	$(OCAMLOPT) -c ltl3ba.ml
+
 .PHONY: clean all default
 
 clean:
-	rm -f ltl3ba *.o core libltl3ba.*
+	rm -f ltl3ba *.o core libltl3ba.* ltl3ba.cmxa ltl3ba.cma ltl3ba.cmo ltl3ba.cmi ltl3ba.cmx

@@ -1071,9 +1071,6 @@ void CreateLibBA(BAutomaton& Aut)
         return;
     }
 
-    CHECKED_FPRINTF(tl_out, "never { /* ");
-    put_uform();
-    CHECKED_FPRINTF(tl_out, " */\n");
     for(s = bstates->prv; s != bstates; s = s->prv) {
         bool Accepting = false;
         bool Initial = false;
