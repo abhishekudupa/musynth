@@ -39,6 +39,7 @@
 #include <fstream>
 #include "ltl3ba.h"
 #include "unistd.h"
+#include "ltl3baCInt.h"
 
 FILE	*tl_out;
 
@@ -70,6 +71,8 @@ int tl_terse     = 0;
 unsigned long	All_Mem = 0;
 
 bool IsCalledFromLib = false;
+bool IsCalledFromCLib = false;
+
 BAutomaton LibLTL3BAGenAut;
 
 std::string uform;
@@ -249,13 +252,15 @@ main(int argc, char *argv[])
 
 #else /* LTL3BA_LIB_BUILD */
 
+static void libltl3ba_mk_c_aut();
+
 int libltl3ba_main(const std::string &LTLProp, BAutomaton &Aut,
                    bool Det, bool Simp)
 {
     if (Det) {
-        tl_determinize = 1;
+        tl_det_m = 1;
     } else {
-        tl_determinize = 0;
+        tl_det_m = 0;
     }
     if (Simp) {
         tl_bisim = 1;
@@ -274,8 +279,84 @@ int libltl3ba_main(const std::string &LTLProp, BAutomaton &Aut,
     int retval = tl_main(PropLocal);
     Aut = LibLTL3BAGenAut;
     IsCalledFromLib = false;
+    if (IsCalledFromCLib) {
+        libltl3ba_mk_c_aut();
+    }
     LibLTL3BAGenAut.clear();
+    
     return retval;
+}
+
+int libltl3ba_main_pure_c(const char* Prop, bool Det, bool Simp)
+{
+    BAutomaton Dummy;
+    std::string PropStr(Prop);
+    IsCalledFromCLib = true;
+    int Retval =  libltl3ba_main(PropStr, Dummy, Det, Simp);
+    IsCalledFromCLib = false;
+    return Retval;
+}
+
+void libltl3ba_mk_c_aut()
+{
+    int Size = LibLTL3BAGenAut.size();
+    if (LTL3BAGeneratedCAut != NULL) {
+        FreeAutC(LTL3BAGeneratedCAut);
+        LTL3BAGeneratedCAut = NULL;
+    }
+    LTL3BAGeneratedCAut = (AutC*)malloc(sizeof(AutC));
+    LTL3BAGeneratedCAut->NumNodes = Size;
+    LTL3BAGeneratedCAut->Nodes = (NodeC**)malloc(sizeof(NodeC*) * Size);
+    
+    int i = 0;
+    for (auto const& NameNodePair : LibLTL3BAGenAut) {
+        auto const& N = NameNodePair.second;
+        NodeC* CurNode = (NodeC*)malloc(sizeof(NodeC));
+        CurNode->NodeName = MkString(N.NodeName.c_str());
+        CurNode->Initial = N.Initial;
+        CurNode->Accepting = N.Accepting;
+        int NumEdges = N.Edges.size();
+        CurNode->NumEdges = NumEdges;
+        CurNode->Edges = (EdgeC**)malloc(sizeof(EdgeC*) * NumEdges);
+        
+        int j = 0;
+        for (auto const& Edge : N.Edges) {
+            EdgeC* CurEdge = (EdgeC*)malloc(sizeof(EdgeC));
+            CurEdge->FromState = MkString(Edge.FromState.c_str());
+
+            int NumDisjuncts = Edge.Disjuncts.size();
+            PropC* CurProp = (PropC*)malloc(sizeof(PropC));
+            CurProp->NumElems = NumDisjuncts;
+            CurProp->Disjuncts = (CubeC**)malloc(sizeof(CubeC*) * NumDisjuncts);
+
+            int k = 0;
+            
+            for (auto const& TheCube : Edge.Disjuncts) {
+                CubeC* CurCube = (CubeC*)malloc(sizeof(CubeC));
+                int NumProps = TheCube.size();
+                CurCube->NumElems = NumProps;
+                CurCube->Props = (PropLiteralC**)malloc(sizeof(PropLiteralC*) * NumProps);
+                
+                int l = 0;                
+
+                for (auto const& Prop : TheCube) {
+                    PropLiteralC* CurPropLiteral = (PropLiteralC*)malloc(sizeof(PropLiteralC));
+                    CurPropLiteral->Negated = Prop.Negated;
+                    CurPropLiteral->IsTrue = Prop.IsTrue;
+                    CurPropLiteral->IsFalse = Prop.IsFalse;
+                    CurPropLiteral->Name = MkString(Prop.Name.c_str());
+
+                    CurCube->Props[l++] = CurPropLiteral;
+                }
+                CurProp->Disjuncts[k++] = CurCube;
+            }
+            CurEdge->Prop = CurProp;
+            CurEdge->ToState = MkString(Edge.ToState.c_str());
+            CurNode->Edges[j++] = CurEdge;
+        }
+
+        LTL3BAGeneratedCAut->Nodes[i++] = CurNode;
+    }
 }
 
 #endif /* LTL3BA_LIB_BUILD */

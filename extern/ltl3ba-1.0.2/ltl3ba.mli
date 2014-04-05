@@ -38,32 +38,31 @@ type ltl3baprop =
 type ltl3baedge = string * ltl3baprop * string
 type ltl3banode = string * bool * bool * ltl3baedge list
 type ltl3baautomaton = ltl3banode StringMap.t * string list
-type ltl3bapropLL =
-    LTL3BAPropLLTrue
-  | LTL3BAPropLLFalse
-  | LTL3BAPropLLLiteral of (string * bool)
-type ltl3bacubeLL = ltl3bapropLL list
-type ltl3baedgeLL = string * ltl3bacubeLL list * string
+type ltl3bapropLL = bool * bool * string * bool
+type ltl3bacubeLL = ltl3bapropLL array
+type ltl3baedgeLL = string * ltl3bacubeLL array * string
 type ltl3banodeLL = string * bool * bool * ltl3baedgeLL array
 type ltl3baautomatonLL = ltl3banodeLL array
 val ltl3baproptostring : ltl3baprop -> string
 val ltl3baToDot :
-  ('a * 'b * bool * (string * ltl3baprop * string) list) StringMap.t *
-  StringMap.key list -> string -> unit
+  ('a * bool * bool * (string * ltl3baprop * string) list) StringMap.t * 'b ->
+  string -> unit
 external ltl3ba_mk_ba : string -> bool -> bool -> unit
   = "ltl3ba_native_mk_ba"
 external ltl3ba_translate_ba : unit -> ltl3baautomatonLL
   = "ltl3ba_native_translate_ba"
 external ltl3ba_teardown : unit -> unit = "ltl3ba_native_teardown"
-val raiseLLProp : ltl3bapropLL -> ltl3baprop
-val raiseCube : ltl3bapropLL list -> ltl3baprop
-val raiseCubeList : ltl3bapropLL list list -> ltl3baprop
-val raiseLLEdge : 'a * ltl3bapropLL list list * 'b -> 'a * ltl3baprop * 'b
+val raiseLLProp : bool * bool * string * bool -> ltl3baprop
+val raiseCube : (bool * bool * string * bool) list -> ltl3baprop
+val raiseCubeList : (bool * bool * string * bool) array list -> ltl3baprop
+val raiseLLEdge :
+  'a * (bool * bool * string * bool) array array * 'b -> 'a * ltl3baprop * 'b
 val raiseLLNode :
-  'a * 'b * 'c * ('d * ltl3bapropLL list list * 'e) array ->
+  'a * 'b * 'c * ('d * (bool * bool * string * bool) array array * 'e) array ->
   'a * 'b * 'c * ('d * ltl3baprop * 'e) list
 val raiseLLAut :
-  (StringMap.key * bool * 'a * ('b * ltl3bapropLL list list * 'c) array)
+  (StringMap.key * bool * 'a *
+   ('b * (bool * bool * string * bool) array array * 'c) array)
   array ->
   (StringMap.key * bool * 'a * ('b * ltl3baprop * 'c) list) StringMap.t *
   StringMap.key list

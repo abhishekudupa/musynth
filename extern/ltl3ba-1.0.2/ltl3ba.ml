@@ -26,14 +26,12 @@ type ltl3banode = (string * bool * bool * ltl3baedge list)
 (* node name to node map, initial state list *)
 type ltl3baautomaton = ltl3banode StringMap.t * string list
 
-type ltl3bapropLL = 
-  | LTL3BAPropLLTrue
-  | LTL3BAPropLLFalse
-  | LTL3BAPropLLLiteral of (string * bool)
+(* constant, constval, literal, negated *)
+type ltl3bapropLL = bool * bool * string * bool
 
-type ltl3bacubeLL = ltl3bapropLL list
+type ltl3bacubeLL = ltl3bapropLL array
 
-type ltl3baedgeLL = (string * ltl3bacubeLL list * string)
+type ltl3baedgeLL = (string * ltl3bacubeLL array * string)
 
 type ltl3banodeLL = (string * bool * bool * ltl3baedgeLL array)
 
@@ -58,26 +56,18 @@ let rec ltl3baproptostring prop =
 let ltl3baToDot aut fname =
   let oc = open_out fname in
   let fmt = formatter_of_out_channel oc in
-  let autmap, initstates = aut in
+  let autmap, _ = aut in
   (* create the declarations for each node *)
   fprintf fmt "@[<v 0>@[<v 4>digraph BA {@,";
   fprintf fmt "rankdir=LR;@,";
-  List.iter 
-    (fun nodename -> 
-      fprintf fmt "%s [shape=ellipse,style=filled];@," nodename)
-    initstates;
   StringMap.iter
     (fun nodename nodeattr ->
-      if (List.mem nodename initstates) then
-        ()
-      else
-        begin
-          let _, init, accept, edges = nodeattr in
-          if accept then
-            fprintf fmt "%s [shape=doublecircle];@," nodename
-          else
-            fprintf fmt "%s [shape=ellipse];@," nodename
-        end) autmap;
+      let _, init, accept, edges = nodeattr in
+      match init, accept with
+      | false, false -> fprintf fmt "%s [shape=circle];@," nodename
+      | false, true -> fprintf fmt "%s [shape=doublecircle];@," nodename
+      | true, false -> fprintf fmt "%s [shape=circle,style=filled];@," nodename
+      | true, true -> fprintf fmt "%s [shape=doublecircle,style=filled];@," nodename) autmap;
 
   (* draw out the edges *)
   StringMap.iter 
@@ -103,15 +93,16 @@ external ltl3ba_teardown : unit -> unit =
   "ltl3ba_native_teardown"
 
 let raiseLLProp prop =
-  match prop with
-  | LTL3BAPropLLTrue -> LTL3BAPropTrue
-  | LTL3BAPropLLFalse -> LTL3BAPropFalse
-  | LTL3BAPropLLLiteral (name, negated) ->
+  let const, constval, name, negated = prop in
+  match const with
+  | true -> 
+      if constval then LTL3BAPropTrue else LTL3BAPropFalse
+  | false ->
       if negated then
         LTL3BAPropNegation (LTL3BAPropLiteral name)
       else
         LTL3BAPropLiteral name
-
+          
 let raiseCube cube =
   match cube with
   | [] -> assert false
@@ -122,13 +113,17 @@ let raiseCube cube =
 let raiseCubeList cubelist = 
   match cubelist with
   | [] -> assert false
-  | [ head ] -> raiseCube head
+  | [ head ] -> raiseCube (Array.to_list head)
   | head :: rest -> 
-      LTL3BAPropDisjunction (List.map raiseCube cubelist)
+      LTL3BAPropDisjunction 
+        (List.map 
+           (fun cube -> 
+             raiseCube (Array.to_list cube)) cubelist)
 
 let raiseLLEdge edge = 
   let initname, cubelist, finalname = edge in
-  (initname, raiseCubeList cubelist, finalname)
+  pp_print_flush std_formatter ();
+  (initname, raiseCubeList (Array.to_list cubelist), finalname)
 
 let raiseLLNode node =
   let nodename, initial, accepting, edges = node in

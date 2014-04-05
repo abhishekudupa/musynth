@@ -552,9 +552,21 @@ struct BANode {
 
 // Flag indicating whether we're called from libmain
 extern bool IsCalledFromLib;
+extern bool IsCalledFromCLib;
 
 typedef std::map<std::string, BANode> BAutomaton;
 extern BAutomaton LibLTL3BAGenAut;
 
-extern "C" int libltl3ba_main(const std::string& LTLProp, BAutomaton& Aut, 
-                              bool Det = false, bool Simp = false);
+extern int libltl3ba_main(const std::string& LTLProp, BAutomaton& Aut, 
+                          bool Det = false, bool Simp = false);
+
+#ifdef __cplusplus
+extern "C" {
+#endif 
+
+extern int libltl3ba_main_pure_c(const char* Prop, bool Det, bool Simp);
+
+#ifdef __cplusplus
+}
+#endif
+

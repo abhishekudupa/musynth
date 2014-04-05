@@ -1020,6 +1020,11 @@ void print_spin_buchi() {
 static inline std::string GetStateName(const BState* State, bool& Accepting, bool& Initial)
 {
     std::string Retval;
+    if (State->id == 0) {
+        Accepting = true;
+        Retval = "accept_all";
+        return Retval;
+    }
     if (State->final == accept) {
         Accepting = true;
         Retval = "accept_";
@@ -1039,12 +1044,13 @@ void allsatPrintHandlerLib(char* VarSet, int Size)
 {
     Cube CurCube;
     for (int i = 0; i < Size; ++i) {
+        std::string VarName(sym_table[i]);
         if (VarSet[i] < 0) {
             continue;
         } else if (VarSet[i] == 0) {
-            CurCube.push_back(PropLiteral(sym_table[i], true));
+            CurCube.push_back(PropLiteral(VarName, true));
         } else {
-            CurCube.push_back(PropLiteral(sym_table[i]));
+            CurCube.push_back(PropLiteral(VarName));
         }
     }
     GSCurDisjuncts.push_back(CurCube);

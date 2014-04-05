@@ -56,11 +56,13 @@ BUDDY_LIB=../buddy-2.4/build
 # $ make install 
 # and use the default values of BUDDY_INCLUDE and BUDDY_LIB.
 
-CC=g++
+CC=gcc
 CXX=g++
-OCAMLC=ocamlc.opt
-OCAMLOPT=ocamlopt.opt
+OCAMLC=ocamlc
+OCAMLOPT=ocamlopt
 CPPFLAGS=-fPIC -O3 -std=c++11 -DNXT -I$(BUDDY_INCLUDE)
+CFLAGS=-fPIC -O3 -std=c99 -DNXT -I$(BUDDY_INCLUDE)
+ROOTDIR=$(realpath .)
 
 LTL3BA=	parse.o lex.o main.o trans.o buchi.o cset.o set.o \
 	mem.o rewrt.o cache.o alternating.o generalized.o optim.o queue.o \
@@ -68,7 +70,7 @@ LTL3BA=	parse.o lex.o main.o trans.o buchi.o cset.o set.o \
 
 LIBLTL3BAOBJS=	parse.o lex.o trans.o buchi.o cset.o set.o \
 	mem.o rewrt.o cache.o alternating.o generalized.o optim.o queue.o \
-	libmain.o \
+	libmain.o ltl3baCInt.o \
 
 
 default: all
@@ -78,7 +80,7 @@ all: ltl3ba libltl3ba ltl3ba.cma ltl3ba.cmxa
 ltl3ba:	$(LTL3BA)
 	$(CXX)  $(CPPFLAGS)  -o ltl3ba $(LTL3BA) -L$(BUDDY_LIB) -Wl,-Bstatic -lbdd -Wl,-Bdynamic
 
-libltl3ba: libltl3ba.so libltl3ba.a
+libltl3ba: libltl3ba.a #libltl3ba.so 
 
 libltl3ba.so: $(LIBLTL3BAOBJS)
 	rm -rf .temp2; mkdir .temp2; cp $(BUDDY_LIB)/libbdd.a .temp2; cd .temp2; ar -x libbdd.a
@@ -89,16 +91,25 @@ libltl3ba.a: $(LIBLTL3BAOBJS)
 	rm -rf .temp; mkdir .temp; cp $(BUDDY_LIB)/libbdd.a .temp; cd .temp; ar -x libbdd.a; \
 		cd ..; ar -rcs $@ $(LIBLTL3BAOBJS) .temp/*.o; rm -rf .temp
 
+ltl3ba_stubs.o: ltl3ba_stubs.c
+	$(CC) $(CFLAGS) -c -o $@ ltl3ba_stubs.c
+
 $(LTL3BA): ltl3ba.h
 
 libmain.o: main.cpp
 	$(CXX)  $(CPPFLAGS)  -c -DLTL3BA_LIB_BUILD -o libmain.o main.cpp
 
-ltl3ba.cma: ltl3ba_stubs.o ltl3ba.cmi ltl3ba.cmo
-	$(OCAMLC) -a -o $@ ltl3ba_stubs.o ltl3ba.cmo
+ltl3baCInt.o: ltl3baCInt.h ltl3baCInt.c
+	$(CC)  $(CFLAGS)  -c -DLTL3BA_LIB_BUILD -o ltl3baCInt.o ltl3baCInt.c
 
-ltl3ba.cmxa: ltl3ba_stubs.o ltl3ba.cmi ltl3ba.cmx
-	$(OCAMLOPT) -a -o $@ ltl3ba_stubs.o ltl3ba.cmx
+libltl3bastubs.a: ltl3ba_stubs.o
+	ar -rcs $@ ltl3ba_stubs.o
+
+ltl3ba.cma: libltl3bastubs.a ltl3ba.cmi ltl3ba.cmo
+	$(OCAMLC) -a -linkall -custom -o $@ ltl3ba.cmo -ccopt -L$(ROOTDIR) -cclib -lltl3bastubs -cclib -lltl3ba
+
+ltl3ba.cmxa: libltl3bastubs.a ltl3ba.cmi ltl3ba.cmx
+	$(OCAMLOPT) -a -linkall -o $@ ltl3ba.cmx -ccopt -L$(ROOTDIR) -cclib -lltl3bastubs -cclib -lltl3ba
 
 ltl3ba.cmi: ltl3ba.mli
 	$(OCAMLC) -c ltl3ba.mli
@@ -112,4 +123,4 @@ ltl3ba.cmx: ltl3ba.ml ltl3ba.cmi
 .PHONY: clean all default
 
 clean:
-	rm -f ltl3ba *.o core libltl3ba.* ltl3ba.cmxa ltl3ba.cma ltl3ba.cmo ltl3ba.cmi ltl3ba.cmx
+	rm -f ltl3ba *.o core libltl3ba.* ltl3ba.cmxa ltl3ba.cma ltl3ba.cmo ltl3ba.cmi ltl3ba.cmx libltl3bastubs.a
