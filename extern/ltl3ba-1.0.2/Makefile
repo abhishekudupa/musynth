@@ -123,4 +123,4 @@ ltl3ba.cmx: ltl3ba.ml ltl3ba.cmi
 .PHONY: clean all default
 
 clean:
-	rm -f ltl3ba *.o core libltl3ba.* ltl3ba.cmxa ltl3ba.cma ltl3ba.cmo ltl3ba.cmi ltl3ba.cmx libltl3bastubs.a
+	rm -f ltl3ba *.o core libltl3ba.* ltl3ba.cmxa ltl3ba.cma ltl3ba.cmo ltl3ba.cmi ltl3ba.cmx libltl3bastubs.a ltl3ba.a
