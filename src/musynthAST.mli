@@ -34,6 +34,9 @@ val pMsgDeclBlock :
   string ->
   Format.formatter ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list -> unit
+val pMessagesDeclBlock :
+  Format.formatter ->
+  MusynthTypes.musDesignatorT MusynthTypes.musDeclType list -> unit
 val pStateAnnot :
   Format.formatter -> MusynthTypes.musStateAnnotationT -> unit
 val pStateDecl :
@@ -78,6 +81,7 @@ val pSpec : Format.formatter -> MusynthTypes.musSpecT -> unit
 val pProg :
   Format.formatter ->
   ((string * 'a) * MusynthTypes.musSymTypeT) list *
+  MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
   MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit

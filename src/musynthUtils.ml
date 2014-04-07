@@ -20,8 +20,6 @@ let crossProduct lstlst =
   else
     crossProductRec lstlst
 
-let getSatSet qMap propOpt
-
 module StringMap = Map.Make
     (struct
       type t = string

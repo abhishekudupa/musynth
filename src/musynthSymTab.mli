@@ -21,7 +21,10 @@ val lookupVar :
 val lookupType :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.IdentMap.key -> MusynthTypes.musSymTypeT
-val lookupMsg :
+val lookupGMsg :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
+val lookupAMsg :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.IdentMap.key -> MusynthTypes.symtabEntry
 val lookupState :

@@ -33,24 +33,24 @@ Automaton Environment[c] foreach c in CacheIDType
                IssuedHavoc[d] foreach d in DataType };
     
     inputs {
-        GetDone[d] foreach d in DataType,
-        HavocDone[d] foreach d in DataType,
-        PutDone
+        GetDone[c][d] foreach d in DataType,
+        HavocDone[c][d] foreach d in DataType,
+        PutDone[c]
     };
 
     outputs {
-        Get, Put,
-        Havoc[d] foreach d in DataType
+        Get[c], Put[c],
+        Havoc[c][d] foreach d in DataType
     };
 
     transitions {
-        (InitState[d], Get, IssuedGet foreach d in DataType),
-        (InitState[d], Put, IssuedPut foreach d in DataType),
-        (InitState[d1], Havoc[d2], IssuedHavoc[d2] foreach d1, d2 in DataType),
+        (InitState[d], Get[c], IssuedGet foreach d in DataType),
+        (InitState[d], Put[c], IssuedPut foreach d in DataType),
+        (InitState[d1], Havoc[c][d2], IssuedHavoc[d2] foreach d1, d2 in DataType),
 
-        (IssuedGet, GetDone[d], InitState[d] foreach d in DataType),
-        (IssuedPut, PutDone, InitState[d] foreach d in DataType),
-        (IssuedHavoc[d], HavocDone[d], InitState[d] foreach d in DataType)
+        (IssuedGet, GetDone[c][d], InitState[d] foreach d in DataType),
+        (IssuedPut, PutDone[c], InitState[d] foreach d in DataType),
+        (IssuedHavoc[d], HavocDone[c][d], InitState[d] foreach d in DataType)
     };
 }
 
@@ -59,11 +59,12 @@ Automaton Oracle
     states : { Data[d] foreach d in DataType };
 
     inputs {
-        HavocDone[d] foreach d in DataType
+        HavocDone[c][d] foreach c in CacheIDType foreach d in DataType
     };
 
     transitions {
-        (Data[d1], HavocDone[d2], Data[d2] foreach d1, d2 in DataType)
+        (Data[d1], HavocDone[c][d2], Data[d2] foreach d1, d2 in DataType 
+                                              foreach c in CacheIDType)
     };
 }
 
@@ -73,10 +74,10 @@ ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
     capacity = 1;    
 
     messages {
-        Req2Dir, 
-        WB2Dir[d] foreach d in DataType,
-        InvAck2Dir[d] foreach d in DataType,
-        Ack2Dir
+        Req2Dir[c], 
+        WB2Dir[c][d] foreach d in DataType,
+        InvAck2Dir[c][d] foreach d in DataType,
+        Ack2Dir[c]
     };
 }
 
@@ -86,9 +87,9 @@ ChannelAutomaton RspChannel[c] foreach c in CacheIDType
     capacity = 1;
 
     messages {
-        Rsp[d] foreach d in DataType,
-        WBAck,
-        Inv
+        Rsp[c][d] foreach d in DataType,
+        WBAck[c],
+        Inv[c]
     };
 }
 
@@ -112,50 +113,50 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
                CVI4[d] foreach d in DataType : complete };
 
     inputs {
-        Get, Put, 
-        Havoc[d] foreach d in DataType,
-        Rsp'[d] foreach d in DataType,
-        WBAck', Inv'
+        Get[c], Put[c], 
+        Havoc[c][d] foreach d in DataType,
+        Rsp'[c][d] foreach d in DataType,
+        WBAck'[c], Inv'[c]
     };
 
     outputs {
-        Req2Dir, 
-        WB2Dir[d] foreach d in DataType, 
-        InvAck2Dir[d] foreach d in DataType,
-        Ack2Dir,
-        GetDone[d] foreach d in DataType,
-        PutDone,
-        HavocDone[d] foreach d in DataType
+        Req2Dir[c], 
+        WB2Dir[c][d] foreach d in DataType, 
+        InvAck2Dir[c][d] foreach d in DataType,
+        Ack2Dir[c],
+        GetDone[c][d] foreach d in DataType,
+        PutDone[c],
+        HavocDone[c][d] foreach d in DataType
     };
 
     transitions {
-        (CI, Get, CIV1),
-        (CIV1, Req2Dir, CIV2),
-        (CIV2, Rsp'[d], CIV3[d] foreach d in DataType),
-        (CIV3[d], Ack2Dir, CIV4[d] foreach d in DataType),
-        (CIV4[d], GetDone[d], CV[d] foreach d in DataType),
+        (CI, Get[c], CIV1),
+        (CIV1, Req2Dir[c], CIV2),
+        (CIV2, Rsp'[c][d], CIV3[d] foreach d in DataType),
+        (CIV3[d], Ack2Dir[c], CIV4[d] foreach d in DataType),
+        (CIV4[d], GetDone[c][d], CV[d] foreach d in DataType),
 
-        (CI, Havoc[d], CIVH1[d] foreach d in DataType),
-        (CIVH1[d], Req2Dir, CIVH2[d] foreach d in DataType),
-        (CIVH2[d1], Rsp'[d2], CIVH3[d1] foreach d1, d2 in DataType),
-        (CIVH3[d], Ack2Dir, CIVH4[d] foreach d in DataType),
-        (CIVH4[d], HavocDone[d], CV[d] foreach d in DataType),
+        (CI, Havoc[c][d], CIVH1[d] foreach d in DataType),
+        (CIVH1[d], Req2Dir[c], CIVH2[d] foreach d in DataType),
+        (CIVH2[d1], Rsp'[c][d2], CIVH3[d1] foreach d1, d2 in DataType),
+        (CIVH3[d], Ack2Dir[c], CIVH4[d] foreach d in DataType),
+        (CIVH4[d], HavocDone[c][d], CV[d] foreach d in DataType),
 
-        (CV[d], Get, CVP[d] foreach d in DataType),
-        (CVP[d], GetDone[d], CV[d] foreach d in DataType),
-        (CV[d1], Havoc[d2], CVH[d2] foreach d1, d2 in DataType),
-        (CVH[d], HavocDone[d], CV[d] foreach d in DataType),
+        (CV[d], Get[c], CVP[d] foreach d in DataType),
+        (CVP[d], GetDone[c][d], CV[d] foreach d in DataType),
+        (CV[d1], Havoc[c][d2], CVH[d2] foreach d1, d2 in DataType),
+        (CVH[d], HavocDone[c][d], CV[d] foreach d in DataType),
 
-        (CV[d], Put, CVI1[d] foreach d in DataType),
-        (CVI1[d], WB2Dir[d], CVI2 foreach d in DataType),
-        (CVI2, WBAck', CVI3),
-        (CVI3, PutDone, CI),
+        (CV[d], Put[c], CVI1[d] foreach d in DataType),
+        (CVI1[d], WB2Dir[c][d], CVI2 foreach d in DataType),
+        (CVI2, WBAck'[c], CVI3),
+        (CVI3, PutDone[c], CI),
 
-        (CV[d], Inv', CVI4[d] foreach d in DataType),
-        (CVI4[d], InvAck2Dir[d], CI foreach d in DataType)
+        (CV[d], Inv'[c], CVI4[d] foreach d in DataType),
+        (CVI4[d], InvAck2Dir[c][d], CI foreach d in DataType)
         
         /*
-        (CVI2, Inv', CI)
+        (CVI2, Inv'[c], CI)
         */
     };
 }
@@ -209,7 +210,7 @@ PartialAutomaton Directory
 
 init {
     Environment[c].state = InitState[d] foreach c in CacheIDType foreach d in DataType;
-    Oracle.state = Data[d], Directory.state = Directory.DI[d] foreach d in DataType;
+    Oracle.state = Data[d], Directory.state = DI[d] foreach d in DataType;
     Cache[c].state = CI foreach c in CacheIDType;
 }
 
@@ -228,20 +229,20 @@ invariant "One Valid Invariant" {
                            (!= Cache[c2].state CV[d2])))))))
 }
 
-ctlspec "I-V liveness on Get" {
+ltlspec "I-V liveness on Get" {
     (forall c in CacheIDType
      (exists d in DataType
-      (AG (-> (= Environment[c].state IssuedGet) (EF (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+      (G (-> (= Environment[c].state IssuedGet) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
 }
 
-ctlspec "I-V liveness on Havoc" {
+ltlspec "I-V liveness on Havoc" {
     (forall c in CacheIDType
      (forall d in DataType
-      (AG (-> (= Environment[c].state IssuedHavoc[d]) (EF (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+      (G (-> (= Environment[c].state IssuedHavoc[d]) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
 }
 
-ctlspec "V-I liveness" {
+ltlspec "V-I liveness" {
     (forall c in CacheIDType
      (exists d in DataType
-      (AG (-> (= Environment[c].state IssuedPut) (EF (= Environment[c].state InitState[d]))))))
+      (G (-> (= Environment[c].state IssuedPut) (F (= Environment[c].state InitState[d]))))))
 }

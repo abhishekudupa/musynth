@@ -85,6 +85,7 @@ let rec pProp fmt prop =
   match prop with
   | PropTrue _ -> fprintf fmt "true"
   | PropFalse _ -> fprintf fmt "false"
+  | PropDefine (ident) -> fprintf fmt "%a" pIdentifier ident
   | PropEquals (desig1, desig2, _) ->
       fprintf fmt "@[<b 3>(= %a@ %a)@]" pDesignator desig1 pDesignator desig2
   | PropNEquals (desig1, desig2, _) ->
@@ -107,22 +108,16 @@ let rec pProp fmt prop =
       fprintf fmt "@[<b 1>(exists %a in %a@ %a)@]" 
         (pList "" false false pIdentifier) identlist 
         pSymType symtype pProp prop1
-  | PropCTLAG (prop1, _) ->
-      fprintf fmt "@[<b 4>(AG %a)@]" pProp prop1
-  | PropCTLAF (prop1, _) ->
-      fprintf fmt "@[<b 4>(AF %a)@]" pProp prop1
-  | PropCTLAX (prop1, _) ->
-      fprintf fmt "@[<b 4>(AX %a)@]" pProp prop1
-  | PropCTLAU (prop1, prop2, _) ->
-      fprintf fmt "@[<b 4>(AU %a@ %a)@]" pProp prop1 pProp prop2
-  | PropCTLEG (prop1, _) ->
-      fprintf fmt "@[<b 4>(EG %a)@]" pProp prop1
-  | PropCTLEF (prop1, _) ->
-      fprintf fmt "@[<b 4>(EF %a)@]" pProp prop1
-  | PropCTLEX (prop1, _) ->
-      fprintf fmt "@[<b 4>(EX %a)@]" pProp prop1
-  | PropCTLEU (prop1, prop2, _) ->
-      fprintf fmt "@[<b 4>(EU %a@ %a)@]" pProp prop1 pProp prop2
+  | PropTLG (prop1, _) ->
+      fprintf fmt "@[<b 4>(G %a)@]" pProp prop1
+  | PropTLF (prop1, _) ->
+      fprintf fmt "@[<b 4>(F %a)@]" pProp prop1
+  | PropTLX (prop1, _) ->
+      fprintf fmt "@[<b 4>(X %a)@]" pProp prop1
+  | PropTLU (prop1, prop2, _) ->
+      fprintf fmt "@[<b 4>(U %a@ %a)@]" pProp prop1 pProp prop2
+  | PropTLR (prop1, prop2, _) ->
+      fprintf fmt "@[<b 4>(R %a@ %a)@]" pProp prop1 pProp prop2
 
 let rec pPropOpt fmt optProp =
   match optProp with
@@ -279,13 +274,23 @@ let pAutomatonDecl fmt autdecl =
   pDecl prefixPrinter suffixPrinter fmt autdecl
 
 let pSpec fmt spec =
-  let prefix, prop = 
-    (match spec with
-    | SpecInvar (name, prop, _) -> ("invariant \"" ^ name ^ "\" {", prop)
-    | SpecCTL (name, prop, _) -> ("ctlspec \"" ^ name ^ "\" {", prop))
-  in
-  musMakeIndentedBox fmt pp_print_string prefix
-    pProp prop pp_print_string "}"
+  match spec with
+  | SpecInvar (name, prop, _) -> 
+      musMakeIndentedBox fmt pp_print_string ("invariant \"" ^ name ^ "\" {")
+        pProp prop pp_print_string "}"
+  | SpecLTL (name, prop, fairnesslist, _) -> 
+      musMakeIndentedBox fmt pp_print_string ("ltlspec \"" ^ name ^ "\" {")
+        (fun fmt (prop, flist) ->
+          pProp fmt prop;
+          if flist = [] then
+            ()
+          else
+            musMakeIndentedBox fmt pp_print_string " with fairness ("
+              (pList "," true false pProp) flist pp_print_string ")")
+        (prop, fairnesslist)
+        pp_print_string "}"
+  | SpecDefine (ident, prop, _) -> 
+      fprintf fmt "define %a %a" pIdentifier ident pProp prop
 
 let pProg fmt prog =
   let symtypes, msgdecls, automata, initblock, specs = prog in
@@ -299,5 +304,4 @@ let pProg fmt prog =
   fprintf fmt "@,@,";
   List.iter (fun spec -> pSpec fmt spec; fprintf fmt "@,@,") specs;
   fprintf fmt "@]"
-
 

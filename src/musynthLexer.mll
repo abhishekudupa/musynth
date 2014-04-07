@@ -27,9 +27,9 @@ let musynthKeywords =
     ("inputs", INPUTS);
     ("outputs", OUTPUTS);
     ("define", DEFINE);
+    ("with", WITH);
     ("fairness", FAIRNESS);
     ("cansyncon", CANSYNCON);
-    ("ctlspec", CTLSPEC);
     ("ltlspec", LTLSPEC);
     ("invariant", INVARIANT);
     ("incomplete", INCOMPLETE);
@@ -85,20 +85,11 @@ rule token = parse
 | ")" { RPAREN }
 | "&" { AND }
 | "|" { OR }
-| "AG" { TLAG }
-| "AG" { TLAF }
-| "EG" { TLEG }
-| "EF" { TLEF }
-| "AX" { TLAX }
-| "EX" { TLEX }
-| "AU" { TLAU }
-| "EU" { TLEU }
-| "A" { TLFORALL }
-| "E" { TLEXISTS }
 | "G" { TLGLOBAL }
 | "F" { TLFUTURE }
 | "U" { TLUNTIL }
 | "X" { TLNEXT }
+| "R" { TLRELEASE }
 | "->" { IMPLIES }
 | "<->" { IFF }
 | identifier as name 

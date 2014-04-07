@@ -1,12 +1,12 @@
 PROJECTROOT=$(realpath .)
 SRCDIR=$(PROJECTROOT)/src
 
-OCAMLC=ocamlc.opt
-OCAMLOPT=ocamlopt.opt
+OCAMLC=ocamlc
+OCAMLOPT=ocamlopt
 OCAMLYACC=ocamlyacc
-OCAMLLEX=ocamllex.opt
-OCAMLDEP=ocamldep.opt
-OCAMLCFLAGS=-g
+OCAMLLEX=ocamllex
+OCAMLDEP=ocamldep
+OCAMLCFLAGS=-g -cc g++
 
 INCDIRS+=-I $(SRCDIR)
 BINDIR=$(PROJECTROOT)/bin

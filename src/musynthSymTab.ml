@@ -75,10 +75,16 @@ let lookupType symtab ident =
   | SymtypeName (_, typ) -> typ
   | _ ->  raise (WrongTypeIdentifier ("Expected a type name", ident))
 
-let lookupMsg symtab ident =
+let lookupGMsg symtab ident =
   let entry = lookupOrFail symtab ident in
   match entry with
-  | MsgName _ -> entry
+  | GlobalMsgName _ -> entry
+  | _ -> raise (WrongTypeIdentifier ("Expected a message name", ident))
+
+let lookupAMsg symtab ident =
+  let entry = lookupOrFail symtab ident in
+  match entry with
+  | AutomatonMsgName _ -> entry
   | _ -> raise (WrongTypeIdentifier ("Expected a message name", ident))
 
 let lookupState symtab ident =

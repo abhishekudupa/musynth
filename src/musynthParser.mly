@@ -9,10 +9,10 @@
 %token INPUTS OUTPUTS DEFINE FAIRNESS CANSYNCON CTLSPEC
 %token LTLSPEC INVARIANT INCOMPLETE COMPLETE LBRACE RBRACE
 %token LPAREN RPAREN LSQUARE RSQUARE STATES
-%token BCTRUE BCFALSE NEQUALS IN TLUNTIL
-%token OR AND NOT IMPLIES IFF TLAG TLAF TLAX TLEX TLEG TLEF TLAU TLEU
-%token TLFORALL TLEXISTS TLGLOBAL TLFUTURE TLNEXT
-%token TLFUTURE TLGLOBAL FORALL FOREACH EXISTS
+%token BCTRUE BCFALSE NEQUALS IN WITH 
+%token OR AND NOT IMPLIES IFF TLGLOBAL TLFUTURE TLNEXT 
+%token TLUNTIL TLRELEASE
+%token FORALL FOREACH EXISTS
 %token EOF
 
 %token<MusynthTypes.identifierT> IDENT 
@@ -100,7 +100,7 @@ prop : BCTRUE
     | BCFALSE
         { PropFalse (Some (getlhsloc ())) }
     | IDENT
-        { PropDefine (Some (getlhsloc ())) }
+        { PropDefine $1 }
     | LPAREN EQUALS designator designator RPAREN
         { PropEquals ($3, $4, Some (getlhsloc ())) }
     | LPAREN NEQUALS designator designator RPAREN
@@ -119,22 +119,16 @@ prop : BCTRUE
         { PropForall ($3, $5, $6, Some (getlhsloc ())) }
     | LPAREN EXISTS identList IN symType prop RPAREN
         { PropExists ($3, $5, $6, Some (getlhsloc ())) }
-    | LPAREN TLAG prop RPAREN
-        { PropCTLAG ($3, Some (getlhsloc ())) }
-    | LPAREN TLAF prop RPAREN
-        { PropCTLAF ($3, Some (getlhsloc ())) }
-    | LPAREN TLAX prop RPAREN
-        { PropCTLAX ($3, Some (getlhsloc ())) }
-    | LPAREN TLEG prop RPAREN
-        { PropCTLEG ($3, Some (getlhsloc ())) }
-    | LPAREN TLEF prop RPAREN
-        { PropCTLEF ($3, Some (getlhsloc ())) }
-    | LPAREN TLEX prop RPAREN
-        { PropCTLEX ($3, Some (getlhsloc ())) }
-    | LPAREN TLAU prop prop RPAREN
-        { PropCTLAU ($3, $4, Some (getlhsloc ())) }
-    | LPAREN TLEU prop prop RPAREN
-        { PropCTLEU ($3, $4, Some (getlhsloc ())) }
+    | LPAREN TLGLOBAL prop RPAREN
+        { PropTLG ($3, Some (getlhsloc ())) }
+    | LPAREN TLFUTURE prop RPAREN
+        { PropTLF ($3, Some (getlhsloc ())) }
+    | LPAREN TLNEXT prop RPAREN
+        { PropTLX ($3, Some (getlhsloc ())) }
+    | LPAREN TLUNTIL prop prop RPAREN
+        { PropTLU ($3, $4, Some (getlhsloc ())) }
+    | LPAREN TLRELEASE prop prop RPAREN
+        { PropTLR ($3, $4, Some (getlhsloc ())) }
 
 msgDecls : MESSAGES LBRACE msgList RBRACE
         { $3 }
@@ -336,7 +330,7 @@ specs : specs oneSpec
 
 oneSpec : invariant
         { $1 }
-    | ctlspec
+    | ltlspec
         { $1 }
     | definespec
         { $1 }
@@ -344,8 +338,18 @@ oneSpec : invariant
 invariant : INVARIANT STRINGCONST LBRACE prop RBRACE
         { SpecInvar ($2, $4, Some (getlhsloc ())) }
 
-ctlspec : CTLSPEC STRINGCONST LBRACE prop RBRACE
-        { SpecCTL ($2, $4, Some (getlhsloc ())) }
+ltlspec : LTLSPEC STRINGCONST LBRACE prop optFairness RBRACE
+        { SpecLTL ($2, $4, $5, Some (getlhsloc ())) }
+
+optFairness : WITH FAIRNESS LPAREN propList RPAREN
+        { $4 }
+    | /* empty */
+      { [] }
+
+propList : propList COMMA prop
+        { $1 @ [ $3 ] }
+    | prop
+        { [ $1 ] }
 
 definespec : DEFINE IDENT prop
         { SpecDefine ($2, $3, Some (getlhsloc ())) }

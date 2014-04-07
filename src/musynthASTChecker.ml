@@ -5,9 +5,7 @@ open MusynthTypes
 open Format
 module ST = MusynthSymTab
 
-(* var for the automaton we're processing *)
-(* breaks functional programming rules, but wtf *)
-
+(* the name of the automaton we're currently processing *)
 let curAutomatonName = ref ""
 
 let rec resolveSymType symtab st =
@@ -26,7 +24,18 @@ let checkSymTypeDecl symtab stdecl =
   let ident, symtype = stdecl in
   let name, _ = ident in
   let resst = resolveSymType symtab symtype in
-  ST.bind symtab ident (SymtypeName (name, resst))
+  ST.bind symtab ident (SymtypeName (name, resst));
+  (* bind the constructors *)
+  let constlist = 
+    (match resst with
+    | SymTypeAnon (identlist, _) -> identlist
+    | _ -> assert false) 
+  in
+  List.iter 
+    (fun ident ->
+      let name, _ = ident in
+      ST.bind symtab ident (SymtypeConst (name, resst)))
+    constlist
 
 let rec destructDesigDecl desig = 
   match desig with
@@ -38,80 +47,98 @@ let rec destructDesigDecl desig =
       let ident, paramlist = destructDesigDecl ndesig in
       (ident, paramlist @ [ indexid ])
 
-let getTypeListForIdent symtab ident =
+(* return the set of parameters and the condition on the params *)
+let getObligationsForIdent symtab ident =
   let entry = ST.lookupOrFail symtab ident in
   match entry with
-  | StateName (_, typlist, _, _)
-  | MsgName (_, _, typlist, _)
-  | AutomatonName (_, _, typlist, _, _) -> typlist
-  | _ -> []
+  | StateName ((_, paramtypelist, propOpt), _) -> (paramtypelist, propOpt)
+  | GlobalMsgName (_, paramtypelist, propOpt) -> (paramtypelist, propOpt)
+  | AutomatonMsgName ((_, paramtypelist, propOpt), _) -> (paramtypelist, propOpt)
+  | AutomatonName (_, paramtypelist, propOpt) -> (paramtypelist, propOpt)
+  | SymVarName _ -> ([], None)
+  | StateVar _ -> ([], None)
+  | _ -> assert false
 
-let checkTypeLists exptypelist acttypeparamlist =
-  List.iter2 
-    (fun exptype (acttype, param) ->
-      if exptype = acttype then 
-        ()
-      else
-        let paramname, paramloc = param in
-        raise (SemanticError ("Expected type \"" ^ (astToString pSymType exptype) ^ 
-                              "\" but \"" ^ paramname ^ "\" has type \"" ^ 
-                              (astToString pSymType acttype) ^ "\"", paramloc)))
-    exptypelist acttypeparamlist
+let getTypeObligationsForIdent symtab ident =
+  let paramtypelist, _ = getObligationsForIdent symtab ident in
+  List.map (fun (paramname, typ) -> typ) paramtypelist
 
-let getRValType symtab rval =
-  let rec getRValTypeRec symtab desig paramlist =
-    let resolveIdent symtab ident paramlist =
-      let acttypelist = 
-        List.map 
-          (fun param -> 
-            let typ = ST.lookupVar symtab param in
-            (typ, param)) paramlist
-      in
-      let resolvedIdent = ST.lookupOrFail symtab ident in
-      let exptypelist = getTypeListForIdent symtab ident in
-      (try
-        checkTypeLists exptypelist acttypelist
-      with
-        Invalid_argument ("List.iter2") -> 
-          let name, loc = ident in
-          raise (SemanticError ("Parameter lists for identifier \"" ^ name ^ "\" incorrect", loc)));
-      resolvedIdent
-    in
-        
+let checkTypeLists symtab ident exptypelist paramidentlist =
+  let name, loc = ident in
+  if (List.length exptypelist) <> (List.length paramidentlist) then
+    raise (SemanticError ("\"" ^ name ^ "\" expects " ^ 
+                          (string_of_int (List.length exptypelist)) ^ 
+                          " parameters", loc))
+  else
+    begin
+      List.iter2
+        (fun exptype paramident ->
+          let acttype = ST.lookupVar symtab paramident in
+          if exptype = acttype then 
+            ()
+          else
+            let paramname, paramloc = paramident in
+            raise (SemanticError ("Expected type \"" ^ (astToString pSymType exptype) ^ 
+                                  "\" but \"" ^ paramname ^ "\" has type \"" ^ 
+                                  (astToString pSymType acttype) ^ "\"", paramloc)))
+        exptypelist paramidentlist
+    end
+
+(* evaluates the entry in the symtab for the designator *)
+let getDesigType symtab desig =
+  let rec getDesigTypeInt symtab desig paramidentlist =
     match desig with
-    | SimpleDesignator ident -> resolveIdent symtab ident paramlist
+    | SimpleDesignator ident ->
+        let exptypelist = getTypeObligationsForIdent symtab ident in
+        checkTypeLists symtab ident exptypelist paramidentlist;
+        ST.lookupOrFail symtab ident
     | FieldDesignator (ndesig, ident, loc) ->
-        (* recurse on the nested designator first *)
-        let resolvedAut = getRValTypeRec symtab ndesig [] in
+        let autentry = getDesigTypeInt symtab ndesig [] in
         begin
-          match resolvedAut with
-          | AutomatonName (_, _, _, _, scope) ->
+          match autentry with
+          | AutomatonName ((_, _, scope), _, _) -> 
               ST.pushScope symtab scope;
-              let retval = resolveIdent symtab ident paramlist in
+              let exptypelist = getTypeObligationsForIdent symtab ident in
+              checkTypeLists symtab ident exptypelist paramidentlist;
+              let retval = ST.lookupOrFail symtab ident in
               ignore (ST.pop symtab);
               retval
-          | _ -> raise (SemanticError ("Invalid index operation", loc))
+          | _ -> raise (SemanticError ("Expected an automaton identifier", loc))
         end
     | IndexDesignator (ndesig, indexident, _) ->
-        getRValTypeRec symtab ndesig (indexident :: paramlist)
+        getDesigTypeInt symtab ndesig (indexident :: paramidentlist)
   in
-  getRValTypeRec symtab rval []
+  getDesigTypeInt symtab desig []
 
-let checkTypeCompatibility entry1 entry2 locopt = 
+let checkTypeCompatibility symtab desig1 desig2 locopt =
+  let entry1 = getDesigType symtab desig1 in
+  let entry2 = getDesigType symtab desig2 in
   match entry1, entry2 with
-  | StateName _, StateName _ -> raise (ConstantExpression locopt)
-  | StateVar memlist, StateName (name, _, _)
-  | StateName (name, _, _), StateVar memlist ->
-      if ((List.mem name memlist) <> true) then
-        raise (SemanticError ("Invalid types in comparison", locopt))
-      else
-        ()
   | SymVarName (_, typ1), SymVarName (_, typ2) ->
-      if (typ1 <> typ2) then
-        raise (SemanticError ("Invalid types in comparison", locopt))
+      if typ1 <> typ2 then
+        raise (SemanticError (((astToString pDesignator desig1) ^ " and " ^ 
+                               (astToString pDesignator desig2) ^ " are not type compatible"),
+                              locopt))
       else
-        ()
-  | _ -> raise (SemanticError ("Invalid types in comparison", locopt))
+        (entry1, entry2)
+
+  | SymVarName _, SymtypeConst _ 
+  | SymtypeConst _, SymVarName _ ->
+      raise (SemanticError ("Symmetric type constants cannot be referred to explicitly", locopt))
+  | StateVar aut1, StateVar aut2
+  | StateName (_, aut1), StateName (_, aut2)
+  | StateVar aut1, StateName (_, aut2)
+  | StateName (_, aut1), StateVar aut2 ->
+      if aut1 <> aut2 then
+        raise (SemanticError (((astToString pDesignator desig1) ^ " and " ^ 
+                               (astToString pDesignator desig2) ^ " are not type compatible"),
+                              locopt))
+      else
+        (entry1, entry2)
+  | _ -> 
+      raise (SemanticError (((astToString pDesignator desig1) ^ " and " ^ 
+                             (astToString pDesignator desig2) ^ " are not type compatible"),
+                            locopt))
 
 let rec checkPureProp symtab prop = 
   match prop with
@@ -133,14 +160,12 @@ let rec checkPureProp symtab prop =
                   in
                   raise (SemanticError (newmsg, loc))
             end
-        | _ -> raise (SemanticError ("Identifier \"" ^ name "\" does not refer to a " ^ 
+        | _ -> raise (SemanticError ("Identifier \"" ^ name ^ "\" does not refer to a " ^ 
                                      "pre-defined proposition/macro", loc))
       end
   | PropEquals (desig1, desig2, locopt)
   | PropNEquals (desig1, desig2, locopt) -> 
-      let entry1 = getRValType symtab desig1 in
-      let entry2 = getRValType symtab desig2 in
-      checkTypeCompatibility entry1 entry2 locopt;
+      ignore (checkTypeCompatibility symtab desig1 desig2 locopt)
   | PropNot (prop1, _) -> checkPureProp symtab prop1
   | PropAnd (prop1, prop2, _)
   | PropOr (prop1, prop2, _)
@@ -166,9 +191,7 @@ let rec checkPureQProp symtab prop =
   | PropFalse _ -> ()
   | PropEquals (desig1, desig2, locopt)
   | PropNEquals (desig1, desig2, locopt) -> 
-      let entry1 = getRValType symtab desig1 in
-      let entry2 = getRValType symtab desig2 in
-      checkTypeCompatibility entry1 entry2 locopt;
+      let entry1, entry2 = checkTypeCompatibility symtab desig1 desig2 locopt in
       (match entry1, entry2 with
       | SymVarName _, SymVarName _ -> ()
       | _ -> raise (SemanticError ("Quantifier constraint can only refer to variables " ^ 
@@ -180,31 +203,53 @@ let rec checkPureQProp symtab prop =
   | PropIff (prop1, prop2, _) ->
       checkPureQProp symtab prop1;
       checkPureQProp symtab prop2
-  | _ -> raise (SemanticError ("Expected pure propositional formula, but got:\n" ^ 
+  | _ -> raise (SemanticError ("Expected quantifier free pure propositional formula, but got:\n" ^ 
                                (astToString pProp prop), None))
 
 (* checker for declarations which involve a designator *)
-let checkDesigDecl symtab desig loc =
+let desigDeclChecker symtab desig loc =
   let ident, paramlist = destructDesigDecl desig in
   (* check that the paramlist have all been declared *)
-  let typelist = List.map (ST.lookupVar symtab) paramlist in
-  (ident, typelist)
+  let paramtypelist = 
+    List.map 
+      (fun paramname -> (paramname, ST.lookupVar symtab paramname)) 
+      paramlist
+  in
+  (ident, paramtypelist)
 
-let checkTransDecl symtab trans locopt =
+let transChecker symtab trans locopt =
   let sstate, msg, fstate = trans in
-  let sstateentry = getRValType symtab sstate in
-  let msgentry = getRValType symtab msg in
-  let fstateentry = getRValType symtab fstate in
+  let sstateentry = getDesigType symtab sstate in
+  let msgentry = getDesigType symtab msg in
+  let fstateentry = getDesigType symtab fstate in
   match sstateentry, msgentry, fstateentry with
-  | StateName _, MsgName _, StateName _ -> ("", [])
+  | StateName (_, aut1), AutomatonMsgName (_, aut2), StateName (_, aut3) -> 
+      if ((aut1 <> aut2) || (aut2 <> aut3)) then
+        raise (SemanticError ("States and messages in transition must refer only to the automaton's states " ^ 
+                              "and messages", locopt))
+      else
+        ("", [])
   | _ -> raise (SemanticError ("Error in transition", locopt))
+
+let autMsgDeclChecker symtab desig loc =
+  let ident, paramlist = destructDesigDecl desig in
+  let paramtypelist = 
+    List.map 
+      (fun paramname -> (paramname, ST.lookupVar symtab paramname)) 
+      paramlist
+  in
+  let entry = getDesigType symtab desig in
+  match entry with
+  | GlobalMsgName _ -> (ident, paramtypelist)
+  | _ -> raise (SemanticError ("Undeclared message designator: " ^ (astToString pDesignator desig),
+                               loc))
 
 let checkDecl symtab declParamChecker decl =
   match decl with 
   | DeclSimple (declParam, loc) ->
       ST.push symtab;
-      let ident, typelist = declParamChecker symtab declParam loc in
-      (ident, typelist, None, ST.pop symtab)
+      let ident, paramtypelist = declParamChecker symtab declParam loc in
+      (ident, paramtypelist, None, ST.pop symtab)
 
   | DeclQuantified (declParam, qMap, propOpt, loc) ->
       ST.push symtab;
@@ -216,24 +261,37 @@ let checkDecl symtab declParamChecker decl =
       | Some prop -> checkPureProp symtab prop
       | None -> ());
       ST.push symtab;
-      let ident, typelist = declParamChecker symtab declParam loc in
-      let retval = (ident, typelist, propOpt, ST.pop symtab) in
+      let ident, paramtypelist = declParamChecker symtab declParam loc in
+      let retval = (ident, paramtypelist, propOpt, ST.pop symtab) in
       ignore (ST.pop symtab);
       retval
 
-let checkStateDecl symtab statedecl =
-  let ident, typelist, propOpt, _ = checkDecl symtab checkDesigDecl statedecl in
+
+let cvtParamTypeListForSymtab paramtypelist = 
+  List.map 
+    (fun (ident, typ) -> 
+      let name, _ = ident in
+      (name, typ))
+    paramtypelist
+
+let checkGlobalMsgDecl symtab msgdecl =
+  let ident, paramtypelist, propOpt, _ = checkDecl symtab desigDeclChecker msgdecl in
   let name, _ = ident in
-  let entry = (StateName (name, typelist, propOpt, !curAutomatonName)) in
+  ST.bind symtab ident (GlobalMsgName (name, cvtParamTypeListForSymtab paramtypelist, propOpt))
+
+let checkStateDecl symtab statedecl =
+  let ident, paramtypelist, propOpt, _ = checkDecl symtab desigDeclChecker statedecl in
+  let name, _ = ident in
+  let entry = StateName ((name, cvtParamTypeListForSymtab paramtypelist, propOpt), !curAutomatonName) in
   ST.bind symtab ident entry;
   ST.bindGlobal symtab ident entry
 
-let checkMsgDecl symtab msgtype msgdecl =
-
-let checkGlobalMsgDecl symtab msgtype msgdecl =
-  let ident typelist, propOpt, _ = checkDecl symtab checkDesigDecl msgdecl in
+let checkAutomatonMsgDecl symtab msgtype msgdecl =
+  let ident, paramtypelist, propOpt, _ = checkDecl symtab autMsgDeclChecker msgdecl in
   let name, _ = ident in
-  ST.bind symtab ident (MessageName (name, msgtype, typelist, propOpt))
+  ST.bind symtab ident (AutomatonMsgName (((name, msgtype), 
+                                           cvtParamTypeListForSymtab paramtypelist, propOpt),
+                                          !curAutomatonName))
 
 let checkStateDeclBlock symtab block annotallowed =
   List.iter 
@@ -245,24 +303,39 @@ let checkStateDeclBlock symtab block annotallowed =
       else
         ()) block
 
+let checkGlobalMsgDeclBlock symtab block =
+  List.iter (checkGlobalMsgDecl symtab) block
+
+let checkAutomatonMsgDeclBlock symtab msgtype block =
+  List.iter (checkAutomatonMsgDecl symtab msgtype) block
+
+let rec convertDesigToPrimed desig =
+  match desig with
+  | SimpleDesignator ident ->
+      let name, loc = ident in 
+      SimpleDesignator (name ^ "'", loc)
+  | FieldDesignator _ -> assert false
+  | IndexDesignator (ndesig, ident, loc) ->
+      IndexDesignator (convertDesigToPrimed ndesig, ident, loc)
+
+let convertDesigDeclToPrimed decl =
+  match decl with
+  | DeclSimple (desig, loc) -> DeclSimple (convertDesigToPrimed desig, loc)
+  | DeclQuantified (desig, qMap, propOpt, loc) ->
+      DeclQuantified (convertDesigToPrimed desig, qMap, propOpt, loc)
+
 (* checker for automata *)
 let checkAutDef symtab autdef loc =
   let checkAutDefInternal autdesig sblock inblock outblock transblock loc annotallowed =
-    let autname, autparamtypelist = checkDesigDecl symtab autdesig loc in
+    let autname, autparamtypelist = desigDeclChecker symtab autdesig loc in
     let actname, _ = autname in
     curAutomatonName := actname;
     checkStateDeclBlock symtab sblock true;
-    List.iter (checkMsgDecl symtab InputMsg) inblock;
-    List.iter (checkMsgDecl symtab OutputMsg) outblock;
-    List.iter (fun tr -> ignore (checkDecl symtab checkTransDecl tr)) transblock;
+    List.iter (checkAutomatonMsgDecl symtab InputMsg) inblock;
+    List.iter (checkAutomatonMsgDecl symtab OutputMsg) outblock;
+    List.iter (fun tr -> ignore (checkDecl symtab transChecker tr)) transblock;
     (* bind the state variable now *)
-    let topscope = ST.peek symtab in
-    let snentries = IdentMap.fold 
-        (fun key valu lst ->
-          match valu with
-          | StateName (name, _, _, _) -> name :: lst
-          | _ -> lst) !topscope [] in
-    ST.bind symtab ("state", None) (StateVar (snentries, !curAutomatonName));
+    ST.bind symtab ("state", None) (StateVar !curAutomatonName);
     curAutomatonName := "";
     (autname, autparamtypelist)
   in
@@ -272,41 +345,45 @@ let checkAutDef symtab autdef loc =
   | IncompleteAutomaton (autdesig, sblock, inblock, outblock, transblock, loc) ->
       checkAutDefInternal autdesig sblock inblock outblock transblock loc true
   | ChannelAutomaton (autdesig, chanProp, msgs, loc) ->
-      let autname, autparamtypelist = checkDesigDecl symtab autdesig loc in
-      List.iter (checkMsgDecl symtab InputMsg) msgs;
+      let autname, autparamtypelist = desigDeclChecker symtab autdesig loc in
+      List.iter (checkAutomatonMsgDecl symtab InputMsg) msgs;
+      List.iter 
+        (fun msgdecl ->
+          checkAutomatonMsgDecl symtab OutputMsg (convertDesigDeclToPrimed msgdecl)) msgs;
       (autname, autparamtypelist)
 
-let checkInitStateDecl symtab decl loc =
+let initStateDeclChecker symtab decl loc =
   List.iter
     (fun (lhs, rhs) ->
-      let lhsEntry = getRValType symtab lhs in
-      let rhsEntry = getRValType symtab rhs in
-      checkTypeCompatibility lhsEntry rhsEntry loc) decl;
+      ignore (checkTypeCompatibility symtab lhs rhs loc)) decl;
   ("", [])
 
 let rec checkProp symtab prop =
   match prop with
   | PropTrue _ -> ()
   | PropFalse _ -> ()
+  | PropDefine ident ->
+      let entry = ST.lookupOrFail symtab ident in
+      let name, loc = ident in
+      begin
+        match entry with
+        | DeclaredExpr _ -> ()
+        | _ -> raise (SemanticError ("Identifier \"" ^ name ^ "\" could not be resolved", loc))
+      end
   | PropEquals (desig1, desig2, loc)
   | PropNEquals (desig1, desig2, loc) ->
-      let lhsentry = getRValType symtab desig1 in
-      let rhsEntry = getRValType symtab desig2 in
-      checkTypeCompatibility lhsentry rhsEntry loc
+      ignore (checkTypeCompatibility symtab desig1 desig2 loc)
   | PropNot (prop1, _)
-  | PropCTLAG (prop1, _)
-  | PropCTLAF (prop1, _)
-  | PropCTLAX (prop1, _)
-  | PropCTLEG (prop1, _)
-  | PropCTLEF (prop1, _)
-  | PropCTLEX (prop1, _) ->
+  | PropTLG (prop1, _)
+  | PropTLF (prop1, _)
+  | PropTLX (prop1, _) ->
       checkProp symtab prop1
   | PropAnd (prop1, prop2, _)
   | PropOr (prop1, prop2, _)
   | PropImplies (prop1, prop2, _)
   | PropIff (prop1, prop2, _)
-  | PropCTLAU (prop1, prop2, _)
-  | PropCTLEU (prop1, prop2, _) ->
+  | PropTLU (prop1, prop2, _)
+  | PropTLR (prop1, prop2, _) ->
       checkProp symtab prop1;
       checkProp symtab prop2;
   | PropForall (identlist, typ, prop1, _)
@@ -325,14 +402,19 @@ let rec checkSpec symtab spec =
   | SpecInvar (specname, prop, loc) ->
       checkPureProp symtab prop;
       ignore (ST.bindGlobal symtab (specname, None) (InvariantName (specname, prop)))
-  | SpecCTL (specname, prop, loc) ->
+  | SpecLTL (specname, prop, fairnesslist, loc) ->
       checkProp symtab prop;
-      ignore (ST.bindGlobal symtab (specname, None) (CTLSpecName (specname, prop)))
+      List.iter (checkPureProp symtab) fairnesslist;
+      ignore (ST.bindGlobal symtab (specname, None) (LTLSpecName (specname, prop, fairnesslist)))
+  | SpecDefine (ident, prop, loc) ->
+      checkProp symtab prop;
+      let name, _ = ident in
+      ignore (ST.bindGlobal symtab ident (DeclaredExpr (name, prop)))
 
 let checkProg symtab prog =
   let symtypedecls, msgdecls, autodecls, initstatedecls, specs = prog in
   List.iter (checkSymTypeDecl symtab) symtypedecls;
-  List.iter (checkGlobalMsgDecl symtab) msgdecls;
+  checkGlobalMsgDeclBlock symtab msgdecls;
   List.iter
     (fun aut -> 
       let autname, autparamlist, autPropOpt, autscope = checkDecl symtab checkAutDef aut in
@@ -341,16 +423,19 @@ let checkProg symtab prog =
       | DeclSimple (CompleteAutomaton _, _)
       | DeclQuantified (CompleteAutomaton _, _, _, _) ->
           ST.bind symtab autname 
-            (AutomatonName (name, CompleteAutType, autparamlist, autPropOpt, autscope))
+            (AutomatonName ((name, CompleteAutType, autscope), 
+                            cvtParamTypeListForSymtab autparamlist, autPropOpt))
       | DeclSimple (IncompleteAutomaton _, _)
       | DeclQuantified (IncompleteAutomaton _, _, _, _) ->
           ST.bind symtab autname 
-            (AutomatonName (name, PartialAutType, autparamlist, autPropOpt, autscope))
+            (AutomatonName ((name, PartialAutType, autscope), 
+                            cvtParamTypeListForSymtab autparamlist, autPropOpt))
       | DeclSimple (ChannelAutomaton _, _)
       | DeclQuantified (ChannelAutomaton _, _, _, _) ->
           ST.bind symtab autname 
-            (AutomatonName (name, ChannelAutType, autparamlist, autPropOpt, autscope))) 
+            (AutomatonName ((name, ChannelAutType, autscope), 
+                            cvtParamTypeListForSymtab autparamlist, autPropOpt)))
     autodecls;
-  List.iter (fun decl -> ignore (checkDecl symtab checkInitStateDecl decl)) initstatedecls;
+  List.iter (fun decl -> ignore (checkDecl symtab initStateDeclChecker decl)) initstatedecls;
   List.iter (checkSpec symtab) specs
   

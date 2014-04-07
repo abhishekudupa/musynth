@@ -57,14 +57,11 @@ type musPropT =
   | PropIff of musPropT * musPropT * sourcelocation option
   | PropForall of identifierT list * musSymTypeT * musPropT * sourcelocation option
   | PropExists of identifierT list * musSymTypeT * musPropT * sourcelocation option
-  | PropCTLAG of musPropT * sourcelocation option
-  | PropCTLAF of musPropT * sourcelocation option
-  | PropCTLAX of musPropT * sourcelocation option
-  | PropCTLEG of musPropT * sourcelocation option
-  | PropCTLEF of musPropT * sourcelocation option
-  | PropCTLEX of musPropT * sourcelocation option
-  | PropCTLAU of musPropT * musPropT * sourcelocation option
-  | PropCTLEU of musPropT * musPropT * sourcelocation option
+  | PropTLG of musPropT * sourcelocation option
+  | PropTLF of musPropT * sourcelocation option 
+  | PropTLX of musPropT * sourcelocation option
+  | PropTLU of musPropT * musPropT * sourcelocation option
+  | PropTLR of musPropT * musPropT * sourcelocation option
     
 type 'a musDeclType = 
   | DeclSimple of 'a * sourcelocation option
@@ -119,7 +116,7 @@ type musAutomatonDeclT = musAutomatonDeclType musDeclType
 
 type musSpecT = 
   | SpecInvar of string * musPropT * sourcelocation option
-  | SpecCTL of string * musPropT * sourcelocation option
+  | SpecLTL of string * musPropT * musPropT list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
@@ -138,24 +135,35 @@ type autType =
   | PartialAutType
   | CompleteAutType
 
+
 type 'a declEntry = ('a * (string * musSymTypeT) list * musPropT option)
 
 type symtabEntry =
   | SymtypeConst of string * musSymTypeT
-  | StateName of string declEntry
-  | MessageName of string declEntry
-  | AutomataMsgName of (string * msgType) declEntry
+  (* params, automaton name *)
+  | StateName of string declEntry * string
+  | GlobalMsgName of string declEntry
+  | AutomatonMsgName of (string * msgType) declEntry * string
   | SymtypeName of string * musSymTypeT
-  | StateVar of string list
+  (* automaton name *)
+  | StateVar of string
   | SymVarName of string * musSymTypeT
-  | AutomatonName of string * autType * musSymTypeT list * musPropT option * symTabScope
+  | AutomatonName of (string * autType * symTabScope) declEntry
   | InvariantName of string * musPropT
-  | CTLSpecName of string * musPropT
+  (* name, ltl property * fairness list *)
+  | LTLSpecName of string * musPropT * musPropT list
   | DeclaredExpr of string * musPropT
 
 and symTabScope = symtabEntry IdentMap.t ref
 
 type symTableT = (symTabScope list) ref
+
+(* type checking *)
+
+type musExpType = 
+  | BooleanType
+  | StateEnumType of string
+  | AutomatonType of string
 
 (* checker exceptions *)
 exception ImpurePropException of string
@@ -199,66 +207,3 @@ let exToString ex =
       "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | _ -> Printexc.to_string ex
 
-
-(* low level IR types *)
-type llIdentT = string * string list
-
-type llAnnotT =
-  | LLAnnotComplete
-  | LLAnnotIncomplete
-  | LLAnnotIncompleteNum of int
-  | LLAnnotIncompleteEventList of llIdentT list
-  | LLAnnotIncompleteNumEventList of int * llIdentT list
-
-type llStateT = llIdentT * llAnnotT
-
-module LLIdentSet = Set.Make
-    (struct 
-      type t = llIdentT
-      let compare = Pervasives.compare
-    end)
-
-module LLIdentMap = Map.Make
-    (struct
-      type t = llIdentT
-      let compare = Pervasives.compare
-    end)
-
-type llCompleteTransT = (llIdentT * llIdentT * llIdentT)
-
-type llParametricTransT = (llIdentT * llIdentT * LLIdentSet.t)
-
-(* name, state set, inmsgs, outmsgs, transitions *)
-type llAutomatonT = 
-  | LLCompleteAutomaton of (llIdentT * llIdentT list * 
-                              llIdentT list * llIdentT list * llCompleteTransT list)
-  | LLIncompleteAutomaton of (llIdentT * llIdentT list * 
-                                llIdentT list * llIdentT list * llParametricTransT list)
-
-type llDesignatorT = 
-  | LLDesigConst of llIdentT
-  | LLDesigState of llIdentT
-
-type llPropT = 
-  | LLPropTrue
-  | LLPropFalse
-  | LLPropEquals of (llDesignatorT * llDesignatorT)
-  | LLPropNEquals of (llDesignatorT * llDesignatorT)
-  | LLPropNot of llPropT
-  | LLPropAnd of (llPropT * llPropT)
-  | LLPropOr of (llPropT * llPropT)
-  | LLPropCTLAG of llPropT
-  | LLPropCTLAF of llPropT
-  | LLPropCTLAX of llPropT
-  | LLPropCTLEG of llPropT
-  | LLPropCTLEF of llPropT
-  | LLPropCTLEX of llPropT
-  | LLPropCTLAU of (llPropT * llPropT)
-  | LLPropCTLEU of (llPropT * llPropT)
-
-type llSpecT =
-  | LLSpecInvar of (string * llPropT)
-  | LLSpecCTL of (string * llPropT)
-
-(* automata, initstate list, spec list *)
-type llProgT = llAutomatonT list * (llIdentT LLIdentMap.t) list *  llSpecT list
