@@ -25,3 +25,6 @@ tmp/*
 vdd.ml
 vdd.mli
 vdd_caml.c
+*.annot
+*.so.*
+META

@@ -23,7 +23,7 @@ messages {
     WBAck[c] foreach c in CacheIDType,
     WBAck'[c] foreach c in CacheIDType,
     Inv[c] foreach c in CacheIDType,
-    Inv'[c] foreach c in CacheIDType 
+    Inv'[c] foreach c in CacheIDType
 }
 
 Automaton Environment[c] foreach c in CacheIDType

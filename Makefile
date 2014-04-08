@@ -1,12 +1,13 @@
 PROJECTROOT=$(realpath .)
 SRCDIR=$(PROJECTROOT)/src
 
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
+OCAMLC=ocamlc.opt
+OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
-OCAMLLEX=ocamllex
-OCAMLDEP=ocamldep
-OCAMLCFLAGS=-g -cc g++
+OCAMLLEX=ocamllex.opt
+OCAMLDEP=ocamldep.opt
+OCAMLCFLAGS=-g -cc g++ -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
+OCAMLOPTFLAGS=-cc g++ -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
 
 INCDIRS+=-I $(SRCDIR)
 BINDIR=$(PROJECTROOT)/bin
@@ -27,7 +28,9 @@ MODULES= \
 	musynthLexer \
 	musynthSymTab \
 	musynthASTChecker \
+	musynthASTLower \
 	musynthFrontEnd \
+	musynthBDD \
 	main \
 
 EXES=musynth
@@ -52,12 +55,12 @@ all : byte opt
 byte : $(DEPEND) $(CMO) $(BYTEEXES) $(OPTEXES)
 
 $(BINDIR)/%.byte : $(CMO)
-	$(OCAMLC) $(OCAMLCFLAGS) $(CMO) -o $@
+	$(OCAMLC) $(OCAMLCFLAGS) -custom cudd.cma $(CMO)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@
 
 opt : $(DEPEND) $(CMX) $(OPTEXES)
 
 $(BINDIR)/%.opt : $(CMX)
-	$(OCAMLOPT) $(CMX) -o $@
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) cudd.cmxa $(CMX)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@ 
 
 $(DEPEND) : $(MLI) $(ML)
 	$(OCAMLDEP) $(INCDIRS) $(MLI) $(ML) > $@

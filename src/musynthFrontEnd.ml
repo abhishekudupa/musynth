@@ -3,13 +3,14 @@
 open MusynthParser
 open MusynthAST
 open MusynthASTChecker
+open MusynthASTLower
 open MusynthTypes
 module ST = MusynthSymTab
 open Format
 open Buffer
 open Lexing
 
-let musynthParse filename =
+let musynthProcess filename =
   let inchan = 
     (match filename with
     | Some fname -> open_in fname
@@ -20,7 +21,8 @@ let musynthParse filename =
     let symtab = ST.createSymTab () in
     checkProg symtab prog;
     fprintf err_formatter "Semantic checks complete\n";
-    pProg std_formatter prog
+    pProg std_formatter prog;
+    MusynthASTLower.lowerProg symtab prog
   with
   | ParseError (errstr, loc) -> 
       printf "%s\n%a\n" errstr pLoc loc; 

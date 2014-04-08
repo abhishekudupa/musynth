@@ -256,6 +256,10 @@ let checkDecl symtab declParamChecker decl =
       IdentMap.iter
         (fun ident typ ->
           let name, loc = ident in
+          if (ST.lookup symtab ident) <> None then
+            raise (SemanticError ("Variable \"" ^ name ^ "\" shadows something else", loc))
+          else
+            ();
           ST.bind symtab ident (SymVarName (name, resolveSymType symtab typ))) qMap;
       (match propOpt with
       | Some prop -> checkPureProp symtab prop

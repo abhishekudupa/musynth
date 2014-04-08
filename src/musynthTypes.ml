@@ -14,7 +14,7 @@ module StringMap = Map.Make
 
 module StringSet = Set.Make
     (struct
-        type t = string
+      type t = string
       let compare = Pervasives.compare
     end)
 
@@ -29,7 +29,16 @@ module IdentMap = Map.Make
         let id2, loc2 = ident2 in
         Pervasives.compare id1 id2
     end)
-    
+
+module IdentSet = Set.Make
+    (struct 
+      type t = identifierT
+      let compare = fun ident1 ident2 -> 
+        let id1, loc1 = ident1 in
+        let id2, loc2 = ident2 in
+        Pervasives.compare id1 id2
+    end)
+
 type musSymTypeT = 
   | SymTypeNamed of identifierT * sourcelocation option
   | SymTypeAnon of identifierT list * sourcelocation option
@@ -135,7 +144,6 @@ type autType =
   | PartialAutType
   | CompleteAutType
 
-
 type 'a declEntry = ('a * (string * musSymTypeT) list * musPropT option)
 
 type symtabEntry =
@@ -207,3 +215,33 @@ let exToString ex =
       "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | _ -> Printexc.to_string ex
 
+(* types for low-level representation *)
+type llIdentT = musDesignatorT
+
+type llGMsgT = llIdentT
+
+type llAMsgT = llIdentT * msgType
+
+(* the set of symbolic values a variable can take *)
+type llTypeT = StringSet.t
+
+type llVarT = string * llTypeT
+
+type llTransT = 
+  | TComplete of (llIdentT * llIdentT * llIdentT)
+  | TParametrized of (llIdentT * llIdentT * llVarT)
+
+type llAutomatonT = 
+  (* name, states, msgs, transitions *)
+  | LLCompleteAutomaton of (llIdentT * llIdentT list * llGMsgT list * llGMsgT list * llTransT list)
+  | LLIncompleteAutomaton of (llIdentT * llIdentT list * llGMsgT list * llGMsgT list * llTransT list)
+
+
+(* init states, accepting states, transitions *)
+type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list)
+
+type llInitStateT = llVarT list
+
+(* automaton, initstates *)
+(* all invars, liveness specs flattened into monitors *)
+type llProgT = (llAutomatonT list * llInitStateT)

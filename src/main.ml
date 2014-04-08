@@ -13,7 +13,7 @@ let _ =
       None
   in
   try
-    musynthParse filename
+    musynthProcess filename
   with
   | _ as ex ->
       Printf.fprintf stderr "Exception: %s\n" (exToString ex);

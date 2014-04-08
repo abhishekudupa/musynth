@@ -137,6 +137,9 @@ let pDecl declPrefixPrinter declSuffixPrinter fmt decl =
         (fun fmtloc (ident, typ) -> 
           fprintf fmtloc " foreach %a in %a" 
             pIdentifier ident pSymType typ) fmt qList;
+      (match optProp with
+      | Some prop -> fprintf fmt " %a" pProp prop
+      | None -> ());
       fprintf fmt "@]";
       declSuffixPrinter fmt declParam
 
@@ -305,3 +308,36 @@ let pProg fmt prog =
   List.iter (fun spec -> pSpec fmt spec; fprintf fmt "@,@,") specs;
   fprintf fmt "@]"
 
+
+(* printers for low-level representations *)
+let pLLIdent fmt ident =
+  pDesignator fmt ident
+
+let pLLMsg fmt msg =
+  pDesignator fmt msg
+
+let pLLVar fmt param =
+  let name, opts = param in
+  fprintf fmt "%s {" name;
+  StringSet.iter (fun str -> fprintf fmt " %s" str) opts;
+  fprintf fmt " }"
+
+let pLLTrans fmt trans =
+  match trans with
+  | TComplete (start, msg, final) ->
+      fprintf fmt "(%a, %a, %a)" pDesignator start pDesignator msg pDesignator final
+  | TParametrized (start, msg, param) ->
+      fprintf fmt "(%a, %a, %a)" pDesignator start pDesignator msg pLLVar param
+
+let pLLAutomaton fmt aut =
+  match aut with
+  | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions)
+  | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
+      fprintf fmt "@[<v 0>@[<v 4>%s %a {@," 
+        (match aut with (LLCompleteAutomaton _) -> "completeautomaton" | _ -> "partialautomaton") 
+        pDesignator name;
+      fprintf fmt "@[<v 4>states {@,%a@]@,}@," (pList "," true false pDesignator) states;
+      fprintf fmt "@[<v 4>inputs {@,%a@]@,}@," (pList "," true false pDesignator) inmsgs;
+      fprintf fmt "@[<v 4>outputs {@,%a@]@,}@," (pList "," true false pDesignator) outmsgs;
+      fprintf fmt "@[<v 4>transitions {@,%a@]@,}@," (pList "," true false pLLTrans) transitions;
+      fprintf fmt "@]@,}@,@]"
