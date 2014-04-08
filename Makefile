@@ -55,12 +55,12 @@ all : byte opt
 byte : $(DEPEND) $(CMO) $(BYTEEXES) $(OPTEXES)
 
 $(BINDIR)/%.byte : $(CMO)
-	$(OCAMLC) $(OCAMLCFLAGS) -custom cudd.cma $(CMO)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@
+	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma $(CMO)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@
 
 opt : $(DEPEND) $(CMX) $(OPTEXES)
 
 $(BINDIR)/%.opt : $(CMX)
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) cudd.cmxa $(CMX)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@ 
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa $(CMX)  -ccopt -L$(PROJECTROOT)/extern/mlcudd/release-2.2.0 -ccopt -lcuddcaml -o $@ 
 
 $(DEPEND) : $(MLI) $(ML)
 	$(OCAMLDEP) $(INCDIRS) $(MLI) $(ML) > $@

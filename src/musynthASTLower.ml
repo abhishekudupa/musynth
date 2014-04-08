@@ -282,7 +282,6 @@ let lowerIncompleteAutomaton symtab autProps qMap propOpt =
         | AnnotIncomplete _ -> statedecl :: acc
         | _ -> acc) [] states in
   let lincstates = List.concat (List.map (instDecl symtab desigDeclInstantiator) incompletestates) in
-  List.iter (fun lincstate -> fprintf std_formatter "%a\n" AST.pLLIdent lincstate) lincstates;
   let linmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) inmsgs) in
   let loutmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) outmsgs) in
 
@@ -299,6 +298,28 @@ let lowerIncompleteAutomaton symtab autProps qMap propOpt =
                               msg, 
                               ("synth_" ^ (string_of_int (Utils.getuid ())), 
                                targetset))) :: acc) [] linmsgs) lincstates)
+  in
+  let newtrans = 
+    List.fold_left
+      (fun acc ntrans ->
+        let state, msg =
+          (match ntrans with
+          | TParametrized (state, msg, _) -> state, msg
+          | _ -> assert false)
+        in
+        if (List.exists 
+              (fun trans ->
+                match trans with
+              | TComplete (ostate, omsg, _) ->
+                  (AST.astToString AST.pLLIdent ostate) = 
+                  (AST.astToString AST.pLLIdent state) && 
+                  (AST.astToString AST.pLLIdent omsg) = 
+                  (AST.astToString AST.pLLIdent msg)
+              | _ -> assert false) ltrans)
+      then
+          acc
+        else
+          ntrans :: acc) [] newtrans
   in
   LLIncompleteAutomaton (desig, lstates, linmsgs, loutmsgs, ltrans @ newtrans)
 
@@ -338,7 +359,6 @@ let autDeclInstantiator symtab qMap propOpt autDecl =
       (fun map ->
         autDeclSubstitutor map low) maps
       
-
 let instGMsgDecls symtab gmesgDecls =
   List.concat (List.map (instDecl symtab desigDeclInstantiator) gmesgDecls)
 
@@ -346,5 +366,4 @@ let lowerProg symtab prog =
   let stdecls, gmsgdecls, autdecls, isdecls, specs = prog in
   let igmsgdecls = instGMsgDecls symtab gmsgdecls in
   let lautdecls = List.concat (List.map (instDecl symtab autDeclInstantiator) autdecls) in
-  List.iter (fun lgmsg -> fprintf std_formatter "%a\n" AST.pDesignator lgmsg) igmsgdecls;
-  List.iter (fun aut -> fprintf std_formatter "%a\n" AST.pLLAutomaton aut) lautdecls
+  List.iter (fun aut -> fprintf std_formatter "%a@," AST.pLLAutomaton aut) lautdecls
