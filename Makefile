@@ -6,8 +6,8 @@ OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
-OCAMLCFLAGS=-g -cc g++ -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
-OCAMLOPTFLAGS=-cc g++ -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
+OCAMLCFLAGS=-g -cc g++ -ccopt -Wno-write-strings -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
+OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0
 
 INCDIRS+=-I $(SRCDIR)
 BINDIR=$(PROJECTROOT)/bin

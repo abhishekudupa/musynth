@@ -148,7 +148,7 @@ let noopPrinter fmt thing =
 
 let pMsgDecl fmt decl =
   pDecl pDesignator noopPrinter fmt decl
-
+        
 let pMsgDeclBlock name fmt block =
   musMakeIndentedBox fmt pp_print_string (name ^ " {")
     (pList "," true false pMsgDecl) block fprintf "};"
@@ -170,7 +170,7 @@ let pStateAnnot fmt annot =
   | AnnotIncompleteNumEventList (num, msglist, _) ->
       fprintf fmt " : incomplete %d (@[<v 0>%a@])" num 
         (pList "," true false pMsgDecl) msglist
-
+        
 let pStateDecl fmt decl =
   let sdecl, annot = decl in
   pDecl pDesignator 
