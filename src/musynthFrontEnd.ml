@@ -22,7 +22,8 @@ let musynthProcess filename =
     checkProg symtab prog;
     fprintf err_formatter "Semantic checks complete\n";
     pProg std_formatter prog;
-    MusynthASTLower.lowerProg symtab prog
+    let lprog = MusynthASTLower.lowerProg symtab prog in
+    pLLProg std_formatter lprog
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

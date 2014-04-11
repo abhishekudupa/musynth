@@ -370,12 +370,32 @@ let rec pLLProp fmt prop =
   | LLPropTLR (prop1, prop2) ->
      fprintf fmt "(R %a %a)" pLLProp prop1 pLLProp prop2
 
+let pLLSpec fmt spec = 
+  match spec with
+  | LLSpecInvar (name, prop) -> 
+     musMakeIndentedBox fmt pp_print_string ("invariant \"" ^ name ^ "\" {")
+                        pLLProp prop pp_print_string "}"
+  | LLSpecLTL (name, prop, fairnesslist) -> 
+     musMakeIndentedBox fmt pp_print_string ("ltlspec \"" ^ name ^ "\" {")
+                        (fun fmt (prop, flist) ->
+                         pLLProp fmt prop;
+                         if flist = [] then
+                           ()
+                         else
+                           musMakeIndentedBox fmt pp_print_string " with fairness ("
+                                              (pList "," true false pLLProp) 
+                                              flist pp_print_string ")")
+                        (prop, fairnesslist)
+                        pp_print_string "}"
+
 let pLLAutomaton fmt aut =
   match aut with
   | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions)
   | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
      fprintf fmt "@[<v 0>@[<v 4>%s %a {@," 
-             (match aut with (LLCompleteAutomaton _) -> "completeautomaton" | _ -> "partialautomaton") 
+             (match aut with 
+              | LLCompleteAutomaton _ -> "completeautomaton" 
+              | _ -> "partialautomaton")
              pLLDesignator name;
      fprintf fmt "@[<v 4>states {@,%a@]@,}@," (pList "," true false pLLDesignator) states;
      fprintf fmt "@[<v 4>inputs {@,%a@]@,}@," (pList "," true false pLLDesignator) inmsgs;
@@ -383,3 +403,9 @@ let pLLAutomaton fmt aut =
      fprintf fmt "@[<v 4>transitions {@,%a@]@,}@," (pList "," true false pLLTrans) transitions;
      fprintf fmt "@]@,}@,@]"
 
+let pLLProg fmt prog = 
+  let mdecls, auts, initstateconstraints, specs = prog in
+  fprintf fmt "@[<v 0>@[<v 4>messages {@,%a@]@,}@,@]" (pList "," true false pLLDesignator) mdecls;
+  List.iter (fun aut -> pLLAutomaton fmt aut) auts;
+  fprintf fmt "@[<v 0>@[<v 4>initial constraints:@,%a@,@]@,@]" pLLProp initstateconstraints;
+  List.iter (fun spec -> fprintf fmt "@[<v 0>@[<v 1>%a@]@,@,@]" pLLSpec spec) specs

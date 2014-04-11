@@ -818,6 +818,8 @@ val substInDecl :
 val makeLLInstantiation :
   (string * 'a) MusynthTypes.IdentMap.t list ->
   MusynthTypes.IdentMap.key list -> string -> MusynthTypes.llDesignatorT list
+val lowerDesignator :
+  MusynthTypes.musDesignatorT -> MusynthTypes.llDesignatorT
 val desigDeclInstantiator :
   'a ->
   MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
@@ -832,6 +834,12 @@ val transDeclInstantiator :
 val desigSubstitutor :
   MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
   MusynthTypes.musDesignatorT -> MusynthTypes.musDesignatorT
+val lldesigSubstitutor :
+  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  MusynthTypes.llDesignatorT -> MusynthTypes.llDesignatorT
+val lltransSubstitutor :
+  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  MusynthTypes.llTransT -> MusynthTypes.llTransT
 val transSubstitutor :
   MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
   MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
@@ -894,23 +902,52 @@ val instantiateChannelAutomaton :
   MusynthTypes.musChanDupT * int ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
   MusynthTypes.llAutomatonT list
+val checkParamCompatibility :
+  MusynthTypes.llDesignatorT -> string list -> bool
+val getParamsFromLLIdent : MusynthTypes.llDesignatorT -> string * string list
+val checkTransitionDefined : ('a * 'b * 'c) list -> 'a -> 'b -> bool
+val mkLLDesigSet :
+  MusynthTypes.LLDesigSet.elt list -> MusynthTypes.LLDesigSet.t
+val identMapToStringMap :
+  ('a * 'b) MusynthTypes.IdentMap.t -> 'a MusynthTypes.StringMap.t
 val instantiateIncompleteAutomaton :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
-  'a ->
-  'b ->
-  'c ->
+  MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
+  MusynthTypes.musPropT option ->
+  MusynthTypes.musDesignatorT ->
   (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
    MusynthTypes.musStateAnnotationT)
   list ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
-  MusynthTypes.musDesignatorT MusynthTypes.musDeclType list -> 'd -> 'e list
+  MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
+   MusynthTypes.musDesignatorT)
+  MusynthTypes.musDeclType list -> MusynthTypes.llAutomatonT list
 val autDeclInstantiator :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
   MusynthTypes.musPropT option ->
   MusynthTypes.musAutomatonDeclType -> MusynthTypes.llAutomatonT list
+val substInLProp :
+  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  MusynthTypes.llPropT -> MusynthTypes.llPropT
+val lowerProp :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.musPropT -> MusynthTypes.llPropT
+val lowerSpec :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.musSpecT -> MusynthTypes.llSpecT
+val initStateDeclInstantiator :
+  'a ->
+  MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
+  MusynthTypes.musPropT option ->
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
+  MusynthTypes.llPropT
 val lowerProg :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   'a * MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
-  MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list * 'b * 'c ->
-  unit
+  MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
+  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
+  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list ->
+  MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+  MusynthTypes.llPropT * MusynthTypes.llSpecT list

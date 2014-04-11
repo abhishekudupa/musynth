@@ -134,6 +134,7 @@ type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT *
 (* Symbol table types *)
 exception SymtabUnderflow
 exception DuplicateSymbol of identifierT
+exception UnimplementedException
 
 type msgType = 
   | InputMsg
@@ -271,8 +272,9 @@ type llPropT =
 (* init states, accepting states, transitions *)
 type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list)
 
-type llInitStateT = llVarT list
+type llSpecT =
+  | LLSpecInvar of string * llPropT
+  | LLSpecLTL of string * llPropT * llPropT list
 
-(* automaton, initstates *)
-(* all invars, liveness specs flattened into monitors *)
-type llProgT = (llAutomatonT list * llInitStateT)
+(* global messages, automata, initial state constraints, properties *)
+type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list)

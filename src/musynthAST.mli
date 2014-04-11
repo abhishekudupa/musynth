@@ -93,4 +93,9 @@ val pLLVar :
 val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
 val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
 val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
 val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit
+val pLLProg :
+  Format.formatter ->
+  MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+  MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit

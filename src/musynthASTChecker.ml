@@ -42,7 +42,7 @@ let rec destructDesigDecl desig =
   | SimpleDesignator ident -> (ident, [])
   | FieldDesignator (ndesig, ident, _) -> 
      let name, loc = ident in
-     raise (SemanticError ("Declarations cannot contain index expressions", loc))
+     raise (SemanticError ("Declarations cannot contain field expressions", loc))
   | IndexDesignator (ndesig, indexid, _) ->
      let ident, paramlist = destructDesigDecl ndesig in
      (ident, paramlist @ [ indexid ])

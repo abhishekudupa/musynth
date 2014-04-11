@@ -61,7 +61,7 @@ CXX=g++
 OCAMLC=ocamlc
 OCAMLOPT=ocamlopt
 CPPFLAGS=-fPIC -O3 -std=c++11 -DNXT -I$(BUDDY_INCLUDE)
-CFLAGS=-fPIC -O3 -std=c99 -DNXT -I$(BUDDY_INCLUDE)
+CFLAGS=-fPIC -O3 -std=c99 -DNXT -I$(BUDDY_INCLUDE) -I /usr/lib64/ocaml/
 ROOTDIR=$(realpath .)
 
 LTL3BA=	parse.o lex.o main.o trans.o buchi.o cset.o set.o \

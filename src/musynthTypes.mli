@@ -199,6 +199,7 @@ type musProgT =
     musInitStateDeclBlockT * musSpecT list
 exception SymtabUnderflow
 exception DuplicateSymbol of identifierT
+exception UnimplementedException
 type msgType = InputMsg | OutputMsg
 type autType = ChannelAutType | PartialAutType | CompleteAutType
 type 'a declEntry = 'a * (string * musSymTypeT) list * musPropT option
@@ -322,5 +323,7 @@ type llPropT =
   | LLPropTLR of (llPropT * llPropT)
 type llMonitorT =
     llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list
-type llInitStateT = llVarT list
-type llProgT = llAutomatonT list * llInitStateT
+type llSpecT =
+    LLSpecInvar of string * llPropT
+  | LLSpecLTL of string * llPropT * llPropT list
+type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
