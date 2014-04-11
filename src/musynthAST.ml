@@ -198,21 +198,13 @@ let pTransDeclBlock fmt block =
                      fprintf "};"
 
 let pInitStateConstraint fmt decl =
-  let lhs, rhs = decl in
-  fprintf fmt "%a = %a" pDesignator lhs pDesignator rhs
+  fprintf fmt "%a" pProp decl
 
-let pInitStateDecl fmt decl =
-  let prefixPrinter fmt initstateconstr =
-    pList "," true false pInitStateConstraint fmt initstateconstr
-  in
-  fprintf fmt "@[<v 4>";
-  pDecl prefixPrinter noopPrinter fmt decl;
-  fprintf fmt "@]"
 
 let pInitStateDeclBlock fmt block =
   musMakeIndentedBox fmt 
                      pp_print_string "init {"
-                     (pList ";" true true pInitStateDecl) block
+                     (pList "," true true pInitStateConstraint) block
                      pp_print_string "}"
 
 let pChanProp fmt chanprop =

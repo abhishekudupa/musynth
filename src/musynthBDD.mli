@@ -110,6 +110,12 @@ module CK :
       MusynthTypes.symTabScope list ref ->
       MusynthTypes.msgType ->
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+    val checkAnnotationMsgDecl :
+      MusynthTypes.symTabScope list ref ->
+      MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+    val checkAnnotation :
+      MusynthTypes.symTabScope list ref ->
+      MusynthTypes.musStateAnnotationT -> unit
     val checkStateDeclBlock :
       MusynthTypes.symTabScope list ref ->
       (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
@@ -134,9 +140,7 @@ module CK :
       MusynthTypes.identifierT *
       (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list
     val initStateDeclChecker :
-      MusynthTypes.symTabScope list ref ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
-      MusynthTypes.sourcelocation option -> string * 'a list
+      MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT list -> unit
     val checkProp :
       MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
     val checkSpec :
@@ -146,8 +150,7 @@ module CK :
       (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list *
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+      MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
   end
 module AST :
   sig
@@ -214,16 +217,9 @@ module AST :
        MusynthTypes.musDesignatorT)
       MusynthTypes.musDeclType list -> unit
     val pInitStateConstraint :
-      Format.formatter ->
-      MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-    val pInitStateDecl :
-      Format.formatter ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType -> unit
+      Format.formatter -> MusynthTypes.musPropT -> unit
     val pInitStateDeclBlock :
-      Format.formatter ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list -> unit
+      Format.formatter -> MusynthTypes.musPropT list -> unit
     val pChanProp :
       Format.formatter ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -237,17 +233,22 @@ module AST :
       ((string * 'a) * MusynthTypes.musSymTypeT) list *
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+      MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
     val pLLDesignator :
       Format.formatter -> MusynthTypes.llDesignatorT -> unit
     val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
     val pLLVar :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+    val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+    val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
     val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit
+    val pLLProg :
+      Format.formatter ->
+      MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
   end
 module Utils :
   sig
@@ -321,16 +322,9 @@ module Utils :
            MusynthTypes.musDesignatorT)
           MusynthTypes.musDeclType list -> unit
         val pInitStateConstraint :
-          Format.formatter ->
-          MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-        val pInitStateDecl :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType -> unit
+          Format.formatter -> MusynthTypes.musPropT -> unit
         val pInitStateDeclBlock :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list -> unit
+          Format.formatter -> MusynthTypes.musPropT list -> unit
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -344,8 +338,7 @@ module Utils :
           ((string * 'a) * MusynthTypes.musSymTypeT) list *
           MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> 
+          MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> 
           unit
         val pLLDesignator :
           Format.formatter -> MusynthTypes.llDesignatorT -> unit
@@ -353,10 +346,16 @@ module Utils :
         val pLLVar :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+        val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+        val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
         val pLLAutomaton :
           Format.formatter -> MusynthTypes.llAutomatonT -> unit
+        val pLLProg :
+          Format.formatter ->
+          MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
       end
     module MSSet :
       sig
@@ -428,51 +427,25 @@ module Utils :
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
   end
+exception BddException of string
 val lg : int -> int
 val numBitsForValues : 'a list -> int
-module IntMap :
-  sig
-    type key = int
-    type +'a t
-    val empty : 'a t
-    val is_empty : 'a t -> bool
-    val mem : key -> 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val singleton : key -> 'a -> 'a t
-    val remove : key -> 'a t -> 'a t
-    val merge :
-      (key -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val for_all : (key -> 'a -> bool) -> 'a t -> bool
-    val exists : (key -> 'a -> bool) -> 'a t -> bool
-    val filter : (key -> 'a -> bool) -> 'a t -> 'a t
-    val partition : (key -> 'a -> bool) -> 'a t -> 'a t * 'a t
-    val cardinal : 'a t -> int
-    val bindings : 'a t -> (key * 'a) list
-    val min_binding : 'a t -> key * 'a
-    val max_binding : 'a t -> key * 'a
-    val choose : 'a t -> key * 'a
-    val split : key -> 'a t -> 'a t * 'a option * 'a t
-    val find : key -> 'a t -> 'a
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-  end
 val varMap :
-  (int * int * MusynthTypes.StringMap.key IntMap.t *
-   IntMap.key MusynthTypes.StringMap.t)
-  MusynthTypes.StringMap.t ref
+  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
+  MusynthTypes.LLDesigMap.t ref
 val numTotalBits : int ref
-val bddMan : Cudd.Man.d Cudd.Man.t
+val bddMan : Cudd.Man.d Cudd.Man.t ref
+val resetbddMan : unit -> unit
 val registerVar :
-  MusynthTypes.StringMap.key -> MusynthTypes.StringMap.key list -> unit
+  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key list -> unit
 val lookupVar :
-  MusynthTypes.StringMap.key ->
-  int * int * MusynthTypes.StringMap.key IntMap.t *
-  IntMap.key MusynthTypes.StringMap.t
+  MusynthTypes.LLDesigMap.key ->
+  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
+  option
 val registerVarAndPrimed :
-  MusynthTypes.StringMap.key -> MusynthTypes.StringMap.key list -> unit
+  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key list -> unit
 val mkBddForVal : int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
-val prop2BDD : MusynthTypes.musPropT -> Cudd.Man.d Cudd.Bdd.t
+val mkBDDForEqual : int -> int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
+val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t

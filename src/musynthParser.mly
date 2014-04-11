@@ -275,7 +275,7 @@ oneStateDecl : designator optQuants stateAnnotation
           | None -> (DeclSimple ($1, Some (getlhsloc ())), $3)
         }
 
-initStateDecl : INIT LBRACE initStateConstraintList RBRACE
+initStateDecl : INIT LBRACE propList RBRACE
         { $3 }
 
 initStateConstraintList : initStateConstraintList initStateConstraint

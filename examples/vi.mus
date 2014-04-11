@@ -209,9 +209,13 @@ PartialAutomaton Directory
 }
 
 init {
-    Environment[c].state = InitState[d] foreach c in CacheIDType foreach d in DataType;
-    Oracle.state = Data[d], Directory.state = DI[d] foreach d in DataType;
-    Cache[c].state = CI foreach c in CacheIDType;
+    (forall c in CacheIDType 
+     (exists d in DataType 
+      (= Environment[c].state InitState[d]))),
+    (exists d in DataType (and (= Oracle.state Data[d])  
+                               (= Directory.state DI[d]))),
+    (forall c in CacheIDType
+     (= Cache[c].state CI))
 }
 
 invariant "Coherence Invariant" {

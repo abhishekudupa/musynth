@@ -152,6 +152,12 @@ module CK :
       MusynthTypes.symTabScope list ref ->
       MusynthTypes.msgType ->
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+    val checkAnnotationMsgDecl :
+      MusynthTypes.symTabScope list ref ->
+      MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+    val checkAnnotation :
+      MusynthTypes.symTabScope list ref ->
+      MusynthTypes.musStateAnnotationT -> unit
     val checkStateDeclBlock :
       MusynthTypes.symTabScope list ref ->
       (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
@@ -176,9 +182,7 @@ module CK :
       MusynthTypes.identifierT *
       (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list
     val initStateDeclChecker :
-      MusynthTypes.symTabScope list ref ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
-      MusynthTypes.sourcelocation option -> string * 'a list
+      MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT list -> unit
     val checkProp :
       MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
     val checkSpec :
@@ -188,8 +192,7 @@ module CK :
       (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list *
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+      MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
   end
 module Utils :
   sig
@@ -263,16 +266,9 @@ module Utils :
            MusynthTypes.musDesignatorT)
           MusynthTypes.musDeclType list -> unit
         val pInitStateConstraint :
-          Format.formatter ->
-          MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-        val pInitStateDecl :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType -> unit
+          Format.formatter -> MusynthTypes.musPropT -> unit
         val pInitStateDeclBlock :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list -> unit
+          Format.formatter -> MusynthTypes.musPropT list -> unit
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -286,8 +282,7 @@ module Utils :
           ((string * 'a) * MusynthTypes.musSymTypeT) list *
           MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> 
+          MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> 
           unit
         val pLLDesignator :
           Format.formatter -> MusynthTypes.llDesignatorT -> unit
@@ -295,10 +290,16 @@ module Utils :
         val pLLVar :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+        val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+        val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
         val pLLAutomaton :
           Format.formatter -> MusynthTypes.llAutomatonT -> unit
+        val pLLProg :
+          Format.formatter ->
+          MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
       end
     module MSSet :
       sig
@@ -435,16 +436,9 @@ module AST :
        MusynthTypes.musDesignatorT)
       MusynthTypes.musDeclType list -> unit
     val pInitStateConstraint :
-      Format.formatter ->
-      MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-    val pInitStateDecl :
-      Format.formatter ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType -> unit
+      Format.formatter -> MusynthTypes.musPropT -> unit
     val pInitStateDeclBlock :
-      Format.formatter ->
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list -> unit
+      Format.formatter -> MusynthTypes.musPropT list -> unit
     val pChanProp :
       Format.formatter ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -458,8 +452,7 @@ module AST :
       ((string * 'a) * MusynthTypes.musSymTypeT) list *
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-      (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-      MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+      MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
     val pLLDesignator :
       Format.formatter -> MusynthTypes.llDesignatorT -> unit
     val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
@@ -469,7 +462,12 @@ module AST :
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+    val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
     val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit
+    val pLLProg :
+      Format.formatter ->
+      MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
   end
 module Chan :
   sig
@@ -543,16 +541,9 @@ module Chan :
            MusynthTypes.musDesignatorT)
           MusynthTypes.musDeclType list -> unit
         val pInitStateConstraint :
-          Format.formatter ->
-          MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-        val pInitStateDecl :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType -> unit
+          Format.formatter -> MusynthTypes.musPropT -> unit
         val pInitStateDeclBlock :
-          Format.formatter ->
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list -> unit
+          Format.formatter -> MusynthTypes.musPropT list -> unit
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -566,8 +557,7 @@ module Chan :
           ((string * 'a) * MusynthTypes.musSymTypeT) list *
           MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-          MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> 
+          MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> 
           unit
         val pLLDesignator :
           Format.formatter -> MusynthTypes.llDesignatorT -> unit
@@ -575,10 +565,16 @@ module Chan :
         val pLLVar :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+        val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+        val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
         val pLLAutomaton :
           Format.formatter -> MusynthTypes.llAutomatonT -> unit
+        val pLLProg :
+          Format.formatter ->
+          MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
       end
     module Utils :
       sig
@@ -655,17 +651,9 @@ module Chan :
                MusynthTypes.musDesignatorT)
               MusynthTypes.musDeclType list -> unit
             val pInitStateConstraint :
-              Format.formatter ->
-              MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT ->
-              unit
-            val pInitStateDecl :
-              Format.formatter ->
-              (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT)
-              list MusynthTypes.musDeclType -> unit
+              Format.formatter -> MusynthTypes.musPropT -> unit
             val pInitStateDeclBlock :
-              Format.formatter ->
-              (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT)
-              list MusynthTypes.musDeclType list -> unit
+              Format.formatter -> MusynthTypes.musPropT list -> unit
             val pChanProp :
               Format.formatter ->
               MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -680,8 +668,7 @@ module Chan :
               ((string * 'a) * MusynthTypes.musSymTypeT) list *
               MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-              (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT)
-              list MusynthTypes.musDeclType list * MusynthTypes.musSpecT list ->
+              MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> 
               unit
             val pLLDesignator :
               Format.formatter -> MusynthTypes.llDesignatorT -> unit
@@ -690,10 +677,17 @@ module Chan :
             val pLLVar :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+            val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+            val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
             val pLLAutomaton :
               Format.formatter -> MusynthTypes.llAutomatonT -> unit
+            val pLLProg :
+              Format.formatter ->
+              MusynthTypes.llDesignatorT list *
+              MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
+              MusynthTypes.llSpecT list -> unit
           end
         module MSSet :
           sig
@@ -937,17 +931,10 @@ val lowerProp :
 val lowerSpec :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musSpecT -> MusynthTypes.llSpecT
-val initStateDeclInstantiator :
-  'a ->
-  MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
-  MusynthTypes.musPropT option ->
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
-  MusynthTypes.llPropT
 val lowerProg :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   'a * MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list ->
+  MusynthTypes.musPropT list * MusynthTypes.musSpecT list ->
   MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
   MusynthTypes.llPropT * MusynthTypes.llSpecT list

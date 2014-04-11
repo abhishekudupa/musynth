@@ -110,7 +110,7 @@ type musChanLossT =
 
 type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
 
-type musInitStateDeclT = ((musDesignatorT * musDesignatorT) list) musDeclType
+type musInitStateDeclT = musPropT
 
 type musInitStateDeclBlockT = musInitStateDeclT list
 
@@ -234,6 +234,18 @@ module LLDesigMap = Map.Make
                         let compare = Pervasives.compare
                       end)
 
+module IntMap = Map.Make
+                  (struct 
+                    type t = int
+                    let compare = Pervasives.compare
+                  end)
+
+module IntSet = Set.Make
+                  (struct 
+                    type t = int
+                    let compare = Pervasives.compare
+                  end)
+
 type llIdentT = llDesignatorT
 
 (* the set of symbolic values a variable can take *)
@@ -278,3 +290,16 @@ type llSpecT =
 
 (* global messages, automata, initial state constraints, properties *)
 type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list)
+
+(* helper to convert designators to strings *)
+let rec lldesigToString lldesig =
+  match lldesig with
+  | LLSimpleDesignator name -> name
+  | LLIndexDesignator (ndesig, name) -> (lldesigToString ndesig) ^ "[" ^ name ^ "]"
+  | LLFieldDesignator (ndesig, name) -> (lldesigToString ndesig) ^ "." ^ name
+
+let rec getPrimedLLDesig lldesig =
+  match lldesig with
+  | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
+  | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
+  | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "'")

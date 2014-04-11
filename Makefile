@@ -6,7 +6,7 @@ OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
-OCAMLCFLAGS=-g -cc g++ -ccopt -Wno-write-strings 
+OCAMLCFLAGS=-g -annot -cc g++ -ccopt -Wno-write-strings 
 OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings 
 
 INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
@@ -102,4 +102,4 @@ ifneq ($(MAKECMDGOALS), clean)
 endif
 
 clean:
-	rm -rf $(CMO) $(CMI) $(CMX) $(DOTO) $(ABSGENS) $(DEPEND) $(BYTEEXES) $(OPTEXES)
+	rm -rf $(CMO) $(CMI) $(CMX) $(DOTO) $(ABSGENS) $(DEPEND) $(BYTEEXES) $(OPTEXES) src/*.annot

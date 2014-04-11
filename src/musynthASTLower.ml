@@ -298,6 +298,23 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
        | LLAnnotNumEventList (num, lleventlist) -> raise UnimplementedException) 
       lstate2AnnotMap []
   in
+  (* filter out any duplicates we might have introduced *)
+  let ptrans = 
+    List.filter 
+      (fun trans ->
+       let start, msg =
+         (match trans with
+          | TParametrizedDest (start, msg, _) -> start, msg 
+          | _ -> assert false) 
+       in
+       not (List.exists 
+              (fun otrans -> 
+               let ostart, omsg = 
+                 (match otrans with
+                  | TComplete (start, msg, _) -> start, msg
+                  | _ -> assert false) in
+               (ostart = start) && (omsg = msg)) ltrans)) ptrans 
+  in
   (* now instantiate the copies of this automaton *)
   let ident, paramlist = CK.destructDesigDecl desig in
   let name, _ = ident in
@@ -430,59 +447,15 @@ let lowerSpec symtab spec =
   | _ -> assert false
   
 
-module LLDesigLLDesigSet = 
-  Set.Make
-    (struct 
-      type t = (llDesignatorT * llDesignatorT)
-      let compare = Pervasives.compare
-    end)
-                         
-let initStateDeclInstantiator symtab qMap propOpt initStateDecl =
-  let linitstatedecls = 
-    List.map 
-      (fun (desig1, desig2) -> 
-       (lowerDesignator desig1, lowerDesignator desig2)) initStateDecl
-  in
-  let allparams = IdentMap.fold (fun ident typ acc -> ident :: acc) qMap [] in
-  if allparams = [] then
-    List.fold_left
-      (fun acc (desig1, desig2) ->
-       LLPropAnd (LLPropEquals (desig1, desig2), acc)) 
-      LLPropTrue linitstatedecls
-  else
-    let evalMaps = Utils.getMapsForProp allparams qMap propOpt in
-    let eqpairs = 
-      List.fold_left
-        (fun acc evalmap ->
-         let sevalmap = identMapToStringMap evalmap in
-         List.fold_left 
-           (fun acc2 (desig1, desig2) ->
-            (lldesigSubstitutor sevalmap desig1, lldesigSubstitutor sevalmap desig2) :: acc2)
-           acc linitstatedecls) [] evalMaps
-    in
-    let eqpairs = LLDesigLLDesigSet.elements
-                    (List.fold_left (fun acc elem -> LLDesigLLDesigSet.add elem acc)
-                                    LLDesigLLDesigSet.empty eqpairs)
-    in
-    List.fold_left
-      (fun acc (lhs, rhs) ->
-       LLPropAnd (LLPropEquals (lhs, rhs), acc)) LLPropTrue eqpairs
-
-
 let lowerProg symtab prog =
   let stdecls, gmsgdecls, autdecls, isdecls, specs = prog in
   let igmsgdecls = instantiateDesigBlock symtab IdentMap.empty None gmsgdecls in
   let lautdecls = 
     List.concat 
       (List.map (instantiateDecl symtab IdentMap.empty None autDeclInstantiator) autdecls) in
-  let lspecs = 
-    List.map (lowerSpec symtab) specs in
-  let linitStates = 
-    List.fold_left 
-      (fun acc cnstr ->
-       LLPropAnd (cnstr, acc))
-      LLPropTrue
-      (List.map (instantiateDecl symtab IdentMap.empty None initStateDeclInstantiator) isdecls)
+  let lspecs = List.map (lowerSpec symtab) specs in
+  let linitstateProp = 
+    List.fold_left (fun acc prop -> LLPropAnd (lowerProp symtab prop, acc)) LLPropTrue isdecls
   in
-  (igmsgdecls, lautdecls, linitStates, lspecs)
+  (igmsgdecls, lautdecls, linitstateProp, lspecs)
     

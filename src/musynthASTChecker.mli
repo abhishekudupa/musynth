@@ -108,6 +108,12 @@ val checkAutomatonMsgDecl :
   MusynthTypes.symTabScope list ref ->
   MusynthTypes.msgType ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+val checkAnnotationMsgDecl :
+  MusynthTypes.symTabScope list ref ->
+  MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+val checkAnnotation :
+  MusynthTypes.symTabScope list ref ->
+  MusynthTypes.musStateAnnotationT -> unit
 val checkStateDeclBlock :
   MusynthTypes.symTabScope list ref ->
   (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
@@ -132,9 +138,7 @@ val checkAutDef :
   MusynthTypes.identifierT *
   (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list
 val initStateDeclChecker :
-  MusynthTypes.symTabScope list ref ->
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list ->
-  MusynthTypes.sourcelocation option -> string * 'a list
+  MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT list -> unit
 val checkProp :
   MusynthTypes.symTabScope list ref -> MusynthTypes.musPropT -> unit
 val checkSpec :
@@ -144,5 +148,7 @@ val checkProg :
   (MusynthTypes.IdentMap.key * MusynthTypes.musSymTypeT) list *
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+  MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
+val checkLLProg :
+  MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list * 'a * 'b ->
+  unit

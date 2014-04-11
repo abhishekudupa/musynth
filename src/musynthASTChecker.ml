@@ -365,11 +365,8 @@ let checkAutDef symtab autdef loc =
         checkAutomatonMsgDecl symtab OutputMsg (convertDesigDeclToPrimed msgdecl)) msgs;
      (autname, autparamtypelist)
 
-let initStateDeclChecker symtab decl loc =
-  List.iter
-    (fun (lhs, rhs) ->
-     ignore (checkTypeCompatibility symtab lhs rhs loc)) decl;
-  ("", [])
+let initStateDeclChecker symtab propList =
+  List.iter (fun prop -> checkPureProp symtab prop) propList
 
 let rec checkProp symtab prop =
   match prop with
@@ -449,7 +446,120 @@ let checkProg symtab prog =
                 (AutomatonName ((name, ChannelAutType, autscope), 
                                 cvtParamTypeListForSymtab autparamlist, autPropOpt)))
     autodecls;
-  List.iter (fun decl -> ignore (checkDecl symtab initStateDeclChecker decl)) initstatedecls;
+  initStateDeclChecker symtab initstatedecls;
   List.iter (checkSpec symtab) specs
             
-            
+(* low level checking routines *)
+let checkLLProg prog =
+  let (msglist, autlist, initstates, specs) = prog in
+  (* check that the system is closed *)
+  let allInMsgs = 
+    List.fold_left 
+      (fun acc aut ->
+       match aut with
+       | LLCompleteAutomaton (_, _, inmsgs, _, _)
+       | LLIncompleteAutomaton (_, _, inmsgs, _, _) ->
+          List.fold_left
+            (fun acc2 inmsg -> LLDesigSet.add inmsg acc2) acc inmsgs) 
+      LLDesigSet.empty autlist;
+  in
+  let allOutMsgs = 
+    List.fold_left
+      (fun acc aut ->
+       match aut with
+       | LLCompleteAutomaton (_, _, _, outmsgs, _)
+       | LLIncompleteAutomaton (_, _, _, outmsgs, _) ->
+          List.fold_left
+            (fun acc2 outmsg -> LLDesigSet.add outmsg acc2) acc outmsgs)
+      LLDesigSet.empty autlist
+  in
+  let allMsgs = 
+    List.fold_left 
+      (fun acc msg -> LLDesigSet.add msg acc) 
+      LLDesigSet.empty msglist 
+  in
+  if (not ((LLDesigSet.subset allInMsgs allOutMsgs) && 
+             (LLDesigSet.subset allOutMsgs allInMsgs))) then
+    raise (SemanticError ("The system is not closed", None))
+  else
+    ();
+  if (not ((LLDesigSet.subset allInMsgs allMsgs) &&
+             (LLDesigSet.subset allMsgs allInMsgs))) then
+    raise (SemanticError ("Some global messages are not used by any automaton", None))
+  else
+    ();
+
+  let checkState state transitions inmsgs outmsgs =
+    let inmsgs = List.fold_left (fun acc elem -> LLDesigSet.add elem acc) LLDesigSet.empty inmsgs in
+    let outmsgs = List.fold_left (fun acc elem -> LLDesigSet.add elem acc) LLDesigSet.empty outmsgs 
+    in
+    let transmsgset = 
+      List.fold_left
+        (fun acc transition ->
+         let start, msg = 
+           (match transition with
+            | TComplete (start, msg, _) -> start, msg
+            | TParametrizedDest (start, msg, _) -> start, msg
+            | _ -> assert false) in
+         if start = state then
+           LLDesigSet.add msg acc
+         else
+           acc) LLDesigSet.empty transitions
+    in
+    if ((not (LLDesigSet.is_empty (LLDesigSet.inter transmsgset inmsgs))) &&
+          (not (LLDesigSet.is_empty (LLDesigSet.inter transmsgset outmsgs)))) then
+      raise (SemanticError ("State \"" ^ (lldesigToString state) ^ "\" is both output and input",
+                            None))
+    else
+      ()
+  in
+
+  (* input and output states must be disjoint for each automaton *)
+  List.iter 
+    (fun aut ->
+     match aut with
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions)
+     | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions) ->
+        List.iter (fun state -> checkState state transitions inmsgs outmsgs) states) autlist;
+
+  (* Incomplete automata must be deterministic *)
+  (* We allow multiple start states, but the transitions must be deterministic *)
+  (* This means: An output state can have only ONE output message from it and not other edges *)
+  (* An input state might not have two edges on the same message *)
+
+  List.iter
+    (fun aut ->
+     match aut with
+     | LLCompleteAutomaton _ -> ()
+     | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
+        (* build a mapping from each state to the messages it transitions on *)
+        let transmap = 
+          List.fold_left 
+            (fun acc trans ->
+             let start, msg =
+               (match trans with
+                | TComplete (start, msg, _) -> start, msg
+                | TParametrizedDest (start, msg, _) -> start, msg
+                | _ -> assert false) 
+             in
+             let curset = try LLDesigMap.find start acc with Not_found -> LLDesigSet.empty in
+             if LLDesigSet.mem msg curset then
+               raise (SemanticError ("Automaton \"" ^ (lldesigToString name) ^ "\" is not " ^ 
+                                       "deterministic on state \"" ^ (lldesigToString start) ^ 
+                                         "\" on msg \"" ^ (lldesigToString msg) ^ "\"",
+                                     None))
+             else
+               LLDesigMap.add start (LLDesigSet.add msg curset) acc)
+            LLDesigMap.empty transitions
+        in
+        (* check that if a state is an output state, it has only one outgoing transition *)
+        LLDesigMap.iter 
+          (fun state msgset ->
+           LLDesigSet.iter 
+             (fun msg -> 
+              if ((List.mem msg outmsgs) && ((LLDesigSet.cardinal msgset) > 1)) then
+                raise (SemanticError ("Automaton \"" ^ (lldesigToString name) ^ "\" has " ^ 
+                                        "more than one transition on output state \"" ^ 
+                                          (lldesigToString state) ^ "\"", None))
+              else
+                ()) msgset) transmap) autlist

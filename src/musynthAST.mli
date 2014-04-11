@@ -59,17 +59,9 @@ val pTransDeclBlock :
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
    MusynthTypes.musDesignatorT)
   MusynthTypes.musDeclType list -> unit
-val pInitStateConstraint :
-  Format.formatter ->
-  MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT -> unit
-val pInitStateDecl :
-  Format.formatter ->
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-  MusynthTypes.musDeclType -> unit
+val pInitStateConstraint : Format.formatter -> MusynthTypes.musPropT -> unit
 val pInitStateDeclBlock :
-  Format.formatter ->
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-  MusynthTypes.musDeclType list -> unit
+  Format.formatter -> MusynthTypes.musPropT list -> unit
 val pChanProp :
   Format.formatter ->
   MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
@@ -83,8 +75,7 @@ val pProg :
   ((string * 'a) * MusynthTypes.musSymTypeT) list *
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
-  (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
-  MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
+  MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
 val pLLDesignator : Format.formatter -> MusynthTypes.llDesignatorT -> unit
 val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
 val pLLVar :
