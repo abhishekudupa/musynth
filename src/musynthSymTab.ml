@@ -13,8 +13,8 @@ let pushScope symtab scope =
 let pop symtab =
   let scope = 
     (match !symtab with
-    | [] -> raise SymtabUnderflow
-    | head :: rest -> symtab := rest; head) 
+     | [] -> raise SymtabUnderflow
+     | head :: rest -> symtab := rest; head) 
   in
   scope
 
@@ -31,15 +31,15 @@ let lookup symtab ident =
     match symtab with
     | [] -> None
     | head :: rest ->
-        begin
-          try 
-            Some (IdentMap.find ident !head)
-          with Not_found ->
-            lookupRec rest
-        end
+       begin
+         try 
+           Some (IdentMap.find ident !head)
+         with Not_found ->
+           lookupRec rest
+       end
   in
   lookupRec !symtab
-    
+            
 let bind symtab ident entry =
   let scope = peek symtab in
   try
@@ -47,7 +47,7 @@ let bind symtab ident entry =
     raise (DuplicateSymbol ident)
   with
   | Not_found -> 
-      scope := IdentMap.add ident entry !scope
+     scope := IdentMap.add ident entry !scope
 
 let bindGlobal symtab ident entry =
   let scope = List.nth !symtab ((List.length !symtab) - 1) in

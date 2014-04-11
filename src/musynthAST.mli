@@ -85,7 +85,12 @@ val pProg :
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
   MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
-val pLLIdent : Format.formatter -> MusynthTypes.musDesignatorT -> unit
-val pLLMsg : Format.formatter -> MusynthTypes.musDesignatorT -> unit
+val pLLDesignator : Format.formatter -> MusynthTypes.llDesignatorT -> unit
+val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
+val pLLVar :
+  Format.formatter ->
+  MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
 val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
+val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
 val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit

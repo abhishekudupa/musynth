@@ -5,12 +5,12 @@ module Utils = MusynthUtils
 (* utilities for lowering and creating channel automata *)
 
 let getSimpleDesigForMS ms =
-  let str = Utils.msToStr (AST.astToString AST.pDesignator) ms in
-  SimpleDesignator (str, None)
+  let str = Utils.msToStr (AST.astToString AST.pLLDesignator) ms in
+  LLSimpleDesignator str
 
 let getSimpleDesigForList lst = 
-  let str = Utils.listToStr (AST.astToString AST.pDesignator) lst in
-  SimpleDesignator (str, None)
+  let str = Utils.listToStr (AST.astToString AST.pLLDesignator) lst in
+  LLSimpleDesignator str
 
 let addToList elem lst =
   elem :: lst
@@ -28,7 +28,7 @@ let listContains elem lst =
   (List.hd lst) = elem
 
 let msContains elem ms =
-  (Utils.DesigMap.find elem ms) <> 0
+  (LLDesigMap.find elem ms) <> 0
 
 let listLen lst = 
   (List.length lst)
@@ -40,8 +40,8 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
   let intooutmap = 
     List.fold_left2
       (fun acc inmsg outmsg ->
-       Utils.DesigMap.add inmsg outmsg acc)
-      Utils.DesigMap.empty linmsgs loutmsgs
+       LLDesigMap.add inmsg outmsg acc)
+      LLDesigMap.empty linmsgs loutmsgs
   in
   let _, l, d, size = chanprop in
   let lossy = match l with | ChanLossy _ -> true | _ -> false in
@@ -54,20 +54,28 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
           if ((lenFun cc) <> size) then
             (List.fold_left 
                (fun acc2 input ->
-                (TComplete (desigFun cc, input, desigFun (addFun input cc))) :: acc2) 
+                (TComplete (desigFun cc, 
+                            input, 
+                            desigFun (addFun input cc))) :: acc2) 
                [] linmsgs) :: acc1
           else
             acc1) [] cclist)
   in
   (* lossy input transitions *)
   let transitions2 = 
-    List.concat 
-      (List.fold_left
-         (fun acc1 cc ->
-          (List.fold_left
-             (fun acc2 input ->
-              (TComplete (desigFun cc, input, desigFun cc)) :: acc2) [] linmsgs) :: acc1)
-         [] cclist)
+    if lossy then
+      List.concat 
+        (List.fold_left
+           (fun acc1 cc ->
+            (List.fold_left
+               (fun acc2 input ->
+                (TComplete (desigFun cc, 
+                            input, 
+                            desigFun cc)) :: acc2)
+               [] linmsgs) :: acc1)
+           [] cclist)
+    else
+      []
   in
   (* base output transitions *)
   let transitions3 = 
@@ -77,30 +85,34 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
           (List.fold_left
              (fun acc2 input ->
               if (contFun input cc) then
-                (TComplete (desigFun cc, Utils.DesigMap.find input intooutmap, 
+                (TComplete (desigFun cc, 
+                            LLDesigMap.find input intooutmap, 
                             desigFun (delFun input cc))) :: acc2
               else
                 acc2) [] linmsgs) :: acc1) [] cclist)
   in
   (* duplicating output transitions *)
   let transitions4 =
-    List.concat 
-      (List.fold_left
-         (fun acc1 cc ->
-          if ((lenFun cc)  <> 0) then
-            (List.fold_left
-               (fun acc2 input ->
-                if (contFun input cc) then
-                  (TComplete (desigFun cc, Utils.DesigMap.find input intooutmap,
-                              desigFun cc)) :: acc2
-                else
-                  acc2) [] linmsgs) :: acc1
-          else
-            acc1) [] cclist)
+    if duplicating then
+      List.concat 
+        (List.fold_left
+           (fun acc1 cc ->
+            if ((lenFun cc)  <> 0) then
+              (List.fold_left
+                 (fun acc2 input ->
+                  if (contFun input cc) then
+                    (TComplete (desigFun cc, 
+                                LLDesigMap.find input intooutmap,
+                                desigFun cc)) :: acc2
+                  else
+                    acc2) [] linmsgs) :: acc1
+            else
+              acc1) [] cclist)
+    else
+      []
   in
   transitions1 @ transitions2 @ transitions3 @ transitions4
-  
-  
+                                                 
 let buildChannelAutomaton linmsgs loutmsgs chanprops =
   let o, _, _, size = chanprops in
   begin

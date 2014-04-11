@@ -1,52 +1,52 @@
 (* AST types *)
 (* file name * start line num * start col * end line num * end col *)
 type sourcelocation = int * int * int * int
-  
+                                          
 (* Filename * Line Num * Col num *)
 exception ParseError of string * sourcelocation
 exception SemanticError of string * sourcelocation option
-    
+                                                   
 module StringMap = Map.Make
-    (struct 
-      type t = string 
-      let compare = Pervasives.compare 
-    end)
+                     (struct 
+                       type t = string 
+                       let compare = Pervasives.compare 
+                     end)
 
 module StringSet = Set.Make
-    (struct
-      type t = string
-      let compare = Pervasives.compare
-    end)
+                     (struct
+                       type t = string
+                       let compare = Pervasives.compare
+                     end)
 
-  
+                     
 type identifierT = string * sourcelocation option
 
 module IdentMap = Map.Make 
-    (struct 
-      type t = identifierT 
-      let compare = fun ident1 ident2 -> 
-        let id1, loc1 = ident1 in
-        let id2, loc2 = ident2 in
-        Pervasives.compare id1 id2
-    end)
+                    (struct 
+                      type t = identifierT 
+                      let compare = fun ident1 ident2 -> 
+                        let id1, loc1 = ident1 in
+                        let id2, loc2 = ident2 in
+                        Pervasives.compare id1 id2
+                    end)
 
 module IdentSet = Set.Make
-    (struct 
-      type t = identifierT
-      let compare = fun ident1 ident2 -> 
-        let id1, loc1 = ident1 in
-        let id2, loc2 = ident2 in
-        Pervasives.compare id1 id2
-    end)
+                    (struct 
+                      type t = identifierT
+                      let compare = fun ident1 ident2 -> 
+                        let id1, loc1 = ident1 in
+                        let id2, loc2 = ident2 in
+                        Pervasives.compare id1 id2
+                    end)
 
 type musSymTypeT = 
   | SymTypeNamed of identifierT * sourcelocation option
   | SymTypeAnon of identifierT list * sourcelocation option
-        
+                                                     
 type musSymTypeDeclT = identifierT * musSymTypeT
-  
+                                       
 type musSymTypeDeclBlockT = musSymTypeDeclT list
-  
+                                            
 type musDesignatorT =
   | SimpleDesignator of identifierT
   | IndexDesignator of musDesignatorT * identifierT * sourcelocation option
@@ -71,7 +71,7 @@ type musPropT =
   | PropTLX of musPropT * sourcelocation option
   | PropTLU of musPropT * musPropT * sourcelocation option
   | PropTLR of musPropT * musPropT * sourcelocation option
-    
+                                                    
 type 'a musDeclType = 
   | DeclSimple of 'a * sourcelocation option
   | DeclQuantified of 'a * (musSymTypeT IdentMap.t) * musPropT option * sourcelocation option
@@ -116,9 +116,9 @@ type musInitStateDeclBlockT = musInitStateDeclT list
 
 type musAutomatonDeclType = 
   | CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
+                           musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-        musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
+                             musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
   | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT * sourcelocation option
 
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
@@ -129,7 +129,7 @@ type musSpecT =
   | SpecDefine of identifierT * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
-      musAutomatonDeclT list * musInitStateDeclBlockT * musSpecT list
+                  musAutomatonDeclT list * musInitStateDeclBlockT * musSpecT list
 
 (* Symbol table types *)
 exception SymtabUnderflow
@@ -162,7 +162,7 @@ type symtabEntry =
   | LTLSpecName of string * musPropT * musPropT list
   | DeclaredExpr of string * musPropT
 
-and symTabScope = symtabEntry IdentMap.t ref
+ and symTabScope = symtabEntry IdentMap.t ref
 
 type symTableT = (symTabScope list) ref
 
@@ -183,8 +183,8 @@ exception ConstantExpression of sourcelocation option
 let locToString loc =
   let sline, scol, eline, ecol = loc in
   (string_of_int sline) ^ ":" ^ (string_of_int scol) ^ " - " ^
-  (string_of_int eline) ^ ":" ^ (string_of_int ecol)
-  
+    (string_of_int eline) ^ ":" ^ (string_of_int ecol)
+                                    
 let locOptToString locOpt =
   match locOpt with
   | None -> "No source location information found"
@@ -194,48 +194,79 @@ let locOptToString locOpt =
 let exToString ex =
   match ex with
   | ParseError (msg, loc) ->
-      "Parse Error: " ^ msg ^ "\nAt: " ^ (locOptToString (Some loc))
+     "Parse Error: " ^ msg ^ "\nAt: " ^ (locOptToString (Some loc))
   | SemanticError (msg, loc) ->
-      "Semantic Error: " ^ msg ^ "\nAt:" ^ (locOptToString loc)
+     "Semantic Error: " ^ msg ^ "\nAt:" ^ (locOptToString loc)
   | SymtabUnderflow -> "Error: Symbol table underflow"
   | DuplicateSymbol ident ->
-      let name, loc = ident in
-      "Error: Identifier \"" ^ name ^ "\" already declared\nAt: " ^ 
-      (locOptToString loc)
+     let name, loc = ident in
+     "Error: Identifier \"" ^ name ^ "\" already declared\nAt: " ^ 
+       (locOptToString loc)
 
   | WrongTypeIdentifier (msg, ident) ->
-      let name, loc = ident in
-      "Error: Identifier \"" ^ name ^ "\" has wrong type.\n" ^ msg ^ "\nAt: " ^ 
-      (locOptToString loc)
+     let name, loc = ident in
+     "Error: Identifier \"" ^ name ^ "\" has wrong type.\n" ^ msg ^ "\nAt: " ^ 
+       (locOptToString loc)
 
   | ConstantExpression loc ->
-      "Error: Constant Expression at: " ^ (locOptToString loc)
+     "Error: Constant Expression at: " ^ (locOptToString loc)
   | UndeclaredIdentifier ident ->
-      let name, loc = ident in
-      "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
+     let name, loc = ident in
+     "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | _ -> Printexc.to_string ex
 
 (* types for low-level representation *)
-type llIdentT = musDesignatorT
+type llDesignatorT = 
+  | LLSimpleDesignator of string
+  | LLIndexDesignator of llDesignatorT * string
+  | LLFieldDesignator of llDesignatorT * string
 
-type llGMsgT = llIdentT
+module LLDesigSet = Set.Make
+                      (struct
+                        type t = llDesignatorT
+                        let compare = Pervasives.compare
+                      end)
 
-type llAMsgT = llIdentT * msgType
+module LLDesigMap = Map.Make
+                      (struct 
+                        type t = llDesignatorT
+                        let compare = Pervasives.compare
+                      end)
+
+type llIdentT = llDesignatorT
 
 (* the set of symbolic values a variable can take *)
-type llTypeT = StringSet.t
+type llTypeT = LLDesigSet.t
 
-type llVarT = string * llTypeT
+type llVarT = llDesignatorT * llTypeT
 
 type llTransT = 
   | TComplete of (llIdentT * llIdentT * llIdentT)
-  | TParametrized of (llIdentT * llIdentT * llVarT)
+  | TParametrizedDest of (llIdentT * llIdentT * llVarT)
+  | TParametrizedMsgDest of (llIdentT * llVarT * llVarT)
+
+type llAnnotT = 
+  | LLAnnotEventList of (llIdentT list)
+  | LLAnnotNumEventList of (int * llIdentT list)
+  | LLAnnotNone
 
 type llAutomatonT = 
   (* name, states, msgs, transitions *)
-  | LLCompleteAutomaton of (llIdentT * llIdentT list * llGMsgT list * llGMsgT list * llTransT list)
-  | LLIncompleteAutomaton of (llIdentT * llIdentT list * llGMsgT list * llGMsgT list * llTransT list)
+  | LLCompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * llIdentT list * llTransT list)
+  | LLIncompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * llIdentT list * llTransT list)
 
+type llPropT = 
+  | LLPropTrue
+  | LLPropFalse
+  | LLPropEquals of (llDesignatorT * llDesignatorT)
+  | LLPropNot of llPropT
+  | LLPropAnd of (llPropT * llPropT)
+  | LLPropOr of (llPropT * llPropT)
+  | LLPropTLG of llPropT
+  | LLPropTLF of llPropT
+  | LLPropTLX of llPropT
+  | LLPropTLU of (llPropT * llPropT)
+  | LLPropTLR of (llPropT * llPropT)
 
 (* init states, accepting states, transitions *)
 type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list)

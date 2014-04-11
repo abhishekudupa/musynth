@@ -63,36 +63,36 @@ let getlhsloc () =
 
 prog : symTypeDecls msgDecls automatonDecls initStateDecl specs
     { ($1, $2, $3, $4, $5) }
-
+     
 symTypeDecls : SYMMETRICTYPES LBRACE symTypeDeclList RBRACE
     { $3 }
-    |
+    | 
     { [] }
 
 symTypeDeclList : symTypeDeclList oneSymTypeDecl
-        { $1 @ [ $2 ] }
+    { $1 @ [ $2 ] }
     | oneSymTypeDecl
-        { [ $1 ] }
+    { [ $1 ] }
 
 oneSymTypeDecl : IDENT COLON symType SEMICOLON
-        { ($1, $3) }
+    { ($1, $3) }
 
 symType : IDENT
-        { SymTypeNamed ($1, (Some (getlhsloc ()))) }
+    { SymTypeNamed ($1, (Some (getlhsloc ()))) }
     | LBRACE identList RBRACE
-        { SymTypeAnon ($2, (Some (getlhsloc ()))) }
+    { SymTypeAnon ($2, (Some (getlhsloc ()))) }
 
 identList : identList COMMA IDENT
-        { $1 @ [ $3 ] }
+    { $1 @ [ $3 ] }
     | IDENT
-        { [ $1 ] }
+    { [ $1 ] }
 
 designator : IDENT
-        { SimpleDesignator $1 }
+    { SimpleDesignator $1 }
     | designator LSQUARE IDENT RSQUARE
-        { IndexDesignator ($1, $3, (Some (getlhsloc ()))) }
+    { IndexDesignator ($1, $3, (Some (getlhsloc ()))) }
     | designator DOT IDENT
-        { FieldDesignator ($1, $3, (Some (getlhsloc ()))) }
+    { FieldDesignator ($1, $3, (Some (getlhsloc ()))) }
 
 /* lisp style prefix expressions to avoid ambiguity */
 prop : BCTRUE

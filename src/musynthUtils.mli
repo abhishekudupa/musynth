@@ -88,67 +88,19 @@ module AST :
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
       (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT) list
       MusynthTypes.musDeclType list * MusynthTypes.musSpecT list -> unit
-    val pLLIdent : Format.formatter -> MusynthTypes.musDesignatorT -> unit
-    val pLLMsg : Format.formatter -> MusynthTypes.musDesignatorT -> unit
+    val pLLDesignator :
+      Format.formatter -> MusynthTypes.llDesignatorT -> unit
+    val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
+    val pLLVar :
+      Format.formatter ->
+      MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
+    val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit
   end
-module DesigMap :
-  sig
-    type key = MusynthTypes.musDesignatorT
-    type +'a t
-    val empty : 'a t
-    val is_empty : 'a t -> bool
-    val mem : key -> 'a t -> bool
-    val add : key -> 'a -> 'a t -> 'a t
-    val singleton : key -> 'a -> 'a t
-    val remove : key -> 'a t -> 'a t
-    val merge :
-      (key -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-    val iter : (key -> 'a -> unit) -> 'a t -> unit
-    val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-    val for_all : (key -> 'a -> bool) -> 'a t -> bool
-    val exists : (key -> 'a -> bool) -> 'a t -> bool
-    val filter : (key -> 'a -> bool) -> 'a t -> 'a t
-    val partition : (key -> 'a -> bool) -> 'a t -> 'a t * 'a t
-    val cardinal : 'a t -> int
-    val bindings : 'a t -> (key * 'a) list
-    val min_binding : 'a t -> key * 'a
-    val max_binding : 'a t -> key * 'a
-    val choose : 'a t -> key * 'a
-    val split : key -> 'a t -> 'a t * 'a option * 'a t
-    val find : key -> 'a t -> 'a
-    val map : ('a -> 'b) -> 'a t -> 'b t
-    val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-  end
-val crossProduct : 'a list list -> 'a list list
-val identConstPairList2Map :
-  (MusynthTypes.IdentMap.key * 'a) list -> 'a MusynthTypes.IdentMap.t
-val checkParamCompleteness :
-  'a MusynthTypes.IdentMap.t -> 'a MusynthTypes.IdentMap.t -> bool
-val conjoinPropOpts :
-  MusynthTypes.musPropT option ->
-  MusynthTypes.musPropT option -> MusynthTypes.musPropT option
-val sDesigToIdent : MusynthTypes.musDesignatorT -> MusynthTypes.identifierT
-val evalProp :
-  MusynthTypes.musPropT -> ('a * 'b) MusynthTypes.IdentMap.t -> bool
-val getMapsForProp :
-  MusynthTypes.IdentMap.key list ->
-  MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
-  MusynthTypes.musPropT option ->
-  MusynthTypes.identifierT MusynthTypes.IdentMap.t list
-val splatList : 'a -> int -> 'a list
-val makeEmptyMS : unit -> 'a DesigMap.t
-val msToList : int DesigMap.t -> DesigMap.key list
-val msToStr : (DesigMap.key -> string) -> int DesigMap.t -> string
-val addToMs : DesigMap.key -> int DesigMap.t -> int DesigMap.t
-val delFromMS : DesigMap.key -> int DesigMap.t -> int DesigMap.t
-val makeEmptyMSWithAlphabet : DesigMap.key list -> int DesigMap.t
 module MSSet :
   sig
-    type elt = int DesigMap.t
+    type elt = int MusynthTypes.LLDesigMap.t
     type t
     val empty : t
     val is_empty : t -> bool
@@ -175,11 +127,41 @@ module MSSet :
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
   end
-val enumerateMS : DesigMap.key list -> int -> MSSet.elt list
+val splatList : 'a -> int -> 'a list
+val makeEmptyMS : unit -> 'a MusynthTypes.LLDesigMap.t
+val msToList :
+  int MusynthTypes.LLDesigMap.t -> MusynthTypes.LLDesigMap.key list
+val msToStr :
+  (MusynthTypes.LLDesigMap.key -> string) ->
+  int MusynthTypes.LLDesigMap.t -> string
+val addToMs :
+  MusynthTypes.LLDesigMap.key ->
+  int MusynthTypes.LLDesigMap.t -> int MusynthTypes.LLDesigMap.t
+val delFromMS :
+  MusynthTypes.LLDesigMap.key ->
+  int MusynthTypes.LLDesigMap.t -> int MusynthTypes.LLDesigMap.t
+val makeEmptyMSWithAlphabet :
+  MusynthTypes.LLDesigMap.key list -> int MusynthTypes.LLDesigMap.t
+val enumerateMS : MusynthTypes.LLDesigMap.key list -> int -> MSSet.elt list
 val enumerateLists : 'a list -> int -> 'a list list
 val listToStr : ('a -> string) -> 'a list -> string
-val get2Combinations : 'a list -> ('a * 'a) list
-val makePropList : ('a * 'b) list -> (('a * 'b) * ('a * 'b)) list
 val nextuid : int ref
 val getuid : unit -> int
 val resetuid : unit -> unit
+val crossProduct : 'a list list -> 'a list list
+val identConstPairList2Map :
+  (MusynthTypes.IdentMap.key * 'a) list -> 'a MusynthTypes.IdentMap.t
+val sDesigToIdent : MusynthTypes.musDesignatorT -> MusynthTypes.identifierT
+val conjoinPropOpts :
+  MusynthTypes.musPropT option ->
+  MusynthTypes.musPropT option -> MusynthTypes.musPropT option
+val mergeIdentMaps :
+  'a MusynthTypes.IdentMap.t ->
+  'a MusynthTypes.IdentMap.t -> 'a MusynthTypes.IdentMap.t
+val evalProp :
+  MusynthTypes.musPropT -> ('a * 'b) MusynthTypes.IdentMap.t -> bool
+val getMapsForProp :
+  MusynthTypes.IdentMap.key list ->
+  MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
+  MusynthTypes.musPropT option ->
+  MusynthTypes.identifierT MusynthTypes.IdentMap.t list

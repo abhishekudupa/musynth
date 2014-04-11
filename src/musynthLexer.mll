@@ -66,9 +66,8 @@ let idletter = (uppercase | lowercase | underscore)
 let digit =['0' - '9']
 let string = '"' [^ '"' '\n' ]* '"'
 let integer = digit+
-
 let identifier = idletter (idletter | digit)* prime?
-
+                                                   
 rule token = parse
 | ";" { SEMICOLON }
 | "." { DOT }
@@ -98,11 +97,11 @@ rule token = parse
     findKeyword name
   with
   | Not_found ->
-      let startpos = lexeme_start_p lexbuf in
-      let endpos = lexeme_end_p lexbuf in
-      IDENT (name, Some (startpos.pos_lnum,
-                         startpos.pos_cnum - startpos.pos_bol,
-                         endpos.pos_lnum, endpos.pos_cnum - endpos.pos_bol))
+     let startpos = lexeme_start_p lexbuf in
+     let endpos = lexeme_end_p lexbuf in
+     IDENT (name, Some (startpos.pos_lnum,
+                        startpos.pos_cnum - startpos.pos_bol,
+                        endpos.pos_lnum, endpos.pos_cnum - endpos.pos_bol))
 }
 | string as str { (STRINGCONST (String.sub str 1 (String.length str - 2))) }
 | integer as i { (INTCONST (int_of_string i)) }

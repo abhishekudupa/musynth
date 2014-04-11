@@ -7,261 +7,260 @@ module Utils = MusynthUtils
 module AST = MusynthAST
 module Chan = MusynthChannel
 
-let rec substInProp substMap prop =
-  match prop with
-  | PropEquals (desig1, desig2, _) -> 
-      let ident1 = Utils.sDesigToIdent desig1 in
-      let ident2 = Utils.sDesigToIdent desig2 in
-      PropEquals 
-        (SimpleDesignator (try IdentMap.find ident1 substMap with Not_found -> ident1),
-         SimpleDesignator (try IdentMap.find ident2 substMap with Not_found -> ident2), None)
-  | PropNEquals (desig1, desig2, _) -> 
-      let ident1 = Utils.sDesigToIdent desig1 in
-      let ident2 = Utils.sDesigToIdent desig2 in
-      PropNEquals 
-        (SimpleDesignator (try IdentMap.find ident1 substMap with Not_found -> ident1),
-         SimpleDesignator (try IdentMap.find ident2 substMap with Not_found -> ident2), None)
-  | PropAnd (prop1, prop2, _) -> PropAnd (substInProp substMap prop1,
-                                          substInProp substMap prop2, None)
-  | PropOr (prop1, prop2, _) -> PropOr (substInProp substMap prop1,
-                                        substInProp substMap prop2, None)
-  | PropImplies (prop1, prop2, _) -> PropImplies (substInProp substMap prop1,
-                                                  substInProp substMap prop2, None)
-  | PropIff (prop1, prop2, _) -> PropIff (substInProp substMap prop1,
-                                          substInProp substMap prop2, None)
-  | _ -> assert false
-
-let substInDecl substMap declParamSubstituter decl =
-  match decl with
-  | DeclSimple (declparam, _) -> DeclSimple (declParamSubstituter substMap declparam, None)
-  | DeclQuantified (declparam, qMap, propOpt, _) -> 
-      let newQMap = 
-        IdentMap.fold
-          (fun ident newident acc ->
-            try
-              let typ = IdentMap.find ident qMap in
-              IdentMap.add newident typ acc
-            with Not_found -> acc) substMap IdentMap.empty in
-      let newProp = 
-        (match propOpt with
-        | Some prop -> Some (substInProp substMap prop)
-        | None -> None)
-      in
-      DeclQuantified (declParamSubstituter substMap declparam, newQMap, newProp, None)
-
-let rec desigDeclSubstituter substMap desig =
-  match desig with
-  | SimpleDesignator ident -> 
-      SimpleDesignator 
-        (try
-          IdentMap.find ident substMap
-        with Not_found -> ident)
-
-  | IndexDesignator (ndesig, ident, _) ->
-      let newdesig = desigDeclSubstituter substMap ndesig in
-      IndexDesignator 
-        (newdesig, 
-         (try 
-           IdentMap.find ident substMap
-         with Not_found -> ident), None)
-  | FieldDesignator (ndesig, ident, _) ->
-      FieldDesignator (desigDeclSubstituter substMap ndesig, ident, None)
-
-let transDeclSubstituter substMap trans =
-  match trans with
-  | TComplete (start, msg, final) ->
-      TComplete
-        (desigDeclSubstituter substMap start,
-         desigDeclSubstituter substMap msg,
-         desigDeclSubstituter substMap final)
-  | TParametrized (start, msg, var) ->
-      TParametrized 
-        (desigDeclSubstituter substMap start,
-         desigDeclSubstituter substMap msg,
-         var)
-
-let autDeclSubstitutor substMap aut =
-  match aut with
-  | LLIncompleteAutomaton (desig, states, inmsgs, outmsgs, transitions) ->
-      LLIncompleteAutomaton (desigDeclSubstituter substMap desig,
-                             List.map (desigDeclSubstituter substMap) states,
-                             List.map (desigDeclSubstituter substMap) inmsgs,
-                             List.map (desigDeclSubstituter substMap) outmsgs,
-                             List.map (transDeclSubstituter substMap) transitions)
-
-  | LLCompleteAutomaton (desig, states, inmsgs, outmsgs, transitions) ->
-      LLCompleteAutomaton (desigDeclSubstituter substMap desig,
-                           List.map (desigDeclSubstituter substMap) states,
-                           List.map (desigDeclSubstituter substMap) inmsgs,
-                           List.map (desigDeclSubstituter substMap) outmsgs,
-                           List.map (transDeclSubstituter substMap) transitions)
-
-
-let instDecl symtab declInstantiator decl =
-  match decl with 
-  | DeclSimple (declparam, _) -> declInstantiator symtab IdentMap.empty None declparam
-  | DeclQuantified (declparam, qMap, propOpt, _) -> 
-      begin
-        ST.push symtab;
-        IdentMap.iter 
-          (fun ident typ -> 
-            let name, _ = ident in
-            ST.bind symtab ident (SymVarName (name, typ))) qMap;
-        let retval = declInstantiator symtab qMap propOpt declparam in
-        ignore (ST.pop symtab);
-        retval
-      end
-
 let lowerQMap symtab qMap =
   IdentMap.fold 
     (fun ident typ acc ->
-      let rtyp = CK.resolveSymType symtab typ in
-      IdentMap.add ident rtyp acc) qMap IdentMap.empty
+     let rtyp = CK.resolveSymType symtab typ in
+     IdentMap.add ident rtyp acc) qMap IdentMap.empty
 
-let desigDeclInstantiator symtab qMap propOpt msgDecl = 
-  let ident, paramlist = CK.destructDesigDecl msgDecl in
+(* does two things: *)
+(* first: recursively instantiates quantifiers *)
+(* second: reduces to the low level IR *)
+let instantiateDecl symtab qMap propOpt declParamInstantiator decl =
   let qMap = lowerQMap symtab qMap in
-  if paramlist = [] then
-    [ SimpleDesignator ident ]
-  else
-      let maps = Utils.getMapsForProp paramlist qMap propOpt in
-      List.map 
-        (fun map ->
-          desigDeclSubstituter map msgDecl) maps
-
-let transDeclInstantiator symtab qMap propOpt transdecl =
-  let startDesig, msgDesig, finalDesig = transdecl in
-  let sident, sparamlist = CK.destructDesigDecl startDesig in
-  let mident, mparamlist = CK.destructDesigDecl msgDesig in
-  let fident, fparamlist = CK.destructDesigDecl finalDesig in
-  let qMap = lowerQMap symtab qMap in
-  let combparamset = List.fold_left (fun set param -> IdentSet.add param set) IdentSet.empty sparamlist in
-  let combparamset = List.fold_left (fun set param -> IdentSet.add param set) combparamset mparamlist in
-  let combparamset = List.fold_left (fun set param -> IdentSet.add param set) combparamset fparamlist in
-  let combparamlist = IdentSet.elements combparamset in
-  if combparamlist = [] then
-    [ TComplete (SimpleDesignator sident, SimpleDesignator mident, SimpleDesignator fident) ]
-  else
-    let maps = Utils.getMapsForProp combparamlist qMap propOpt in
-    List.map 
-      (fun map ->
-        TComplete
-          (desigDeclSubstituter map startDesig,
-           desigDeclSubstituter map msgDesig,
-           desigDeclSubstituter map finalDesig)) maps
-
-
-let reduceChannelAut symtab auttuple qMap propOpt =
-  let desig, chanprop, msgblock, _ = auttuple in
-  let inmsgblock = msgblock in
-  let outmsgblock = List.map (CK.convertDesigDeclToPrimed) msgblock in
-  let linmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) inmsgblock) in
-  let loutmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) outmsgblock) in
-  let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprop in
-  LLCompleteAutomaton (desig, states, linmsgs, loutmsgs, transitions)
-  
-let getDesigFromDecl decl =
   match decl with
-  | DeclSimple (param, _) -> param, IdentMap.empty, None
-  | DeclQuantified (param, qMap, propOpt, _) -> param, qMap, propOpt
+  | DeclSimple (declParam, _) -> declParamInstantiator symtab qMap propOpt declParam
+  | DeclQuantified (declParam, newQMap, newPropOpt, _) ->
+     let lnewQMap = lowerQMap symtab newQMap in
+     declParamInstantiator symtab (Utils.mergeIdentMaps qMap lnewQMap)
+                           (Utils.conjoinPropOpts propOpt newPropOpt) declParam
 
-let lowerIncompleteAutomaton symtab autProps qMap propOpt = 
-  let desig, states, inmsgs, outmsgs, transitions = autProps in
-  (* lower all the predefined transitions into a list *)
-  let ltrans = List.concat (List.map (instDecl symtab transDeclInstantiator) transitions) in
-  let lstates = 
-    List.concat 
-      (List.map 
-         (fun (statedecl, annot) -> 
-           instDecl symtab desigDeclInstantiator statedecl) states) in
-  let incompletestates = 
-    List.fold_left 
-      (fun acc (statedecl, annot) ->
-        match annot with
-        | AnnotIncomplete _ -> statedecl :: acc
-        | _ -> acc) [] states in
-  let lincstates = List.concat (List.map (instDecl symtab desigDeclInstantiator) incompletestates) in
-  let linmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) inmsgs) in
-  let loutmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) outmsgs) in
+let substInDecl substMap declParamSubstitutor decl =
+  match decl with
+  | DeclSimple (declParam, _) -> DeclSimple (declParamSubstitutor substMap declParam, None)
+  | DeclQuantified (declParam, qMap, propOpt, _) -> 
+     DeclQuantified (declParamSubstitutor substMap declParam, qMap, propOpt, None)
 
-  let statestrings = List.map (fun lstate -> AST.astToString AST.pLLIdent lstate) lstates in
-  let targetset = List.fold_left (fun acc str -> StringSet.add str acc) StringSet.empty statestrings in
-  let targetset = StringSet.add "defer" targetset in
-  let newtrans = 
-    List.concat 
-      (List.map
-         (fun incstate ->
-           List.fold_left 
-             (fun acc msg -> 
-               (TParametrized (incstate, 
-                              msg, 
-                              ("synth_" ^ (string_of_int (Utils.getuid ())), 
-                               targetset))) :: acc) [] linmsgs) lincstates)
-  in
-  let newtrans = 
-    List.fold_left
-      (fun acc ntrans ->
-        let state, msg =
-          (match ntrans with
-          | TParametrized (state, msg, _) -> state, msg
-          | _ -> assert false)
-        in
-        if (List.exists 
-              (fun trans ->
-                match trans with
-              | TComplete (ostate, omsg, _) ->
-                  (AST.astToString AST.pLLIdent ostate) = 
-                  (AST.astToString AST.pLLIdent state) && 
-                  (AST.astToString AST.pLLIdent omsg) = 
-                  (AST.astToString AST.pLLIdent msg)
-              | _ -> assert false) ltrans)
-      then
-          acc
-        else
-          ntrans :: acc) [] newtrans
-  in
-  LLIncompleteAutomaton (desig, lstates, linmsgs, loutmsgs, ltrans @ newtrans)
+(* helper routine to instantiate a desig with the given params and eval maps *)
+let makeLLInstantiation evalmaps paramlist name =
+  List.map
+    (fun evalmap ->
+     List.fold_left
+       (fun acc param ->
+        let newname, _ = IdentMap.find param evalmap in
+        LLIndexDesignator (acc, newname)) 
+       (LLSimpleDesignator name)
+       paramlist)
+    evalmaps
 
-let lowerCompleteAutomaton symtab autProps qMap propOpt =
-  let desig, states, inmsgs, outmsgs, transitions = autProps in
-  let lstates = 
-    List.concat 
-      (List.map 
-         (fun (statedecl, annot) -> 
-           instDecl symtab desigDeclInstantiator statedecl) states) in
-  let linmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) inmsgs) in
-  let loutmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) outmsgs) in
-  let ltrans = List.concat (List.map (instDecl symtab transDeclInstantiator) transitions) in
-  LLCompleteAutomaton (desig, lstates, linmsgs, loutmsgs, ltrans)
-  
-let autDeclInstantiator symtab qMap propOpt autDecl =
-  (* before lowering an automaton we must complete it if incomplete *)
-  (* we also need to blow up channel automaton *)
-  let desig, low = 
-    match autDecl with
-    | ChannelAutomaton (desig, chanprop, msgblock, loc) ->
-       desig, reduceChannelAut symtab (desig, chanprop, msgblock, loc) qMap propOpt
-
-    | CompleteAutomaton (desig, stateDecls, inmsgs, outmsgs, transitions, loc) -> 
-        desig, lowerCompleteAutomaton symtab (desig, stateDecls, inmsgs, outmsgs, transitions) qMap propOpt
-    | IncompleteAutomaton (desig, stateDecls, inmsgs, outmsgs, transitions, loc) -> 
-        desig, lowerIncompleteAutomaton symtab (desig, stateDecls, inmsgs, outmsgs, transitions) qMap propOpt
-  in
+let desigDeclInstantiator symtab qMap propOpt desig =
   let ident, paramlist = CK.destructDesigDecl desig in
-  let qMap = lowerQMap symtab qMap in
+  let name, _ = ident in
   if paramlist = [] then
-    [ low ]
+    [ (LLSimpleDesignator name) ]
   else
-    let maps = Utils.getMapsForProp paramlist qMap propOpt in
-    List.map 
-      (fun map ->
-        autDeclSubstitutor map low) maps
-      
-let instGMsgDecls symtab gmesgDecls =
-  List.concat (List.map (instDecl symtab desigDeclInstantiator) gmesgDecls)
+    let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
+    makeLLInstantiation evalMaps paramlist name
+
+let transDeclInstantiator symtab qMap propOpt trans =
+  let startdesig, msgdesig, finaldesig = trans in
+  let sident, sparamlist = CK.destructDesigDecl startdesig in
+  let mident, mparamlist = CK.destructDesigDecl msgdesig in
+  let fident, fparamlist = CK.destructDesigDecl finaldesig in
+  let sname, _ = sident in
+  let mname, _ = mident in
+  let fname, _ = fident in
+  let comblists = sparamlist @ mparamlist @ fparamlist in
+  if comblists = [] then
+    [ TComplete (LLSimpleDesignator sname, 
+                 LLSimpleDesignator mname, 
+                 LLSimpleDesignator fname) ]
+  else
+    let combparamset = 
+      List.fold_left 
+        (fun acc param -> IdentSet.add param acc) IdentSet.empty comblists in
+    let comblists = IdentSet.elements combparamset in
+    let evalMaps = Utils.getMapsForProp comblists qMap propOpt in
+    let sinst = makeLLInstantiation evalMaps sparamlist sname in
+    let minst = makeLLInstantiation evalMaps mparamlist mname in
+    let finst = makeLLInstantiation evalMaps fparamlist fname in
+    let tlist = List.map2 (fun a b -> (a, b)) sinst minst in
+    List.map2 (fun (a, b) c -> TComplete (a, b, c)) tlist finst
+
+
+let rec desigSubstitutor substMap desig =
+  match desig with
+  | SimpleDesignator ident -> 
+     let newident = (try IdentMap.find ident substMap with Not_found -> ident) in
+     SimpleDesignator newident
+  | IndexDesignator (ndesig, ident, _) ->
+     let newident = (try IdentMap.find ident substMap with Not_found -> ident) in
+     IndexDesignator (desigSubstitutor substMap ndesig, newident, None)
+  | FieldDesignator (ndesig, ident, _) ->
+     let newident = (try IdentMap.find ident substMap with Not_found -> ident) in
+     FieldDesignator (desigSubstitutor substMap ndesig, newident, None)
+
+let transSubstitutor substMap trans =
+  let start, msg, final = trans in
+  (desigSubstitutor substMap start,
+   desigSubstitutor substMap msg,
+   desigSubstitutor substMap final)
+
+let instantiateDesigBlock symtab qMap propOpt block =
+  List.concat (List.map (instantiateDecl symtab qMap propOpt desigDeclInstantiator) block)
+
+let instantiateTransBlock symtab qMap propOpt block =
+  List.concat (List.map (instantiateDecl symtab qMap propOpt transDeclInstantiator) block)
+
+let substituteInDesigBlock substMap block = 
+  List.map (substInDecl substMap desigSubstitutor) block
+
+let substituteInTransBlock substMap block =
+  List.map (substInDecl substMap transSubstitutor) block
+
+let stateAnnotationInstantiator symtab qMap propOpt allmsgs annot =
+  match annot with
+  | AnnotIncompleteEventList (msglist, _) ->
+     LLAnnotEventList (instantiateDesigBlock symtab qMap propOpt msglist)
+  | AnnotIncompleteNumEventList (num, msglist, _) ->
+     LLAnnotNumEventList (num, instantiateDesigBlock symtab qMap propOpt msglist)
+  | AnnotIncompleteNum (num, _) ->
+     LLAnnotNumEventList (num, allmsgs)
+  | AnnotIncomplete _ ->
+     LLAnnotEventList allmsgs
+  | AnnotComplete _
+  | AnnotNone _ -> LLAnnotNone
+
+let rec stateAnnotSubstitutor substMap annot =
+  match annot with
+  | AnnotNone _
+  | AnnotComplete _ 
+  | AnnotIncomplete _
+  | AnnotIncompleteNum _ -> annot
+  | AnnotIncompleteEventList (msgdecllist, _) ->
+     AnnotIncompleteEventList 
+       (List.map (fun mdecl -> substInDecl substMap desigSubstitutor mdecl) msgdecllist, None)
+  | AnnotIncompleteNumEventList (num, msgdecllist, _) ->
+     AnnotIncompleteNumEventList
+       (num, List.map (fun mdecl -> substInDecl substMap desigSubstitutor mdecl) msgdecllist, None)
+
+let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions = 
+  let ident, paramlist = CK.destructDesigDecl desig in 
+  let name, _ = ident in
+  let sdecls = List.map (fun (decl, annot) -> decl) states in
+  let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
+  let transInstantiator = instantiateTransBlock symtab IdentMap.empty None in
+  if paramlist = [] then
+    [ LLCompleteAutomaton (LLSimpleDesignator name,
+                           desigInstantiator sdecls,
+                           desigInstantiator inmsgs,
+                           desigInstantiator outmsgs,
+                           transInstantiator transitions) ]
+  else
+    let qMap = lowerQMap symtab qMap in
+    let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
+    List.map
+      (fun evalMap ->
+       let lldesig = (List.hd (makeLLInstantiation [ evalMap ] paramlist name)) in
+       LLCompleteAutomaton (lldesig,
+                            desigInstantiator (substituteInDesigBlock evalMap sdecls),
+                            desigInstantiator (substituteInDesigBlock evalMap inmsgs),
+                            desigInstantiator (substituteInDesigBlock evalMap outmsgs),
+                            transInstantiator (substituteInTransBlock evalMap transitions))) evalMaps
+
+let rec convertLLDesigToPrimed desig = 
+  match desig with
+  | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
+  | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (convertLLDesigToPrimed ndesig, name)
+  | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (convertLLDesigToPrimed ndesig, name)
+
+let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs =
+  let ident, paramlist = CK.destructDesigDecl desig in 
+  let name, _ = ident in
+  let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
+  if paramlist = [] then
+    let lldesig = LLSimpleDesignator name in
+    let linmsgs = desigInstantiator msgs in
+    let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
+    let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
+    [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions) ]
+  else
+    let qMap = lowerQMap symtab qMap in
+    let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
+    List.map
+      (fun evalMap ->
+       let lldesig = (List.hd (makeLLInstantiation [ evalMap ] paramlist name)) in
+       let linmsgs = desigInstantiator (substituteInDesigBlock evalMap msgs) in
+       let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
+       let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
+       LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions)) evalMaps
+
+let rec checkParamCompatibility lstate paramlist =
+  (* check that all the params mentioned in the state are available *)
+  match lstate with
+  | LLSimpleDesignator _ -> true
+  | LLIndexDesignator (ndesig, ident) ->
+     if (not (List.mem ident paramlist)) then 
+       false
+     else
+       checkParamCompatibility ndesig paramlist
+  | LLFieldDesignator (ndesig, ident) -> assert false
+
+let rec getParamsFromLLIdent param = 
+  match param with
+  | LLSimpleDesignator ident -> (ident, [])
+  | LLIndexDesignator (ndesig, ident) ->
+     let nident, lst = getParamsFromLLIdent ndesig in
+     (nident, ident :: lst)
+  | LLFieldDesignator (ndesig, ident) -> assert false
+
+let checkTransitionDefined ltranslist initstate msg =
+  List.exists (fun (start, imsg, next) -> (start = initstate) && (imsg = msg)) ltranslist
+
+let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions =
+  let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
+  let transInstantiator = instantiateTransBlock symtab IdentMap.empty None in
+
+  let linmsgs = desigInstantiator inmsgs in
+  let loutmsgs = desigInstantiator outmsgs in
+
+  let lstate2AnnotMap =
+    List.fold_left 
+      (fun acc1 sdecl ->
+       let statedecl, annot = sdecl in
+       let lstates = instantiateDecl symtab IdentMap.empty None desigDeclInstantiator statedecl in
+       let lannot = stateAnnotationInstantiator symtab IdentMap.empty None linmsgs annot in
+       (List.fold_left 
+          (fun acc2 lstate ->
+           LLDesigMap.add lstate lannot acc2) acc1 lstates))
+      LLDesigMap.empty states
+  in
+  let lstates = LLDesigMap.fold (fun lstate annot acc -> lstate :: annot) lstate2AnnotMap in
+  let inclstates = 
+    List.filter 
+      (fun lstate -> 
+       ((LLDesigMap.find lstate lstate2AnnotMap) <> LLAnnotNone))
+      lstates
+
+  let ltrans = transInstantiator transitions in
+  let ptrans = 
+    (List.fold_left 
+       (fun acc lstate ->
+        (List.fold_left
+           (fun acc event ->
+            let availParams = getParamsFromLLIdent lstate in
+            let availParams = availParams @ (getParamsFromLLIdent event) in
+            let candidates = 
+              List.filter 
+                (fun cstate -> checkParamCompatibility cstate availParams) lstates
+            in
+  []
+    
+
+let autDeclInstantiator symtab qMap propOpt autDecl =
+  match autDecl with
+  | CompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, _) ->
+     instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions
+  | ChannelAutomaton (desig, chanprops, msgs, _) ->
+     instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs
+  | IncompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, _) ->
+     instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions
 
 let lowerProg symtab prog =
   let stdecls, gmsgdecls, autdecls, isdecls, specs = prog in
-  let igmsgdecls = instGMsgDecls symtab gmsgdecls in
-  let lautdecls = List.concat (List.map (instDecl symtab autDeclInstantiator) autdecls) in
+  let igmsgdecls = instantiateDesigBlock symtab IdentMap.empty None gmsgdecls in
+  let lautdecls = List.concat 
+                    (List.map (instantiateDecl symtab IdentMap.empty 
+                                               None autDeclInstantiator) 
+                              autdecls) in
   List.iter (fun aut -> fprintf std_formatter "%a@," AST.pLLAutomaton aut) lautdecls
