@@ -5,6 +5,7 @@ module ST = MusynthSymTab
 module CK = MusynthASTChecker
 module Utils = MusynthUtils
 module AST = MusynthAST
+module Chan = MusynthChannel
 
 let rec substInProp substMap prop =
   match prop with
@@ -149,118 +150,16 @@ let transDeclInstantiator symtab qMap propOpt transdecl =
            desigDeclSubstituter map msgDesig,
            desigDeclSubstituter map finalDesig)) maps
 
+
 let reduceChannelAut symtab auttuple qMap propOpt =
   let desig, chanprop, msgblock, _ = auttuple in
   let inmsgblock = msgblock in
   let outmsgblock = List.map (CK.convertDesigDeclToPrimed) msgblock in
   let linmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) inmsgblock) in
   let loutmsgs = List.concat (List.map (instDecl symtab desigDeclInstantiator) outmsgblock) in
-  let intooutmap = ref Utils.DesigMap.empty in
-  List.iter2
-    (fun inmsg outmsg ->
-      intooutmap := Utils.DesigMap.add inmsg outmsg !intooutmap) linmsgs loutmsgs;
-  let intooutmap = !intooutmap in
-  let ord, los, dup, size = chanprop in
-  let ordered = (match ord with | ChanOrdered _ -> true | _ -> false) in
-  let lossy = (match los with | ChanLossy _ -> true | _ -> false) in
-  let duplicating = (match dup with | ChanDuplicating _ -> true | _ -> false) in
-  let transitions = ref [] in
-  let listToStr = Utils.listToStr (AST.astToString AST.pDesignator) in
-  let msToStr = Utils.msToStr (AST.astToString AST.pDesignator) in
-  let states =
-  if ordered then
-    begin
-      let cclist = Utils.enumerateLists linmsgs size in
-      let states = List.map listToStr cclist in
-      
-      List.iter
-        (fun cc ->
-          if (List.length cc) <> size then
-            List.iter
-              (fun input ->
-                transitions := (listToStr cc, input, (listToStr (input :: cc))) :: !transitions)
-              linmsgs
-          else
-            ();
-          if lossy then
-            List.iter
-              (fun input ->
-                transitions := (listToStr cc, input, listToStr cc) :: !transitions) linmsgs
-          else
-            ()) cclist;
-      List.iter
-        (fun cc ->
-          if (List.length cc) <> 0 then
-            begin
-              transitions := (listToStr cc,
-                              Utils.DesigMap.find (List.hd cc) intooutmap,
-                              listToStr (List.tl cc)) :: !transitions;
-              
-              if duplicating then
-                transitions := (listToStr cc,
-                                Utils.DesigMap.find (List.hd cc) intooutmap,
-                                listToStr cc) :: !transitions
-              else
-                ()
-            end
-          else
-            ()) cclist;
-      states
-    end
-  else
-    begin
-      let cclist = Utils.enumerateMS linmsgs size in
-      let states = List.map msToStr cclist in
-      List.iter
-        (fun cc ->
-          let numelems = List.length (Utils.msToList cc) in
-          if numelems <> size then
-            List.iter
-              (fun input ->
-                transitions := (msToStr cc, input, msToStr (Utils.addToMs input cc)) :: !transitions)
-              linmsgs
-          else
-            ();
-          if lossy then
-            List.iter
-              (fun input ->
-                transitions := (msToStr cc, input, msToStr cc) :: !transitions)
-              linmsgs
-          else
-            ()) cclist;
-
-      List.iter
-        (fun cc ->
-          let numelems = List.length (Utils.msToList cc) in
-          if numelems <> 0 then
-            List.iter
-              (fun input ->
-                if (Utils.DesigMap.find input cc) <> 0 then
-                  begin
-                    transitions := (msToStr cc,
-                                    Utils.DesigMap.find input intooutmap,
-                                    msToStr (Utils.delFromMS input cc)) :: !transitions;
-                    if duplicating then
-                      transitions := (msToStr cc,
-                                      Utils.DesigMap.find input intooutmap,
-                                      msToStr cc) :: !transitions
-                    else
-                      ()
-                  end
-                else
-                  ()) linmsgs) cclist;
-      states
-    end
-  in
-  (List.map 
-     (fun state -> 
-       SimpleDesignator (state, None)) states,
-   linmsgs,
-   loutmsgs,
-   List.map
-     (fun (start, msg, final) ->
-       TComplete (SimpleDesignator (start, None), msg, SimpleDesignator (final, None))) !transitions)
-
+  let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprop in
+  LLCompleteAutomaton (desig, states, linmsgs, loutmsgs, transitions)
+  
 let getDesigFromDecl decl =
   match decl with
   | DeclSimple (param, _) -> param, IdentMap.empty, None
@@ -341,9 +240,8 @@ let autDeclInstantiator symtab qMap propOpt autDecl =
   let desig, low = 
     match autDecl with
     | ChannelAutomaton (desig, chanprop, msgblock, loc) ->
-        let states, inmsgs, outmsgs, transitions = 
-          reduceChannelAut symtab (desig, chanprop, msgblock, loc) qMap propOpt in
-        desig, LLCompleteAutomaton (desig, states, inmsgs, outmsgs, transitions)
+       desig, reduceChannelAut symtab (desig, chanprop, msgblock, loc) qMap propOpt
+
     | CompleteAutomaton (desig, stateDecls, inmsgs, outmsgs, transitions, loc) -> 
         desig, lowerCompleteAutomaton symtab (desig, stateDecls, inmsgs, outmsgs, transitions) qMap propOpt
     | IncompleteAutomaton (desig, stateDecls, inmsgs, outmsgs, transitions, loc) -> 

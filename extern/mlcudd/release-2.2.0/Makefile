@@ -48,9 +48,10 @@ CCMODULES = \
 # CCLIB = libcuddcaml.a libcuddcaml.d.a libcuddcaml.p.a
 CCLIB=libcuddcaml.a
 
-ifneq ($(HAS_SHARED),)
-	CCLIB += libcuddcaml.so
-endif
+# audupa: disable creation of shared lib
+# ifneq ($(HAS_SHARED),)
+# 	CCLIB += libcuddcaml.so
+# endif
 
 # FILES_TOINSTALL = META \
 # 	$(CUDD_DIR)/cudd/cudd.h \

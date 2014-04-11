@@ -71,7 +71,7 @@ Automaton Oracle
 ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
 {
     unordered, lossless, nonduplicating;
-    capacity = 1;    
+    capacity = 1;
 
     messages {
         Req2Dir[c], 
