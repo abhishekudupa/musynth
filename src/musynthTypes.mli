@@ -364,7 +364,7 @@ type llAnnotT =
 type llAutomatonT =
     LLCompleteAutomaton of
       (llIdentT * llIdentT list * llIdentT list * llIdentT list *
-       llTransT list)
+       llTransT list * bool)
   | LLIncompleteAutomaton of
       (llIdentT * llIdentT list * llIdentT list * llIdentT list *
        llTransT list)

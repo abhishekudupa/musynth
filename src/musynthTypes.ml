@@ -39,6 +39,7 @@ module IdentSet = Set.Make
                         Pervasives.compare id1 id2
                     end)
 
+
 type musSymTypeT = 
   | SymTypeNamed of identifierT * sourcelocation option
   | SymTypeAnon of identifierT list * sourcelocation option
@@ -234,6 +235,12 @@ module LLDesigMap = Map.Make
                         let compare = Pervasives.compare
                       end)
 
+module LLDesigLLDesigMap = Map.Make
+                             (struct 
+                               type t = llDesignatorT * llDesignatorT
+                               let compare = Pervasives.compare
+                             end)
+
 module IntMap = Map.Make
                   (struct 
                     type t = int
@@ -264,9 +271,11 @@ type llAnnotT =
   | LLAnnotNone
 
 type llAutomatonT = 
-  (* name, states, msgs, transitions *)
-  | LLCompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * llIdentT list * llTransT list)
-  | LLIncompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * llIdentT list * llTransT list)
+  (* name, states, msgs, transitions, ischannel *)
+  | LLCompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * 
+                              llIdentT list * llTransT list * bool)
+  | LLIncompleteAutomaton of (llIdentT * llIdentT list * llIdentT list * 
+                                llIdentT list * llTransT list)
 
 type llPropT = 
   | LLPropTrue

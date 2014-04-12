@@ -9,6 +9,8 @@ module ST = MusynthSymTab
 open Format
 open Buffer
 open Lexing
+module DD = MusynthBDD
+module Enc = MusynthBDDEncoder
 
 let musynthProcess filename =
   let inchan = 
@@ -24,8 +26,9 @@ let musynthProcess filename =
     pProg std_formatter prog;
     let lprog = MusynthASTLower.lowerProg symtab prog in
     (* run low level checks *)
-    pLLProg std_formatter lprog;
     checkLLProg lprog;
+    pLLProg std_formatter lprog;
+    Enc.encodeProg lprog
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

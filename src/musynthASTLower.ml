@@ -182,7 +182,8 @@ let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs
                            desigInstantiator sdecls,
                            desigInstantiator inmsgs,
                            desigInstantiator outmsgs,
-                           transInstantiator transitions) ]
+                           transInstantiator transitions, 
+                           false) ]
   else
     let qMap = lowerQMap symtab qMap in
     let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
@@ -193,7 +194,8 @@ let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs
                             desigInstantiator (substituteInDesigBlock evalMap sdecls),
                             desigInstantiator (substituteInDesigBlock evalMap inmsgs),
                             desigInstantiator (substituteInDesigBlock evalMap outmsgs),
-                            transInstantiator (substituteInTransBlock evalMap transitions))) evalMaps
+                            transInstantiator (substituteInTransBlock evalMap transitions),
+                            false)) evalMaps
 
 let rec convertLLDesigToPrimed desig = 
   match desig with
@@ -210,7 +212,7 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs =
     let linmsgs = desigInstantiator msgs in
     let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
     let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
-    [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions) ]
+    [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, true) ]
   else
     let qMap = lowerQMap symtab qMap in
     let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
@@ -220,7 +222,7 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs =
        let linmsgs = desigInstantiator (substituteInDesigBlock evalMap msgs) in
        let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
        let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
-       LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions)) evalMaps
+       LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, true)) evalMaps
 
 let rec checkParamCompatibility lstate paramlist =
   (* check that all the params mentioned in the state are available *)
@@ -289,6 +291,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
                     (fun cand -> checkParamCompatibility cand availparams)
                     lstates
                 in
+                let goodcands = (LLSimpleDesignator "defer") :: goodcands in
                 let newvarname = "synth_t_" ^ (string_of_int (Utils.getuid ())) in
                 (TParametrizedDest (lstate, levent, (LLSimpleDesignator newvarname, 
                                                      (mkLLDesigSet goodcands)))) ::acc2)

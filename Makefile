@@ -26,6 +26,7 @@ GENSRC= \
 
 MODULES= \
 	musynthTypes \
+	musynthOptions \
 	musynthAST \
 	musynthUtils \
 	musynthParser \
@@ -34,8 +35,9 @@ MODULES= \
 	musynthASTChecker \
 	musynthChannel \
 	musynthASTLower \
-	musynthFrontEnd \
 	musynthBDD \
+	musynthBDDEncoder \
+	musynthFrontEnd \
 	main \
 
 EXES=musynth

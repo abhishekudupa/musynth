@@ -457,7 +457,7 @@ let checkLLProg prog =
     List.fold_left 
       (fun acc aut ->
        match aut with
-       | LLCompleteAutomaton (_, _, inmsgs, _, _)
+       | LLCompleteAutomaton (_, _, inmsgs, _, _, _)
        | LLIncompleteAutomaton (_, _, inmsgs, _, _) ->
           List.fold_left
             (fun acc2 inmsg -> LLDesigSet.add inmsg acc2) acc inmsgs) 
@@ -467,7 +467,7 @@ let checkLLProg prog =
     List.fold_left
       (fun acc aut ->
        match aut with
-       | LLCompleteAutomaton (_, _, _, outmsgs, _)
+       | LLCompleteAutomaton (_, _, _, outmsgs, _, _)
        | LLIncompleteAutomaton (_, _, _, outmsgs, _) ->
           List.fold_left
             (fun acc2 outmsg -> LLDesigSet.add outmsg acc2) acc outmsgs)
@@ -518,7 +518,8 @@ let checkLLProg prog =
   List.iter 
     (fun aut ->
      match aut with
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions)
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, true) -> ()
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, false)
      | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions) ->
         List.iter (fun state -> checkState state transitions inmsgs outmsgs) states) autlist;
 

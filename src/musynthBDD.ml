@@ -3,6 +3,8 @@ module CK = MusynthASTChecker
 module AST = MusynthAST
 module Utils = MusynthUtils
 open Cudd
+module Opts = MusynthOptions
+open Format
 
 exception BddException of string
 
@@ -44,26 +46,41 @@ let registerVar name (valDomain : llDesignatorT list) =
   let rec registerVars numVars =
     match numVars with
     | 1 -> 
-       let bdd = Bdd.newvar !bddMan in
-       [ Bdd.topvar bdd ]
+       let _ = Bdd.ithvar !bddMan !numTotalBits in
+       numTotalBits := !numTotalBits + 1;
+       [ !numTotalBits - 1 ]
     | _ ->
        let lst = registerVars (numVars - 1) in
-       let bdd = Bdd.newvar !bddMan in
-       lst @ [ (Bdd.topvar bdd) ]
+       let _ = Bdd.ithvar  !bddMan !numTotalBits in
+       numTotalBits := !numTotalBits + 1;
+       lst @ [ !numTotalBits - 1 ]
   in
   let indexList = registerVars numBits in
   let low = List.hd indexList in
   let size = List.length indexList in 
-  numTotalBits := !numTotalBits + size;
   Man.group !bddMan low size Man.MTR_DEFAULT;
-  varMap := LLDesigMap.add name (low, size, rep2ValMap, val2RepMap) !varMap
+  varMap := LLDesigMap.add name (low, size, rep2ValMap, val2RepMap) !varMap;
+
+  if !Opts.debugLevel >= 1 then
+    begin
+      fprintf std_formatter
+              "Created group with %d variables for %s, total bits used = %d\n"
+              size (lldesigToString name) !numTotalBits;
+      pp_print_flush std_formatter ()
+    end
+  else
+    ();
+
+  (low, size, rep2ValMap, val2RepMap)
 
 let lookupVar name =
   try Some (LLDesigMap.find name !varMap) with Not_found -> None
                  
 let registerVarAndPrimed name (valDomain : llDesignatorT list) =
-  registerVar name valDomain;
-  registerVar (getPrimedLLDesig name) valDomain
+  let ret1 = registerVar name valDomain in
+  let ret2 = registerVar (getPrimedLLDesig name) valDomain in
+  (ret1, ret2)
+                         
 
 let rec mkBddForVal low size valrep = 
   match size with

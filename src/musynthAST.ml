@@ -382,7 +382,7 @@ let pLLSpec fmt spec =
 
 let pLLAutomaton fmt aut =
   match aut with
-  | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions)
+  | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions, _)
   | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
      fprintf fmt "@[<v 0>@[<v 4>%s %a {@," 
              (match aut with 

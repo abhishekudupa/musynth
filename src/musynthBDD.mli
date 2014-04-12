@@ -151,6 +151,9 @@ module CK :
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
       MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
+    val checkLLProg :
+      MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list *
+      'a * 'b -> unit
   end
 module AST :
   sig
@@ -427,6 +430,7 @@ module Utils :
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
   end
+module Opts : sig val debugLevel : int ref end
 exception BddException of string
 val lg : int -> int
 val numBitsForValues : 'a list -> int
@@ -438,14 +442,22 @@ val numTotalBits : int ref
 val bddMan : Cudd.Man.d Cudd.Man.t ref
 val resetbddMan : unit -> unit
 val registerVar :
-  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key list -> unit
+  MusynthTypes.LLDesigMap.key ->
+  MusynthTypes.LLDesigMap.key list ->
+  int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+  MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
 val lookupVar :
   MusynthTypes.LLDesigMap.key ->
   (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
    MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
   option
 val registerVarAndPrimed :
-  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key list -> unit
+  MusynthTypes.LLDesigMap.key ->
+  MusynthTypes.LLDesigMap.key list ->
+  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t) *
+  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
 val mkBddForVal : int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
 val mkBDDForEqual : int -> int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
 val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
