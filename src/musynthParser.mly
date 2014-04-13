@@ -278,26 +278,6 @@ oneStateDecl : designator optQuants stateAnnotation
 initStateDecl : INIT LBRACE propList RBRACE
         { $3 }
 
-initStateConstraintList : initStateConstraintList initStateConstraint
-        { $1 @ [ $2 ] }
-    | initStateConstraint
-        { [ $1 ] }
-
-initStateConstraint : stateEqList optQuants SEMICOLON
-        {
-          match $2 with
-          | Some (qMap, propOpt) -> (DeclQuantified ($1, qMap, propOpt, Some (getlhsloc ())))
-          | None -> (DeclSimple ($1, Some (getlhsloc ())))
-        }
-
-stateEqList : stateEqList COMMA oneStateEq
-        { $1 @ [ $3 ] }
-    | oneStateEq
-        { [ $1 ] }
-
-oneStateEq : designator EQUALS designator
-        { ($1, $3) }
-
 optOutputDecl : OUTPUTS LBRACE msgList RBRACE SEMICOLON
         { $3 }
     | /* empty */

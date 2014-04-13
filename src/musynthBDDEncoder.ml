@@ -4,6 +4,7 @@
 open MusynthTypes
 module AST = MusynthAST
 module DD = MusynthBDD
+module Utils = MusynthUtils
 
 let encodeStateVariables automaton =
   let name, states = 
@@ -11,8 +12,8 @@ let encodeStateVariables automaton =
      | LLCompleteAutomaton (name, states, _, _, _, _) -> name, states
      | LLIncompleteAutomaton (name, states, _, _, _) -> name, states)
   in
-  let statename = LLFieldDesignator (name, "state") in
-  let statenameprime = LLFieldDesignator (name, "state'") in
+  let statename = Utils.getStateNameForAutomaton automaton in
+  let statenameprime = Utils.getStateNamePForAutomaton automaton in
   let statereg = DD.registerVar statename states in
   let statenameprimereg = DD.registerVar statenameprime states in
   (statereg, statenameprimereg)
@@ -29,136 +30,80 @@ let encodeParamVariables automaton =
            let name, valset = var in
            let vallist = LLDesigSet.fold (fun valu acc -> valu :: acc) valset [] in
            let paramreg = DD.registerVar name vallist in
-           paramreg :: acc) [] transitions
+           paramreg :: acc
+        | _ -> assert false) [] transitions
 
-let getmsgsForAut aut =
-  match aut with
-  | LLCompleteAutomaton (_, _, inmsgs, outmsgs, _, _)
-  | LLIncompleteAutomaton (_, _, inmsgs, outmsgs, _) -> (inmsgs, outmsgs)
 
-let getnameforaut aut =
-  match aut with
-  | LLCompleteAutomaton (name, _, _, _, _, _)
-  | LLIncompleteAutomaton (name, _, _, _, _) -> name
+let getNextStatePropForTrans primedstate transition =
+  match transition with
+  | TComplete (_, _, fstate) -> LLPropEquals (primedstate, fstate)
+  | TParametrizedDest (_, _, (paramname, valset)) ->
+     LLDesigSet.fold
+       (fun valu acc ->
+        LLPropOr
+            (LLPropAnd (LLPropEquals (paramname, valu),
+                        LLPropEquals (primedstate, valu)),
+             acc)) valset LLPropFalse
+  | _ -> assert false
 
-let getTransitionsForAut aut =
-  match aut with
-  | LLCompleteAutomaton (_, _, _, _, transitions, _)
-  | LLIncompleteAutomaton (_, _, _, _, transitions) -> transitions
 
-let getCSPredsForMsg msg transitions statename =
-  List.fold_left
-    (fun acc trans ->
-     match trans with
-     | TComplete (start, m, final) ->
-        if m = msg then
-          LLPropOr (LLPropEquals (statename, start), acc)
-        else
-          acc
-     | TParametrizedDest (start, m, (paramname, dset)) ->
-        if m = msg then
-          LLPropOr (LLPropAnd (LLPropEquals (statename, start),
-                               (LLPropNot (LLPropEquals (paramname, "defer")))),
-                    acc)
-        else
-          acc) LLPropFalse transitions
-
-let getTransitionRelationForAut aut lsmap cspredmap =
-  let name = getnameforaut aut in
-  let transitions = getTransitionsForAut aut in
-  let statename = LLFieldDesignator (name, "state") in
-  let pstatename = LLFieldDesignator (name, "state'") in
-  let disjList = 
-    List.fold_left 
-      (fun acc trans ->
-       match trans with
-       | TComplete (startstate, msg, _)
-       | TParametrizedDest (startstate, msg, _, _) ->
-          let propState = LLPropEquals (statename, startstate) in
-          let listeners, senders = LLDesigMap.find msg lsmap in
-          if (LLDesigSet.cardinal senders) <> 1 then
-            raise (SemanticError ("Message \"" ^ (lldesigToString msg) ^ "\" has multiple senders", 
-                                  None))
-          else
-            begin
-              let cspreds = [ LLDesigLLDesigMap.find (LLDesigSet.min_elt senders, msg) ] in
-              let cspreds = 
-                LLDesigSet.fold 
-                  (fun listener acc ->
-                   let mypred = LLDesigLLDesigMap.find (listener, msg) in
-                   LLPropAnd (mypred, acc)) cspreds listeners 
-              in
-              let choose = LLSimpleDesignator "choose" in
-              let choosepred = LLPropEquals (choose, msg) in
-              
-              let nspred = 
-                (match trans with
-                 | TComplete (_, _, endstate) -> LLPropEquals (pstatename, endstate)
-                 | TParametrizedDest (_, _, (paramname, destset)) ->
-                    LLDesigSet.fold 
-                      (fun dest acc ->
-                       LLPropAnd (LLPropEquals (paramname, dest), 
-                                  LLPropEquals (pstatename, dest))) destset LLPropTrue)
-              in
-              (LLPropAnd (propState, LLPropAnd (cspreds, LLPropAnd (choosepred, nspred)))) :: acc
-            end)
-  in
+let getTransitionRelationForAut aut autlist =
+  let transitions = Utils.getTransitionsForAut aut in
+  let statename = Utils.getStateNameForAutomaton aut in
+  let statenamep = Utils.getStateNamePForAutomaton aut in
   List.fold_left 
-    (fun acc disj -> LLPropOr (Disj, acc)) LLPropFalse disjList
+    (fun accprop trans ->
+     match trans with
+     | TComplete (sstate, msg, _)
+     | TParametrizedDest (sstate, msg, _) ->
+        let sender = Utils.getSender msg autlist in
+        let receivers = Utils.getReceivers msg autlist in
+        let sprop = LLPropEquals (statename, sstate) in
+        let csprops = List.fold_left 
+                        (fun prop pred -> LLPropAnd (prop, pred))
+                        LLPropTrue (List.map (Utils.getCSPredsForMsg msg) (sender :: receivers))
+        in
+        let chooseprop = LLPropEquals (LLSimpleDesignator "choose", msg) in
+        let tsprop = LLPropAnd (sprop, LLPropAnd (csprops, chooseprop)) in
+        let nsprop = getNextStatePropForTrans statenamep trans in
+        LLPropOr (LLPropAnd (tsprop, nsprop), accprop)
+     | _ -> assert false) LLPropFalse transitions
+        
 
-let encodeTransitionRelation automata allmsgs =
-  (* build the list of listeners and senders *)
-  let lsmap, cspredmap = 
-    List.fold_left
-      (fun (mapacc, predacc) msg ->
-       let listeners, senders, cspreds = 
-         (List.fold_left
-            (fun (inacc, outacc, csacc) aut ->
-             let name = getnameforaut aut in
-             let statename = LLFieldDesignator (name, "state") in
-             let transitions = getTransitionsForAut aut in
-             let inmsgs, outmsgs = getmsgsforaut aut in
-             let newinacc, newcsacc = 
-               if List.mem msg inmsgs then
-                 let csPreds = getCSPredsForMsg msg transitions statename in
-                 (LLDesigLLDesigMap.add (name, msg) csPreds,
-                  LLDesigSet.add name inacc)
-               else
-                 (inacc, csacc)
-             in
-             let newoutacc, newcsacc = 
-               if List.mem msg outmsgs then
-                 let csPreds = getCSPredsForMsg msg transition statename in
-                 (LLDesigSet.add name outacc, 
-                  LLDesigLLDesigMap.add (name, msg) csPreds)
-               else
-                 (outacc, csacc))
-           (LLDesigSet.empty, LLDesigSet.empty, LLDesigLLDesigMap.empty)
-           automata)
-       in
-       (LLDesigMap.add msg (listeners, senders) mapacc,
-        LLDesigLLDesigMap.fold_left (fun k v acc -> LLDesigLLDesigMap.add k v acc)
-                                    cspreds predacc))
-      (LLDesigMap.empty, LLDesigLLDesigMap.empty) allmsgs
+let encodeChooseTransitions choose choosep allmsgs =
+  List.fold_left 
+    (fun acc msg ->
+     LLPropOr (LLPropEquals (choosep, msg), acc)) LLPropFalse allmsgs
+
+(* evaluates to a map of transition relations *)
+let encodeTransitionRelation automata allmsgs choose choosep =
+  let m = 
+    List.fold_left 
+      (fun mapacc aut -> 
+       let t = getTransitionRelationForAut aut automata in
+       LLDesigMap.add (Utils.getStateNameForAutomaton aut) t mapacc)
+      LLDesigMap.empty automata
   in
-  (* we're now ready to encode the transition relation *)
-  (* we do it one automaton at a time, aka conjunctive *)
-  (* partitioning. We can merge them together later if *)
-  (* this proves to be non performant.                 *)
-  
+  LLDesigMap.add choose (encodeChooseTransitions choose choosep allmsgs) m
 
-
-      
 let encodeProg prog =
   (* encode the choose variable for scheduling first *)
-  let msgdecls, automata, _, _ = prog in
-  let choose = LLSimpleDesignator ("Choose") in
-  let chooseprime = getPrimedLLDesig choose in
-  let choosereg = DD.registerVar choose msgdecls in
-  let chooseprimereg = DD.registerVar chooseprime msgdecls in
+  let msgdecls, automata, initconstraints, specs = prog in
+  let choose = LLSimpleDesignator ("choose") in
+  let choosep = getPrimedLLDesig choose in
+  let _ = DD.registerVar choose msgdecls in
+  let _ = DD.registerVar choosep msgdecls in
   (* encode the state variables of the automata next *)
   List.iter (fun aut -> ignore (encodeStateVariables aut)) automata;
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables aut)) automata;
-  (* encode the transition relation *)
-            
+  let encoded = encodeTransitionRelation automata msgdecls choose choosep in
+  let invariants =
+    List.fold_left
+      (fun propacc spec ->
+       match spec with
+       | LLSpecInvar (_, prop) -> LLPropAnd (prop, propacc)
+       | LLSpecLTL _ -> propacc) LLPropTrue specs in
+  let badstates = LLPropNot invariants in
+  encoded
+  

@@ -11,6 +11,7 @@ open Buffer
 open Lexing
 module DD = MusynthBDD
 module Enc = MusynthBDDEncoder
+module LTL = MusynthLtl
 
 let musynthProcess filename =
   let inchan = 
@@ -28,7 +29,14 @@ let musynthProcess filename =
     (* run low level checks *)
     checkLLProg lprog;
     pLLProg std_formatter lprog;
-    Enc.encodeProg lprog
+    let tprop = Enc.encodeProg lprog in
+    LLDesigMap.iter 
+      (fun desig prop -> 
+       fprintf std_formatter "%a: %a\n\n" pLLIdent desig pLLProp prop) tprop;
+    let fairnessSpec = LTL.constructFairnessSpec lprog in
+    let _, _, _ = LTL.ltlspec2BA fairnessSpec in
+    ignore (LTL.ltlspec2BA fairnessSpec)
+
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

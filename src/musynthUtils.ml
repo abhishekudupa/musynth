@@ -1,5 +1,6 @@
 open MusynthTypes
 module AST = MusynthAST
+open Format
 (* utility functions *)
 
 module MSSet = 
@@ -190,4 +191,144 @@ let getMapsForProp paramlist qMap propOpt =
      let cp = crossProduct vallists in
      let validcp = List.filter (fun cpelem -> evalProp prop (identConstPairList2Map cpelem)) cp in
      List.map identConstPairList2Map validcp
-              
+
+
+(* utils for dealing with LL automata *)              
+let getMsgsForAut aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, inmsgs, outmsgs, _, _)
+  | LLIncompleteAutomaton (_, _, inmsgs, outmsgs, _) -> (inmsgs, outmsgs)
+
+let getNameForAut aut =
+  match aut with
+  | LLCompleteAutomaton (name, _, _, _, _, _)
+  | LLIncompleteAutomaton (name, _, _, _, _) -> name
+
+let getTransitionsForAut aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, _, _, transitions, _)
+  | LLIncompleteAutomaton (_, _, _, _, transitions) -> transitions
+
+let getStatesForAut aut =
+  match aut with
+  | LLCompleteAutomaton (_, states, _, _, _, _)
+  | LLIncompleteAutomaton (_, states, _, _, _) -> states
+
+let getAutomatonByName autlist autname =
+  List.find (fun aut -> (getNameForAut aut) = autname) autlist
+
+let getSender msg autlist = 
+  let lst = 
+    List.filter 
+      (fun aut ->
+       let _, outmsgs = getMsgsForAut aut in
+       List.mem msg outmsgs) autlist
+  in
+  List.hd lst
+
+let getReceivers msg autlist = 
+  List.filter 
+    (fun aut ->
+     let inmsgs, _ = getMsgsForAut aut in
+     List.mem msg inmsgs) autlist
+
+let getStateNameForAutomaton aut = 
+  let name = getNameForAut aut in
+  LLFieldDesignator (name, "state")
+
+let getStateNamePForAutomaton aut = 
+  let name = getNameForAut aut in
+  LLFieldDesignator (name, "state'")
+
+let getCSPredsForMsg msg aut =
+  let transitions = getTransitionsForAut aut in
+  let name = getNameForAut aut in
+  let statename = LLFieldDesignator (name, "state") in
+  List.fold_left
+    (fun acc trans ->
+     match trans with
+     | TComplete (start, m, final) ->
+        if m = msg then
+          LLPropOr (LLPropEquals (statename, start), acc)
+        else
+          acc
+     | TParametrizedDest (start, m, (paramname, dset)) ->
+        if m = msg then
+          LLPropOr (LLPropAnd (LLPropEquals (statename, start),
+                               (LLPropNot (LLPropEquals (paramname, LLSimpleDesignator "defer")))),
+                    acc)
+        else
+          acc
+     | _ -> assert false) LLPropFalse transitions
+
+let getCSPredsForMsgAll msg allaut =
+  let inaut = (getSender msg allaut) :: (getReceivers msg allaut) in
+  List.fold_left
+    (fun prop aut ->
+     LLPropAnd (getCSPredsForMsg msg aut, prop)) LLPropTrue inaut
+
+let getMsgsToSyncOnFromState aut state =
+  let transitions = getTransitionsForAut aut in
+  let msgs = 
+    List.fold_left 
+      (fun accset trans ->
+       match trans with
+       | TComplete (s, m, _)
+       | TParametrizedDest (s, m, _) -> if s = state then LLDesigSet.add m accset else accset
+       | _ -> assert false) LLDesigSet.empty transitions
+  in
+  LLDesigSet.elements msgs
+
+(* canonicalize a prop *)
+let rec canonicalizeProp prop =
+  let sortProps prop1 prop2 =
+    if prop1 > prop2 then
+      prop2, prop1
+    else
+      prop1, prop2
+  in
+  match prop with
+  | LLPropTrue -> LLPropTrue
+  | LLPropFalse -> LLPropFalse
+  | LLPropEquals (d1, d2) ->
+     if d1 < d2 then
+       prop
+     else
+       LLPropEquals (d2, d2)
+  | LLPropNot (LLPropTrue) -> LLPropFalse
+  | LLPropNot (LLPropFalse) -> LLPropTrue
+  | LLPropNot (LLPropNot prop1) -> canonicalizeProp prop1
+  | LLPropNot prop1 -> LLPropNot (canonicalizeProp prop1)
+  | LLPropAnd (prop1, prop2) ->
+     let p1, p2 = sortProps prop1 prop2 in
+     begin
+       match p1, p2 with
+       | LLPropFalse, _ -> LLPropFalse
+       | _, LLPropFalse -> LLPropFalse
+       | LLPropTrue, nprop
+       | nprop, LLPropTrue -> canonicalizeProp nprop
+       | nprop1, nprop2 -> LLPropAnd (canonicalizeProp nprop1, canonicalizeProp nprop2)
+     end
+  | LLPropOr (prop1, prop2) ->
+     let p1, p2 = sortProps prop1 prop2 in
+     begin
+       match p1, p2 with
+       | LLPropTrue, _ -> LLPropTrue
+       | _, LLPropTrue -> LLPropTrue
+       | LLPropFalse, nprop
+       | nprop, LLPropFalse -> canonicalizeProp nprop
+       | nprop1, nprop2 -> LLPropOr (canonicalizeProp nprop1, canonicalizeProp nprop2)
+     end
+  | LLPropTLF prop1 -> LLPropTLF (canonicalizeProp prop1)
+  | LLPropTLG prop1 -> LLPropTLG (canonicalizeProp prop1)
+  | LLPropTLX prop1 -> LLPropTLX (canonicalizeProp prop1)
+  | LLPropTLU (prop1, prop2) -> LLPropTLU (canonicalizeProp prop1, canonicalizeProp prop2)
+  | LLPropTLR (prop1, prop2) -> LLPropTLR (canonicalizeProp prop1, canonicalizeProp prop2)
+
+let rec canonicalizePropFP prop =
+  fprintf std_formatter "Canonicalizing prop\n"; pp_print_flush std_formatter ();
+  let cprop = canonicalizeProp prop in
+  if cprop = prop then
+    cprop
+  else
+    canonicalizePropFP cprop

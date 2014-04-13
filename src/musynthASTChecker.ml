@@ -489,6 +489,25 @@ let checkLLProg prog =
   else
     ();
 
+  (* check that every message has exactly one sender *)
+  LLDesigSet.iter 
+    (fun msg ->
+     let senders = 
+       List.filter 
+         (fun aut -> 
+          let outmsgs = 
+            (match aut with
+             | LLCompleteAutomaton (_, _, _, outmsgs, _, _) -> outmsgs
+             | LLIncompleteAutomaton (_, _, _, outmsgs, _) -> outmsgs) 
+          in
+          List.mem msg outmsgs) autlist
+     in
+     if (List.length senders) <> 1 then
+       raise (SemanticError ("Error. Message \"" ^ (lldesigToString msg) ^ "\" does not have exactly one " ^ 
+                              "Sender.", None))
+     else
+       ()) allMsgs;
+
   let checkState state transitions inmsgs outmsgs =
     let inmsgs = List.fold_left (fun acc elem -> LLDesigSet.add elem acc) LLDesigSet.empty inmsgs in
     let outmsgs = List.fold_left (fun acc elem -> LLDesigSet.add elem acc) LLDesigSet.empty outmsgs 

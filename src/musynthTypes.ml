@@ -290,6 +290,12 @@ type llPropT =
   | LLPropTLU of (llPropT * llPropT)
   | LLPropTLR of (llPropT * llPropT)
 
+module PropMap = Map.Make
+                   (struct 
+                     type t = llPropT
+                     let compare = Pervasives.compare
+                   end)
+
 (* init states, accepting states, transitions *)
 type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list)
 
@@ -312,3 +318,10 @@ let rec getPrimedLLDesig lldesig =
   | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "'")
+
+(* types for model checking properties *)
+
+type ltlFairnessT =
+  | FairnessTypeWeak
+  | FairnessTypeStrong
+

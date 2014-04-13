@@ -149,4 +149,4 @@ let rec prop2BDD prop =
   | _ -> raise (BddException ("Invalid prop while making BDD: " ^
                                 (AST.astToString AST.pLLProp prop)))
 
-          
+
