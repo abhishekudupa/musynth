@@ -1362,6 +1362,8 @@ module Enc :
         val getMsgsToSyncOnFromState :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
+        val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
       end
     val encodeStateVariables :
       MusynthTypes.llAutomatonT ->
@@ -1393,7 +1395,7 @@ module Enc :
     val encodeProg :
       MusynthTypes.LLDesigMap.key list * MusynthTypes.llAutomatonT list *
       'a * MusynthTypes.llSpecT list ->
-      MusynthTypes.llPropT MusynthTypes.LLDesigMap.t
+      Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t * Cudd.Man.d Cudd.Bdd.t
   end
 module LTL :
   sig

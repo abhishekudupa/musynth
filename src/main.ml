@@ -1,7 +1,21 @@
 open MusynthFrontEnd
 open MusynthTypes
+module Opts = MusynthOptions
+open Printf
 
 let debug = ref true
+
+let printUsage () =
+  
+
+let rec processOptions arglist =
+  match arglist with
+  | _ -> ()
+  | "-v" :: num :: rest ->
+     begin
+       let dlevel = int_of_string num in
+       Opts.debugLevel := dlevel
+     end
 
 let _ =
   if !debug then Printexc.record_backtrace true else ();

@@ -5,5 +5,5 @@ module DD = MusynthBDD
 
 
 
-let synthesize prog transrel =
-()
+let synthesize prog transrel badstates =
+  ()

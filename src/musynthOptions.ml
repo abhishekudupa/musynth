@@ -4,6 +4,8 @@ open MusynthTypes
 
 let debugLevel = ref 1
 
-let fairnesstype = ref (FairnessTypeWeak)
+let fairnessType = ref (FairnessTypeWeak)
 
-let onlysafety = ref true 
+let onlySafety = ref true 
+
+let conjunctivePart = ref false 

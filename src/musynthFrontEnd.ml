@@ -29,14 +29,8 @@ let musynthProcess filename =
     (* run low level checks *)
     checkLLProg lprog;
     pLLProg std_formatter lprog;
-    let tprop = Enc.encodeProg lprog in
-    LLDesigMap.iter 
-      (fun desig prop -> 
-       fprintf std_formatter "%a: %a\n\n" pLLIdent desig pLLProp prop) tprop;
-    let fairnessSpec = LTL.constructFairnessSpec lprog in
-    let _, _, _ = LTL.ltlspec2BA fairnessSpec in
-    ignore (LTL.ltlspec2BA fairnessSpec)
-
+    let _ = Enc.encodeProg lprog in
+    ()
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

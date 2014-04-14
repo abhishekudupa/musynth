@@ -97,7 +97,7 @@ let encodeProg prog =
   List.iter (fun aut -> ignore (encodeStateVariables aut)) automata;
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables aut)) automata;
-  let encoded = encodeTransitionRelation automata msgdecls choose choosep in
+  let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
   let invariants =
     List.fold_left
       (fun propacc spec ->
@@ -105,5 +105,12 @@ let encodeProg prog =
        | LLSpecInvar (_, prop) -> LLPropAnd (prop, propacc)
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
-  encoded
-  
+  let transBDDs = 
+    LLDesigMap.fold 
+      (fun ident prop acc ->
+       LLDesigMap.add ident (DD.prop2BDD prop) acc)
+      tranrelations LLDesigMap.empty
+  in
+  let badStateBDD = DD.prop2BDD badstates in
+  (transBDDs, badStateBDD)
+    
