@@ -292,7 +292,10 @@ module Utils :
 module Opts :
   sig
     val debugLevel : int ref
-    val fairnesstype : MusynthTypes.ltlFairnessT ref
+    val fairnessType : MusynthTypes.ltlFairnessT ref
+    val onlySafety : bool ref
+    val conjunctivePart : bool ref
+    val inputFileName : string ref
   end
 val propToLtl3BAStr :
   MusynthTypes.llPropT ->

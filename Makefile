@@ -1,5 +1,6 @@
 PROJECTROOT=$(realpath .)
 SRCDIR=$(PROJECTROOT)/src
+MAKEFLAGS+=-Oline
 
 OCAMLC=ocamlc.opt
 OCAMLOPT=ocamlopt.opt
@@ -74,7 +75,7 @@ opt : $(DEPEND) $(CMX) $(OPTEXES)
 
 $(BINDIR)/%.byte : $(CMO)
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlc] $(BASECMO)\n\t--> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlc] $(BASECMO)\n\t--> `basename $@`"; tput setaf 1;\
 	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma ltl3ba.cma $(CMO) \
 		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@; \
 	tput sgr0
@@ -85,7 +86,7 @@ endif
 
 $(BINDIR)/%.opt : $(CMX)
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlopt] $(BASECMX)\n\t--> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlopt] $(BASECMX)\n\t--> `basename $@`"; tput setaf 1;\
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa ltl3ba.cmxa $(CMX) \
 		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@; \
 	tput sgr0
@@ -96,7 +97,7 @@ endif
 
 $(DEPEND) : $(MLI) $(ML)
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamldep] $(BASEMLI) $(BASEML)\n\t--> depend"; tput setaf 1;\
+	@echo -e "[ocamldep] $(BASEMLI) $(BASEML)\n\t--> depend"; tput setaf 1;\
 	$(OCAMLDEP) $(INCDIRS) $(MLI) $(ML) > $@; \
 	tput sgr0
 else
@@ -109,9 +110,11 @@ $(SRCDIR)/musynthParser.ml $(SRCDIR)/musynthParser.mli : $(SRCDIR)/musynthParser
 $(SRCDIR)/musynthLexer.ml $(SRCDIR)/musynthLexer.mli : $(SRCDIR)/musynthLexer.mll
 	$(OCAMLLEX) $<; touch $(SRCDIR)/musynthLexer.mli
 
+$(SRCDIR)/musynthLexer.cmi : $(DEPEND) $(SRCDIR)/musynthParser.cmi
+
 $(SRCDIR)/musynthLexer.cmi : $(SRCDIR)/musynthLexer.ml
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
 	$(OCAMLC) -i $(INCDIRS) $< > $(SRCDIR)/musynthLexer.mli; \
 	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $(SRCDIR)/musynthLexer.mli; \
 	tput sgr0
@@ -120,12 +123,16 @@ else
 	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $(SRCDIR)/musynthLexer.mli
 endif
 
+$(SRCDIR)/%.cmo : $(DEPEND)
+$(SRCDIR)/%.cmx : $(DEPEND)
+$(SRCDIR)/%.cmi : $(DEPEND)
+
 # template rules
-$(SRCDIR)/%.cmo : $(SRCDIR)/%.cmi
+$(SRCDIR)/%.cmo : $(DEPEND) $(SRCDIR)/%.cmi
 
 $(SRCDIR)%.cmi : $(SRCDIR)/%.mli
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
 	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $<; \
 	tput sgr0
 else
@@ -134,7 +141,7 @@ endif
 
 $(SRCDIR)/%.cmo : $(SRCDIR)/%.ml
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlc] `basename $<` --> `basename $@`"; tput setaf 1;\
 	$(OCAMLC) $(OCAMLCFLAGS) -c $(INCDIRS) $<; \
 	tput sgr0
 else
@@ -143,7 +150,7 @@ endif
 
 $(SRCDIR)/%.cmx : $(SRCDIR)/%.ml
 ifeq "x$(VERBOSE_BUILD)" "x"
-	@echo "[ocamlopt] `basename $<` --> `basename $@`"; tput setaf 1;\
+	@echo -e "[ocamlopt] `basename $<` --> `basename $@`"; tput setaf 1;\
 	$(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $<; \
 	tput sgr0
 else

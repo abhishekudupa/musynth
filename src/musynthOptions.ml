@@ -9,3 +9,5 @@ let fairnessType = ref (FairnessTypeWeak)
 let onlySafety = ref true 
 
 let conjunctivePart = ref false 
+
+let inputFileName = ref ""

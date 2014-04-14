@@ -68,7 +68,7 @@ let constructFairnessSpecForOneState allaut automaton state =
     (fun prop msg ->
      let csprop = Utils.getCSPredsForMsgAll msg allaut in
      let antecedent = 
-       (match !Opts.fairnesstype with
+       (match !Opts.fairnessType with
         | FairnessTypeWeak ->
            LLPropTLF (LLPropTLG (LLPropAnd (sprop, csprop)))
         | FairnessTypeStrong ->

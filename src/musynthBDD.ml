@@ -22,15 +22,20 @@ let numBitsForValues values =
   let numvalues = List.length values in
   lg numvalues
 
+(* global variables for state of bdd encoding *)
 (* string -> (int * int) * IntMap, where first arg is the low index, second is numbits *)
 let varMap = ref (LLDesigMap.empty)
-
 let numTotalBits = ref 0
-
 let bddMan = ref (Man.make_d ())
+let stateVars = ref (LLDesigMap.empty)
+let paramVars = ref (LLDesigSet.empty)
 
-let resetbddMan () =
-  bddMan := Man.make_d ()
+let reset () =
+  bddMan := Man.make_d ();
+  varMap := LLDesigMap.empty;
+  numTotalBits := 0;
+  stateVars := LLDesigMap.empty;
+  paramVars := LLDesigSet.empty
 
 let registerVar name (valDomain : llDesignatorT list) = 
   let numBits = numBitsForValues valDomain in
@@ -106,47 +111,71 @@ let rec mkBDDForEqual low1 size1 low2 size2 =
     | _ -> Bdd.dand (mkBDDForEqual low1 (size1 - 1) low2 (size2 - 1))
                     (Bdd.nxor (Bdd.ithvar !bddMan (low1 - size1 + 1))
                               (Bdd.ithvar !bddMan (low2 - size2 + 1)))
+
+
+let registerStateVariable name valdomain =
+  try
+    let _ = LLDesigMap.find name !stateVars in
+    raise (BddException ("State variable \"" ^ (lldesigToString name) ^ "\" already registered!"))
+  with Not_found ->
+       begin
+         let rv = registerVarAndPrimed name valdomain in
+         stateVars := LLDesigMap.add name (getPrimedLLDesig name) !stateVars;
+         rv
+       end
+  
+let registerParamVariable name valdomain =
+  if (LLDesigSet.mem name !paramVars) then
+    raise (BddException ("State variable \"" ^ (lldesigToString name) ^ "\" already registered!"))
+  else
+    begin
+      let rv = registerVar name valdomain in
+      paramVars := LLDesigSet.add name !paramVars;
+      rv
+    end
                     
-let rec prop2BDD prop =
-  match prop with
-  | LLPropTrue -> Bdd.dtrue !bddMan
-  | LLPropFalse -> Bdd.dfalse !bddMan
-  | LLPropEquals (desig1, desig2) ->
-     let l1 = lookupVar desig1 in
-     let l2 = lookupVar desig2 in
-     begin
-       match l1, l2 with
-       | Some (low1, size1, _, _), Some (low2, size2, _, _) ->
-          mkBDDForEqual low1 size1 low2 size2
-       | Some (low, size, r2V, v2R), None ->
-          let valrep = 
-            (try LLDesigMap.find desig2 v2R
-             with Not_found -> 
-               raise (BddException ("Invalid value while making BDD: " ^
-                                      (lldesigToString desig2))))
-          in
-          mkBddForVal low size valrep
-       | None, Some (low, size, r2V, v2R) ->
-          let valrep = 
-            (try LLDesigMap.find desig1 v2R
-             with Not_found -> 
-               raise (BddException ("Invalid value while making BDD: " ^
-                                      (lldesigToString desig1))))
-          in
-          mkBddForVal low size valrep
-       | None, None ->
+let prop2BDD prop =
+  let rec prop2BDDInt prop = 
+    match prop with
+    | LLPropTrue -> Bdd.dtrue !bddMan
+    | LLPropFalse -> Bdd.dfalse !bddMan
+    | LLPropEquals (desig1, desig2) ->
+       let l1 = lookupVar desig1 in
+       let l2 = lookupVar desig2 in
+       begin
+         match l1, l2 with
+         | Some (low1, size1, _, _), Some (low2, size2, _, _) ->
+            mkBDDForEqual low1 size1 low2 size2
+         | Some (low, size, r2V, v2R), None ->
+            let valrep = 
+              (try LLDesigMap.find desig2 v2R
+               with Not_found -> 
+                 raise (BddException ("Invalid value while making BDD: " ^
+                                        (lldesigToString desig2))))
+            in
+            mkBddForVal low size valrep
+         | None, Some (low, size, r2V, v2R) ->
+            let valrep = 
+              (try LLDesigMap.find desig1 v2R
+               with Not_found -> 
+                 raise (BddException ("Invalid value while making BDD: " ^
+                                        (lldesigToString desig1))))
+            in
+            mkBddForVal low size valrep
+         | None, None ->
           if desig1 = desig2 then
             Bdd.dtrue !bddMan
           else
             Bdd.dfalse !bddMan
-     end
-  | LLPropNot prop1 ->
-     Bdd.dnot (prop2BDD prop1)
-  | LLPropAnd (prop1, prop2) ->
-     Bdd.dand (prop2BDD prop1) (prop2BDD prop2)
-  | LLPropOr (prop1, prop2) ->
-     Bdd.dor (prop2BDD prop1) (prop2BDD prop2)
-  | _ -> raise (BddException ("Invalid prop while making BDD: " ^
-                                (AST.astToString AST.pLLProp prop)))
-
-
+       end
+    | LLPropNot prop1 ->
+       Bdd.dnot (prop2BDDInt prop1)
+    | LLPropAnd (prop1, prop2) ->
+       Bdd.dand (prop2BDDInt prop1) (prop2BDDInt prop2)
+    | LLPropOr (prop1, prop2) ->
+       Bdd.dor (prop2BDDInt prop1) (prop2BDDInt prop2)
+    | _ -> raise (BddException ("Invalid prop while making BDD: " ^
+                                  (AST.astToString AST.pLLProp prop)))
+  in
+  let cprop = Utils.canonicalizePropFP prop in
+  prop2BDDInt cprop

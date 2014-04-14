@@ -12,5 +12,4 @@ let constructDLFProps msglist automata =
   List.fold_left 
     (fun prop msg ->
      let msgprop = Utils.getCSPredsForMsgAll msg automata in
-     LLPropOr (msgprop, prop)) msglist
-
+     LLPropOr (msgprop, prop)) LLPropFalse msglist

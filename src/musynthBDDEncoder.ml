@@ -5,6 +5,7 @@ open MusynthTypes
 module AST = MusynthAST
 module DD = MusynthBDD
 module Utils = MusynthUtils
+module Safety = MusynthSafety
 
 let encodeStateVariables automaton =
   let name, states = 
@@ -13,10 +14,7 @@ let encodeStateVariables automaton =
      | LLIncompleteAutomaton (name, states, _, _, _) -> name, states)
   in
   let statename = Utils.getStateNameForAutomaton automaton in
-  let statenameprime = Utils.getStateNamePForAutomaton automaton in
-  let statereg = DD.registerVar statename states in
-  let statenameprimereg = DD.registerVar statenameprime states in
-  (statereg, statenameprimereg)
+  DD.registerStateVariable statename states
 
 let encodeParamVariables automaton = 
   match automaton with
@@ -29,7 +27,7 @@ let encodeParamVariables automaton =
         | TParametrizedDest (_, _, var) ->
            let name, valset = var in
            let vallist = LLDesigSet.fold (fun valu acc -> valu :: acc) valset [] in
-           let paramreg = DD.registerVar name vallist in
+           let paramreg = DD.registerParamVariable name vallist in
            paramreg :: acc
         | _ -> assert false) [] transitions
 
@@ -105,6 +103,8 @@ let encodeProg prog =
        | LLSpecInvar (_, prop) -> LLPropAnd (prop, propacc)
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
+  let dlfProp = Safety.constructDLFProps msgdecls automata in
+  let dlfBDD = DD.prop2BDD dlfProp in
   let transBDDs = 
     LLDesigMap.fold 
       (fun ident prop acc ->
@@ -112,5 +112,6 @@ let encodeProg prog =
       tranrelations LLDesigMap.empty
   in
   let badStateBDD = DD.prop2BDD badstates in
-  (transBDDs, badStateBDD)
+  let initBDD = DD.prop2BDD initconstraints in
+  (transBDDs, initBDD, badStateBDD, dlfBDD)
     
