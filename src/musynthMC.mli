@@ -501,7 +501,7 @@ module DD :
       MusynthTypes.LLDesigMap.t ref
     val numTotalBits : int ref
     val bddMan : Cudd.Man.d Cudd.Man.t ref
-    val stateVars : MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ref
+    val stateVars : MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ref
     val paramVars : MusynthTypes.LLDesigSet.t ref
     val reset : unit -> unit
     val registerVar :
@@ -535,10 +535,30 @@ module DD :
       MusynthTypes.LLDesigMap.key list ->
       int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
       MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
+    val getCubeForOneVar :
+      MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+    val getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    val getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    val substOneVarInTable :
+      Cudd.Man.d Cudd.Bdd.t array ->
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key -> unit
+    val getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
+    val getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
     val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
   end
-val fixPoint : ('a -> 'a) -> 'a -> 'a
-val post : 'a -> 'b -> unit
 type bddType = Cudd.Man.d Cudd.Bdd.t
-val synthForwardSafety : 'a -> 'b -> 'c -> unit
-val synthesize : 'a -> 'b -> 'c -> unit
+val fixPoint : ('a -> 'a) -> 'a -> 'a
+val post :
+  'a Cudd.Bdd.t ->
+  'a Cudd.Bdd.t array -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
+val synthForwardSafety :
+  Cudd.Man.d Cudd.Bdd.t ->
+  Cudd.Man.d Cudd.Bdd.t ->
+  Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t MusynthTypes.synthExitStatT
+val synthesize :
+  Cudd.Man.d Cudd.Bdd.t ->
+  Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t
+val synthFrontEnd :
+  Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
+  Cudd.Man.d Cudd.Bdd.t ->
+  Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t

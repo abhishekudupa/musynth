@@ -37,17 +37,20 @@ let reset () =
   stateVars := LLDesigMap.empty;
   paramVars := LLDesigSet.empty
 
+let makeMaps valDomain =
+  let acc1, acc2, _ = 
+    List.fold_left
+      (fun (acc1, acc2, count) valu ->
+       let r1 = IntMap.add count valu acc1 in
+       let r2 = LLDesigMap.add valu count acc2 in
+       (r1, r2, count + 1)) (IntMap.empty, LLDesigMap.empty, 0) valDomain
+  in
+  (acc1, acc2)
+     
+
 let registerVar name (valDomain : llDesignatorT list) = 
   let numBits = numBitsForValues valDomain in
-  let curIndex = ref 0 in
-  let rep2ValMap, val2RepMap = 
-    List.fold_left 
-      (fun (acc1, acc2) valu ->
-       let retval1 = IntMap.add !curIndex valu acc1 in
-       let retval2 = LLDesigMap.add valu !curIndex acc2 in
-       curIndex := !curIndex + 1;
-       (retval1, retval2)) (IntMap.empty, LLDesigMap.empty) valDomain
-  in
+  let rep2ValMap, val2RepMap = makeMaps valDomain in
   let rec registerVars numVars =
     match numVars with
     | 1 -> 
@@ -115,19 +118,35 @@ let rec mkBDDForEqual low1 size1 low2 size2 =
 
 let registerStateVariable name valdomain =
   try
-    let _ = LLDesigMap.find name !stateVars in
-    raise (BddException ("State variable \"" ^ (lldesigToString name) ^ "\" already registered!"))
+    let (low, size, r2vMap, v2rMap)  = LLDesigMap.find name !varMap in
+    let (r1, r2) = makeMaps valdomain in
+    let s = numBitsForValues valdomain in
+      
+    if (size <> s || (not (IntMap.equal (fun a b -> a = b) r2vMap r1)) || 
+          (not (LLDesigMap.equal (fun a b -> a = b) v2rMap r2))) then
+      raise (BddException ("State variable \"" ^ (lldesigToString name) ^ "\" already registered!"))
+    else
+      let r2 = LLDesigMap.find (getPrimedLLDesig name) !varMap in
+      ((low, size, r2vMap, v2rMap), r2)
   with Not_found ->
-       begin
-         let rv = registerVarAndPrimed name valdomain in
-         stateVars := LLDesigMap.add name (getPrimedLLDesig name) !stateVars;
-         rv
-       end
+    begin
+      let rv = registerVarAndPrimed name valdomain in
+      stateVars := LLDesigMap.add name (getPrimedLLDesig name) !stateVars;
+      rv
+    end
   
 let registerParamVariable name valdomain =
-  if (LLDesigSet.mem name !paramVars) then
-    raise (BddException ("State variable \"" ^ (lldesigToString name) ^ "\" already registered!"))
-  else
+  try
+    let (low, size, r2vMap, v2rMap) = LLDesigMap.find name !varMap in
+    let r1, r2 = makeMaps valdomain in 
+    let s = numBitsForValues valdomain in
+
+    if (size <> s || (not (IntMap.equal (fun a b -> a = b) r2vMap r1)) || 
+          (not (LLDesigMap.equal (fun a b -> a = b) v2rMap r2))) then
+      raise (BddException ("Parameter \"" ^ (lldesigToString name) ^ "\" already registered!"))
+    else
+      (low, size, r2vMap, v2rMap)
+  with Not_found ->
     begin
       let rv = registerVar name valdomain in
       paramVars := LLDesigSet.add name !paramVars;

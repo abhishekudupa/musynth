@@ -479,7 +479,7 @@ val varMap :
   MusynthTypes.LLDesigMap.t ref
 val numTotalBits : int ref
 val bddMan : Cudd.Man.d Cudd.Man.t ref
-val stateVars : MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ref
+val stateVars : MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ref
 val paramVars : MusynthTypes.LLDesigSet.t ref
 val reset : unit -> unit
 val registerVar :
@@ -513,4 +513,12 @@ val registerParamVariable :
   MusynthTypes.LLDesigMap.key list ->
   int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
+val getCubeForOneVar : MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+val getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+val getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+val substOneVarInTable :
+  Cudd.Man.d Cudd.Bdd.t array ->
+  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key -> unit
+val getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
+val getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
 val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t

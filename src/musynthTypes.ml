@@ -329,3 +329,4 @@ type ltlFairnessT =
 type 'a synthExitStatT =
   | SynthSafe
   | SynthCEX of 'a
+

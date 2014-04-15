@@ -12,6 +12,7 @@ open Lexing
 module DD = MusynthBDD
 module Enc = MusynthBDDEncoder
 module LTL = MusynthLtl
+module MC = MusynthMC
 
 let musynthProcess filename =
   let inchan = 
@@ -29,8 +30,8 @@ let musynthProcess filename =
     (* run low level checks *)
     checkLLProg lprog;
     pLLProg std_formatter lprog;
-    let _ = Enc.encodeProg lprog in
-    ()
+    let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg lprog in
+    MC.synthFrontEnd transBDDs initBDD badStateBDD dlfBDD
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

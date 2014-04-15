@@ -17,57 +17,62 @@ let printUsage arg0 =
   ignore (exit 1)
           
 
-let rec processOptions arglist =
+let processOptions arglist =
   let arg0 = List.hd arglist in
   let arglist = List.tl arglist in
-  if arglist = [] then
-    ()
-  else
-    begin
-      let rest = 
-        begin
-          match arglist with
-          | [] -> []
-          | "-v" :: num :: rest ->
-             begin
-               try
-                 let dlevel = int_of_string num in
-                 Opts.debugLevel := dlevel
-               with Failure "int_of_string" ->
+
+  let rec processOptionsRec arglist = 
+    if arglist = [] then
+      ()
+    else
+      begin
+        let rest = 
+          begin
+            match arglist with
+            | [] -> []
+            | "-v" :: num :: rest ->
+               begin
+                 try
+                   let dlevel = int_of_string num in
+                   Opts.debugLevel := dlevel
+                 with Failure "int_of_string" ->
                  begin
                    fprintf stderr "Expected an integer argument after -v\n";
                    printUsage arg0
                  end
-             end;
-             rest
-          | "-f" :: ftype :: rest ->
-             if ftype = "weak" then
-               Opts.fairnessType := FairnessTypeWeak
-             else if ftype = "strong" then
-               Opts.fairnessType := FairnessTypeStrong
-             else
-               begin
-                 fprintf stderr "Fairnesstype must be \"weak\" or \"strong\" (without quotes)\n";
-                 printUsage arg0
                end;
-             rest
-          | "-s" :: rest ->
-             Opts.onlySafety := true; rest
-          | "-c" :: rest ->
-             Opts.conjunctivePart := true; rest
-          | str :: rest ->
-             if !Opts.inputFileName != "" then
-               begin
-                 fprintf stderr "Only one input file may be specified\n";
-                 printUsage arg0
-               end
-             else
-               Opts.inputFileName := str;
-             rest
-        end
-      in
-      processOptions rest
-    end
+               rest
+            | "-f" :: ftype :: rest ->
+               if ftype = "weak" then
+                 Opts.fairnessType := FairnessTypeWeak
+               else if ftype = "strong" then
+                 Opts.fairnessType := FairnessTypeStrong
+               else
+                 begin
+                   fprintf stderr "Fairnesstype must be \"weak\" or \"strong\" (without quotes)\n";
+                   printUsage arg0
+                 end;
+               rest
+            | "-s" :: rest ->
+               Opts.onlySafety := true; rest
+            | "-c" :: rest ->
+               Opts.conjunctivePart := true; rest
+            | str :: rest ->
+               if !Opts.inputFileName <> "" then
+                 begin
+                   fprintf stderr "%s\n" !Opts.inputFileName;
+                   fprintf stderr "Only one input file may be specified\n";
+                   printUsage arg0
+                 end
+               else
+                 Opts.inputFileName := str;
+               rest
+          end
+        in
+        processOptionsRec rest
+      end
+  in
+  processOptionsRec arglist
 
 let _ =
   let arglist = Array.to_list Sys.argv in
@@ -81,7 +86,7 @@ let _ =
   else
     begin
       try
-        musynthProcess (Some filename)
+        ignore (musynthProcess (Some filename))
       with
       | _ as ex ->
          Printf.fprintf stderr "Exception: %s\n" (exToString ex);

@@ -326,7 +326,6 @@ let rec canonicalizeProp prop =
   | LLPropTLR (prop1, prop2) -> LLPropTLR (canonicalizeProp prop1, canonicalizeProp prop2)
 
 let rec canonicalizePropFP prop =
-  fprintf std_formatter "Canonicalizing prop\n"; pp_print_flush std_formatter ();
   let cprop = canonicalizeProp prop in
   if cprop = prop then
     cprop
