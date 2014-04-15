@@ -325,3 +325,7 @@ type ltlFairnessT =
   | FairnessTypeWeak
   | FairnessTypeStrong
 
+(* type for signalling synthesis status *)
+type 'a synthExitStatT =
+  | SynthSafe
+  | SynthCEX of 'a

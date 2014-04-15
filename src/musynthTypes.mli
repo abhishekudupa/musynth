@@ -449,3 +449,4 @@ type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
 type ltlFairnessT = FairnessTypeWeak | FairnessTypeStrong
+type 'a synthExitStatT = SynthSafe | SynthCEX of 'a

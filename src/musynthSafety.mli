@@ -659,8 +659,48 @@ module DD :
           MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
           MusynthTypes.musPropT option ->
           MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+        val getMsgsForAut :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
+        val getNameForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT
+        val getTransitionsForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llTransT list
+        val getStatesForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT list
+        val getAutomatonByName :
+          MusynthTypes.llAutomatonT list ->
+          MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+        val getSender :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
+        val getReceivers :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT list
+        val getStateNameForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+        val getStateNamePForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+        val getCSPredsForMsg :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
+        val getCSPredsForMsgAll :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
+        val getMsgsToSyncOnFromState :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
+        val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
       end
-    module Opts : sig val debugLevel : int ref end
+    module Opts :
+      sig
+        val debugLevel : int ref
+        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val onlySafety : bool ref
+        val conjunctivePart : bool ref
+        val inputFileName : string ref
+      end
     exception BddException of string
     val lg : int -> int
     val numBitsForValues : 'a list -> int
@@ -670,7 +710,9 @@ module DD :
       MusynthTypes.LLDesigMap.t ref
     val numTotalBits : int ref
     val bddMan : Cudd.Man.d Cudd.Man.t ref
-    val resetbddMan : unit -> unit
+    val stateVars : MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ref
+    val paramVars : MusynthTypes.LLDesigSet.t ref
+    val reset : unit -> unit
     val registerVar :
       MusynthTypes.LLDesigMap.key ->
       MusynthTypes.LLDesigMap.key list ->
@@ -690,6 +732,18 @@ module DD :
        MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
     val mkBddForVal : int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
     val mkBDDForEqual : int -> int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
+    val registerStateVariable :
+      MusynthTypes.LLDesigMap.key ->
+      MusynthTypes.LLDesigMap.key list ->
+      (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+       MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t) *
+      (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+       MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
+    val registerParamVariable :
+      MusynthTypes.LLDesigSet.elt ->
+      MusynthTypes.LLDesigMap.key list ->
+      int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+      MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
     val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
   end
 module Opts :

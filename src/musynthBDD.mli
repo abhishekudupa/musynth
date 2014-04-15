@@ -479,7 +479,9 @@ val varMap :
   MusynthTypes.LLDesigMap.t ref
 val numTotalBits : int ref
 val bddMan : Cudd.Man.d Cudd.Man.t ref
-val resetbddMan : unit -> unit
+val stateVars : MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ref
+val paramVars : MusynthTypes.LLDesigSet.t ref
+val reset : unit -> unit
 val registerVar :
   MusynthTypes.LLDesigMap.key ->
   MusynthTypes.LLDesigMap.key list ->
@@ -499,8 +501,6 @@ val registerVarAndPrimed :
    MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
 val mkBddForVal : int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
 val mkBDDForEqual : int -> int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
-val stateVars : MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ref
-val paramVars : MusynthTypes.LLDesigSet.t ref
 val registerStateVariable :
   MusynthTypes.LLDesigMap.key ->
   MusynthTypes.LLDesigMap.key list ->

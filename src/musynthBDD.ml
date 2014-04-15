@@ -133,7 +133,70 @@ let registerParamVariable name valdomain =
       paramVars := LLDesigSet.add name !paramVars;
       rv
     end
-                    
+
+let getCubeForOneVar varname =
+  let (low, size, _, _) = LLDesigMap.find varname !varMap in
+  let rec mkCube low size =
+    match size with
+    | 0 -> assert false
+    | 1 -> Bdd.ithvar !bddMan low
+    | _ -> Bdd.dand (Bdd.ithvar !bddMan (low + (size - 1))) (mkCube low (size - 1))
+  in
+  mkCube low size
+
+(* get a cube representing all the unprimed state variables *)
+let getCubeForUnprimedVars () =
+  LLDesigMap.fold 
+    (fun vname pname bdd ->
+     Bdd.dand (getCubeForOneVar vname) bdd) 
+    !stateVars 
+    (Bdd.dtrue !bddMan)
+
+(* get a cube representing all the primed state variables *)
+let getCubeForPrimedVars () =
+  LLDesigMap.fold 
+    (fun vname pname bdd ->
+     Bdd.dand (getCubeForOneVar pname) bdd) 
+    !stateVars 
+    (Bdd.dtrue !bddMan)
+
+let substOneVarInTable table varname svarname =
+  let (low1, size1, _, _) = LLDesigMap.find varname !varMap in
+  let (low2, size2, _, _) = LLDesigMap.find svarname !varMap in
+  if size1 <> size2 then
+    raise (Invalid_argument "Sizes not equal in substOneVarInTable ()")
+  else
+    let rec subst fromidx toidx size =
+      match size with
+      | 0 -> ()
+      | _ -> 
+         table.(fromidx + (size -1)) <- Bdd.ithvar !bddMan (toidx + (size - 1));
+         subst fromidx toidx (size - 1)
+    in
+    subst low1 low2 size1
+
+(* get a table that substitutes primed |--> unprimed *)
+let getSubstTableP2U () =
+  let table = Array.make (Man.get_bddvar_nb !bddMan) (Bdd.dtrue !bddMan) in
+  (* set to the identity mapping first! *)
+  let table = Array.mapi (fun i elem -> Bdd.ithvar !bddMan i) table in
+  (* set the primed |--> unprimed mappings *)
+  LLDesigMap.iter 
+    (fun vname pname ->
+     substOneVarInTable table pname vname) !stateVars;
+  table
+
+(* get a table that substitutes unprimed |--> primed *)
+let getSubstTableU2P () =
+  let table = Array.make (Man.get_bddvar_nb !bddMan) (Bdd.dtrue !bddMan) in
+  (* set to the identity mapping first! *)
+  let table = Array.mapi (fun i elem -> Bdd.ithvar !bddMan i) table in
+  (* set the primed |--> unprimed mappings *)
+  LLDesigMap.iter 
+    (fun vname pname ->
+     substOneVarInTable table vname pname) !stateVars;
+  table
+
 let prop2BDD prop =
   let rec prop2BDDInt prop = 
     match prop with
