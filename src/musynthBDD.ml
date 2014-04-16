@@ -8,6 +8,106 @@ open Format
 
 exception BddException of string
 
+class bddEncoder =
+  object (self)
+    val mutable manager = Man.make_d ()
+    val mutable numTotalBits = 0
+    val mutable var2DescMap = LLDesigMap.empty
+    val mutable bit2NameMap = IntMap.empty
+    val mutable stateVars = LLDesigMap.empty
+    val mutable paramVars = LLDesigSet.empty
+    val mutable varConstraints = LLDesigMap.empty
+                              
+    (* caches *)
+    val mutable cachedP2UCube = None
+    val mutable cachedU2PCube = None
+    val mutable cachedP2USubstTable = None
+    val mutable cachedU2PSubstTable = None
+
+    method reset () =
+      manager <- Man.make_d ();
+      numTotalBits <- 0;
+      var2DescMap <- LLDesigMap.empty;
+      bit2NameMap <- IntMap.empty;
+      stateVars <- LLDesigMap.empty;
+      paramVars <- LLDesigSet.empty
+
+    method private lg num =
+      let rec lgInternal num =
+        if num <= 0 then
+          raise (Invalid_argument ("bddEncoder#lg called with argument <= 0"))
+        else
+          match num with
+          | 1 -> 1
+          | 2 -> 1
+          | _ -> 1 + (lgInternal (num lsr 1))
+      in
+      lgInternal num
+
+    method private numBitsForValues values =
+      self#lg (List.length values)
+
+    method registerVar name valDomain =
+      try 
+        let _ = LLDesigMap.find name var2DescMap in
+        raise (BddException ("Variable \"" ^ (lldesigToString name) ^ 
+                               "\" has already been registered"))
+      with 
+      | Not_found ->
+         begin
+           let nameAsStr = lldesigToString name in
+           let numBits = self#numBitsForValues valDomain in
+           let r2vMap, v2rMap, _ =
+             List.fold_left 
+               (fun (ar2vMap, av2rMap, count) v ->
+                let r1 = IntMap.add count v ar2vMap in
+                let r2 = LLDesigMap.add v count av2rMap in
+                (r1, r2, count + 1))
+               (IntMap.empty, LLDesigMap.empty, 0)
+               valDomain
+           in
+           
+           let rec registerBits numBits =
+             match numBits with
+             | 1 -> 
+                let _ = Bdd.ithvar bddMan numTotalBits in
+                let retval = [ numTotalBits ] in
+                numTotalBits <- numTotalBits + 1;
+                retval
+             | _ ->
+                let lst = registerBits (numBits - 1) in
+                let _ = Bdd.ithvar bddMan numTotalBits in
+                let retval = lst @ numTotalBits in
+                numTotalBits <- numTotalBits + 1;
+                retval
+           in
+           let indexList = registerBits numBits in
+           List.iter 
+             (fun idx ->
+              bit2NameMap <- IntMap.add idx 
+                                        (nameAsStr ^ "." ^ (string_of_int idx)) 
+                                        bit2NameMap) indexList;
+           let low = List.hd indexList in
+           let size = List.length indexList in
+           Man.group bddMan low size Man.MTR_DEFAULT;
+           var2DescMap <- LLDesigMap.add name (low, size, r2vMap, v2rMap);
+
+           if !Opts.debugLevel >= 1 then
+             begin
+               fprintf std_formatter
+                       "bddEncoder: Created group with %d variables for %s, total bits used = %d\n"
+                       size (lldesigToString name) numTotalBits;
+               pp_print_flush std_formatter ()
+             end
+           else
+             ()
+         end
+           
+    method mkBDDForVal low size valrep = 
+      ()
+               
+  end
+
 (* routines for converting to BDDs *)
 let rec lg num =
   if num <= 0 then
@@ -69,15 +169,6 @@ let registerVar name (valDomain : llDesignatorT list) =
   Man.group !bddMan low size Man.MTR_DEFAULT;
   varMap := LLDesigMap.add name (low, size, rep2ValMap, val2RepMap) !varMap;
 
-  if !Opts.debugLevel >= 1 then
-    begin
-      fprintf std_formatter
-              "Created group with %d variables for %s, total bits used = %d\n"
-              size (lldesigToString name) !numTotalBits;
-      pp_print_flush std_formatter ()
-    end
-  else
-    ();
 
   (low, size, rep2ValMap, val2RepMap)
 
