@@ -36,7 +36,6 @@ MODULES= \
 	musynthASTChecker \
 	musynthChannel \
 	musynthASTLower \
-	musynthBDD \
 	musynthLtl \
 	musynthSafety \
 	musynthBDDEncoder \

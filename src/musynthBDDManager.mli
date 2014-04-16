@@ -471,54 +471,64 @@ module Opts :
     val inputFileName : string ref
   end
 exception BddException of string
-val lg : int -> int
-val numBitsForValues : 'a list -> int
-val varMap :
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
-  MusynthTypes.LLDesigMap.t ref
-val numTotalBits : int ref
-val bddMan : Cudd.Man.d Cudd.Man.t ref
-val stateVars : MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ref
-val paramVars : MusynthTypes.LLDesigSet.t ref
-val reset : unit -> unit
-val registerVar :
-  MusynthTypes.LLDesigMap.key ->
-  MusynthTypes.LLDesigMap.key list ->
-  int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-  MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
-val lookupVar :
-  MusynthTypes.LLDesigMap.key ->
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
-  option
-val registerVarAndPrimed :
-  MusynthTypes.LLDesigMap.key ->
-  MusynthTypes.LLDesigMap.key list ->
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t) *
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
-val mkBddForVal : int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
-val mkBDDForEqual : int -> int -> int -> int -> Cudd.Man.d Cudd.Bdd.t
-val registerStateVariable :
-  MusynthTypes.LLDesigMap.key ->
-  MusynthTypes.LLDesigMap.key list ->
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t) *
-  (int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-   MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t)
-val registerParamVariable :
-  MusynthTypes.LLDesigSet.elt ->
-  MusynthTypes.LLDesigMap.key list ->
-  int * int * MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
-  MusynthTypes.IntMap.key MusynthTypes.LLDesigMap.t
-val getCubeForOneVar : MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
-val getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
-val getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
-val substOneVarInTable :
-  Cudd.Man.d Cudd.Bdd.t array ->
-  MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key -> unit
-val getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
-val getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
-val prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
+class bddManager :
+  object
+    val mutable bitNameToBddMap :
+      Cudd.Man.d Cudd.Bdd.t MusynthTypes.StringMap.t
+    val mutable cachedP2USubstTable : Cudd.Man.d Cudd.Bdd.t array option
+    val mutable cachedPrimedVarCube : Cudd.Man.d Cudd.Bdd.t option
+    val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
+    val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
+    val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
+    val mutable manager : Cudd.Man.d Cudd.Man.t
+    val mutable numTotalBits : int
+    val mutable paramVars : MusynthTypes.LLDesigSet.t
+    val mutable stateVars :
+      MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t
+    val mutable varMap :
+      (MusynthTypes.LLDesigSet.elt list * int * int *
+       MusynthTypes.StringMap.key list *
+       Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t *
+       MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+       Cudd.Man.d Cudd.Bdd.t)
+      MusynthTypes.LLDesigMap.t
+    method private checkVarReregister :
+      MusynthTypes.LLDesigMap.key ->
+      MusynthTypes.LLDesigSet.elt list -> MusynthTypes.LLDesigSet.elt list
+    method private getCubeForOneVar :
+      MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+    method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
+    method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
+    method getVarPrinter :
+      unit -> Format.formatter -> MusynthTypes.IntMap.key -> unit
+    method private invalidateCaches : unit -> unit
+    method private lg : int -> int
+    method lookupVar :
+      MusynthTypes.LLDesigMap.key ->
+      (MusynthTypes.LLDesigSet.elt list * int * int *
+       MusynthTypes.StringMap.key list *
+       Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t *
+       MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
+       Cudd.Man.d Cudd.Bdd.t)
+      option
+    method private makeBDDForRepr :
+      int -> int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
+    method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
+    method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
+    method prop2Bdd : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
+    method private registerBits :
+      MusynthTypes.LLDesigMap.key ->
+      int -> int * MusynthTypes.StringMap.key list
+    method registerParamVariable :
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigSet.elt list -> unit
+    method registerStateVariable :
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigSet.elt list -> unit
+    method registerVar :
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigSet.elt list -> unit
+    method reset : unit -> unit
+    method private substOneVarInTable :
+      Cudd.Man.d Cudd.Bdd.t array ->
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key -> unit
+  end
