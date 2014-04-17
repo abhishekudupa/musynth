@@ -3,20 +3,19 @@
 
 open MusynthTypes
 module AST = MusynthAST
-module DD = MusynthBDD
 module Utils = MusynthUtils
 module Safety = MusynthSafety
 
-let encodeStateVariables automaton =
+let encodeStateVariables mgr automaton =
   let name, states = 
     (match automaton with
      | LLCompleteAutomaton (name, states, _, _, _, _) -> name, states
      | LLIncompleteAutomaton (name, states, _, _, _) -> name, states)
   in
   let statename = Utils.getStateNameForAutomaton automaton in
-  DD.registerStateVariable statename states
+  mgr#registerStateVariable statename states
 
-let encodeParamVariables automaton = 
+let encodeParamVariables mgr automaton = 
   match automaton with
   | LLCompleteAutomaton _ -> []
   | LLIncompleteAutomaton (_, _, _, _, transitions) ->
@@ -27,7 +26,7 @@ let encodeParamVariables automaton =
         | TParametrizedDest (_, _, var) ->
            let name, valset = var in
            let vallist = LLDesigSet.fold (fun valu acc -> valu :: acc) valset [] in
-           let paramreg = DD.registerParamVariable name vallist in
+           let paramreg = mgr#registerParamVariable name vallist in
            paramreg :: acc
         | _ -> assert false) [] transitions
 
@@ -84,17 +83,16 @@ let encodeTransitionRelation automata allmsgs choose choosep =
   in
   LLDesigMap.add choose (encodeChooseTransitions choose choosep allmsgs) m
 
-let encodeProg prog =
+let encodeProg mgr prog =
   (* encode the choose variable for scheduling first *)
   let msgdecls, automata, initconstraints, specs = prog in
   let choose = LLSimpleDesignator ("choose") in
   let choosep = getPrimedLLDesig choose in
-  let _ = DD.registerVar choose msgdecls in
-  let _ = DD.registerVar choosep msgdecls in
+  let _ = mgr#registerStateVariable choose msgdecls in
   (* encode the state variables of the automata next *)
-  List.iter (fun aut -> ignore (encodeStateVariables aut)) automata;
+  List.iter (fun aut -> ignore (encodeStateVariables mgr aut)) automata;
   (* encode the parameters of the automata *)
-  List.iter (fun aut -> ignore (encodeParamVariables aut)) automata;
+  List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
   let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
   let invariants =
     List.fold_left
@@ -104,14 +102,14 @@ let encodeProg prog =
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
-  let dlfBDD = DD.prop2BDD dlfProp in
+  let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
     LLDesigMap.fold 
       (fun ident prop acc ->
-       LLDesigMap.add ident (DD.prop2BDD prop) acc)
+       LLDesigMap.add ident (mgr#prop2BDD prop) acc)
       tranrelations LLDesigMap.empty
   in
-  let badStateBDD = DD.prop2BDD badstates in
-  let initBDD = DD.prop2BDD initconstraints in
+  let badStateBDD = mgr#prop2BDD badstates in
+  let initBDD = mgr#prop2BDD initconstraints in
   (transBDDs, initBDD, badStateBDD, dlfBDD)
     

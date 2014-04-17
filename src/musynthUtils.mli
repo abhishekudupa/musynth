@@ -193,3 +193,4 @@ val getMsgsToSyncOnFromState :
   MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
 val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
 val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
+val makeFormatterOfName : string -> out_channel * Format.formatter

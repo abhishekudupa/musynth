@@ -5,7 +5,6 @@
 
 open MusynthTypes
 module Utils = MusynthUtils
-module DD = MusynthBDD
 module Opts = MusynthOptions
 
 let constructDLFProps msglist automata =

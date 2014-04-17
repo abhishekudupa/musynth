@@ -461,6 +461,7 @@ module Utils :
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
+    val makeFormatterOfName : string -> out_channel * Format.formatter
   end
 module Opts :
   sig
@@ -470,7 +471,6 @@ module Opts :
     val conjunctivePart : bool ref
     val inputFileName : string ref
   end
-exception BddException of string
 class bddManager :
   object
     val mutable bitNameToBddMap :
@@ -499,6 +499,8 @@ class bddManager :
       MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumTotalBits : unit -> int
     method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
     method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
     method getVarPrinter :
@@ -517,7 +519,7 @@ class bddManager :
       int -> int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
     method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
     method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
-    method prop2Bdd : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
+    method prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
     method private registerBits :
       MusynthTypes.LLDesigMap.key ->
       int -> int * MusynthTypes.StringMap.key list

@@ -38,6 +38,7 @@ MODULES= \
 	musynthASTLower \
 	musynthLtl \
 	musynthSafety \
+	musynthBDDManager \
 	musynthBDDEncoder \
 	musynthMC \
 	musynthFrontEnd \

@@ -331,3 +331,8 @@ let rec canonicalizePropFP prop =
     cprop
   else
     canonicalizePropFP cprop
+
+let makeFormatterOfName name =
+  let oc = open_out name in
+  (oc, formatter_of_out_channel oc)
+

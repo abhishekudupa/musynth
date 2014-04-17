@@ -192,6 +192,8 @@ let locOptToString locOpt =
   | None -> "No source location information found"
   | Some locn -> locToString locn
 
+exception BddException of string
+
 (* exception printing routines *)
 let exToString ex =
   match ex with
@@ -215,6 +217,8 @@ let exToString ex =
   | UndeclaredIdentifier ident ->
      let name, loc = ident in
      "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
+  | BddException str ->
+     "Error: BDD operation failed. Message: " ^ str
   | _ -> Printexc.to_string ex
 
 (* types for low-level representation *)

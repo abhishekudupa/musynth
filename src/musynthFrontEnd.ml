@@ -9,10 +9,12 @@ module ST = MusynthSymTab
 open Format
 open Buffer
 open Lexing
-module DD = MusynthBDD
 module Enc = MusynthBDDEncoder
 module LTL = MusynthLtl
 module MC = MusynthMC
+module Opts = MusynthOptions
+module Utils = MusynthUtils
+module Mgr = MusynthBDDManager
 
 let musynthProcess filename =
   let inchan = 
@@ -29,9 +31,25 @@ let musynthProcess filename =
     let lprog = MusynthASTLower.lowerProg symtab prog in
     (* run low level checks *)
     checkLLProg lprog;
-    pLLProg std_formatter lprog;
-    let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg lprog in
-    MC.synthFrontEnd transBDDs initBDD badStateBDD dlfBDD
+
+    if (!Opts.debugLevel >= 1) then
+      begin
+        match filename with
+        | Some fname ->
+           let oc, fmt = Utils.makeFormatterOfName (fname ^ ".lowered") in
+           pLLProg fmt lprog;
+           pp_print_flush fmt ();
+           close_out oc
+        | None -> 
+           pLLProg std_formatter lprog;
+           pp_print_flush std_formatter ()
+      end
+    else
+      ();
+
+    let mgr = new Mgr.bddManager in
+    let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg mgr lprog in
+    MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr pLoc loc; 

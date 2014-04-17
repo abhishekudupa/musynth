@@ -227,6 +227,7 @@ exception WrongTypeIdentifier of (string * identifierT)
 exception ConstantExpression of sourcelocation option
 val locToString : int * int * int * int -> string
 val locOptToString : (int * int * int * int) option -> string
+exception BddException of string
 val exToString : exn -> string
 type llDesignatorT =
     LLSimpleDesignator of string

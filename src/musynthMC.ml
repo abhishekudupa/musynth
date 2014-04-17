@@ -1,7 +1,6 @@
 (* model checking and synthesis routines *)
 
 open MusynthTypes
-module DD = MusynthBDD
 open Cudd
 open Format
 
@@ -20,17 +19,17 @@ let post ucube substTable transRel states =
   Bdd.vectorcompose substTable postimage
 
 
-let rec synthForwardSafety transrel initStates badstates =
-  let ucube = DD.getCubeForUnprimedVars () in
-  let substTable = DD.getSubstTableP2U () in
+let rec synthForwardSafety mgr transrel initStates badstates =
+  let ucube = mgr#getCubeForUnprimedVars () in
+  let substTable = mgr#getSubstTableP2U () in
 
   let rec computeNextOrCEX reach frontier =
     fprintf std_formatter "Reach has %e states\n" 
-            (Bdd.nbminterms !DD.numTotalBits reach);
+            (mgr#getNumMinTerms reach);
     pp_print_flush std_formatter ();
     let newReach = Bdd.dor reach frontier in
     fprintf std_formatter "newReach has %e states\n" 
-            (Bdd.nbminterms !DD.numTotalBits reach);
+            (mgr#getNumMinTerms reach);
     pp_print_flush std_formatter ();
 
     if (Bdd.is_leq newReach reach) then
@@ -42,17 +41,17 @@ let rec synthForwardSafety transrel initStates badstates =
       let postNew = post ucube substTable transrel newStates in
       computeNextOrCEX (Bdd.dor reach frontier) postNew
   in
-  computeNextOrCEX (Bdd.dfalse !DD.bddMan) initStates
+  computeNextOrCEX (mgr#makeFalse ()) initStates
 
 (* returns the bdd corresponding to the parameter values which work *)
-let synthesize transrel initstates badstates =
-  let ucube = DD.getCubeForUnprimedVars () in
+let synthesize mgr transrel initstates badstates =
+  let ucube = mgr#getCubeForUnprimedVars () in
 
   let rec synthesizeSafetyRec refinedInit =
     fprintf std_formatter "Attempting synthesis with %e candidates\n"
-            (Bdd.nbminterms !DD.numTotalBits refinedInit);
+            (mgr#getNumMinTerms refinedInit);
     pp_print_flush std_formatter ();
-    let synthStat = synthForwardSafety transrel refinedInit badstates in
+    let synthStat = synthForwardSafety mgr transrel refinedInit badstates in
     match synthStat with
     | SynthSafe -> 
        Bdd.exist ucube refinedInit
@@ -64,10 +63,10 @@ let synthesize transrel initstates badstates =
 
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
-let synthFrontEnd transBDDs initBDD badStateBDD dlfBDD =
+let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD =
   let transrel = 
     LLDesigMap.fold 
       (fun name bdd accbdd ->
-       Bdd.dand bdd accbdd) transBDDs (Bdd.dtrue !DD.bddMan) in
+       Bdd.dand bdd accbdd) transBDDs (mgr#makeTrue ()) in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
-  synthesize transrel initBDD badstates
+  synthesize mgr transrel initBDD badstates

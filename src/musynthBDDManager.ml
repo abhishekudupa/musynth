@@ -6,8 +6,6 @@ open Cudd
 module Opts = MusynthOptions
 open Format
 
-exception BddException of string
-
 class bddManager =
   object (self)
     val mutable manager = Man.make_d ()
@@ -144,7 +142,7 @@ class bddManager =
       with Not_found ->
         None
 
-    method prop2Bdd prop =
+    method prop2BDD prop =
       let rec prop2BDDInt prop = 
         match prop with
         | LLPropTrue -> self#makeTrue ()
@@ -279,6 +277,12 @@ class bddManager =
 
     method getVarPrinter () =
       (fun fmt i -> fprintf fmt "%s" (IntMap.find i indexToBitNameMap))
+
+    method getNumTotalBits () =
+      numTotalBits
+
+    method getNumMinTerms bdd =
+      Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
 
   end (* class bddEncoder *)
     
