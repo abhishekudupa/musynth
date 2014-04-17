@@ -1,7 +1,8 @@
-open MusynthFrontEnd
 open MusynthTypes
-module Opts = MusynthOptions
 open Printf
+
+module Opts = MusynthOptions
+module Front = MusynthFrontEnd
 
 let debug = ref true
 
@@ -86,7 +87,7 @@ let _ =
   else
     begin
       try
-        ignore (musynthProcess (Some filename))
+        ignore (Front.musynthProcess (Some filename))
       with
       | _ as ex ->
          Printf.fprintf stderr "Exception: %s\n" (exToString ex);
