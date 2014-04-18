@@ -75,6 +75,8 @@ class bddManager =
              (registerBitsRec (numBits - 1)) @ [ bitName ]
       in
       let rv = (low, registerBitsRec numBits) in
+      fprintf std_formatter "Registered %d bits for group %a, total bits so far = %d\n" 
+              numBits AST.pLLDesignator name (numTotalBits + numBits);
       numTotalBits <- numTotalBits + numBits;
       rv
 
@@ -160,8 +162,12 @@ class bddManager =
                     LLDesigMap.find desig2 dv2Bdd
                   with 
                   | Not_found -> 
-                     raise (BddException ("Invalid value while making BDD: " ^
-                                            (lldesigToString desig2)))
+                     begin
+                       let propString = AST.astToString AST.pLLProp prop in
+                       raise (BddException ("Invalid value while making BDD: " ^
+                                              (lldesigToString desig2) ^ 
+                                                "\nIn subexpression:\n" ^ propString))
+                     end
                 end
              | None, Some (_, _, _, _, dv2Bdd, _, _) ->
                 begin
@@ -169,8 +175,12 @@ class bddManager =
                     LLDesigMap.find desig1 dv2Bdd
                   with 
                   | Not_found -> 
-                     raise (BddException ("Invalid value while making BDD: " ^
-                                            (lldesigToString desig1)))
+                     begin
+                       let propString = AST.astToString AST.pLLProp prop in
+                       raise (BddException ("Invalid value while making BDD: " ^
+                                              (lldesigToString desig2) ^ 
+                                                "\nIn subexpression:\n" ^ propString))
+                     end
                 end
              | None, None ->
                 if desig1 = desig2 then
@@ -188,7 +198,14 @@ class bddManager =
                                       (AST.astToString AST.pLLProp prop)))
       in
       let cprop = Utils.canonicalizePropFP prop in
-      prop2BDDInt cprop
+      fprintf std_formatter "Lowering Prop:\n%a\n" AST.pLLProp cprop;
+      pp_print_flush std_formatter ();
+      let bdd = prop2BDDInt cprop in
+      fprintf std_formatter "BDD:\n";
+      Bdd.print (self#getVarPrinter ()) std_formatter bdd;
+      fprintf std_formatter "\n";
+      pp_print_flush std_formatter ();
+      bdd
 
     method registerStateVariable varName varDomain =
       let varNameP = getPrimedLLDesig varName in

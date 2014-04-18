@@ -78,21 +78,25 @@ let rec enumerateLists alphabet size =
   | _ ->
      let smalllists = enumerateLists alphabet (size - 1) in
      let newlists = 
-       List.map 
-         (fun sl ->
-          List.concat
-            (List.map
-               (fun alph ->
-                alph :: sl) alphabet)) smalllists in
+       List.concat
+         (List.map
+            (fun alph ->
+             List.map 
+               (fun sl ->
+                alph :: sl) smalllists) alphabet) in
      smalllists @ newlists
 
 let listToStr strFun lst =
   if lst = [] then
     "Empty"
+  else if (List.length lst) = 1 then
+    strFun (List.hd lst)
   else
+    let str = strFun (List.hd lst) in
+    let lst = List.tl lst in
     List.fold_left
       (fun str elem ->
-       str ^ "_" ^ (strFun elem)) "" lst
+       str ^ "_" ^ (strFun elem)) str lst
 
 
 (* utils for UID generation *)    
@@ -294,7 +298,7 @@ let rec canonicalizeProp prop =
      if d1 < d2 then
        prop
      else
-       LLPropEquals (d2, d2)
+       LLPropEquals (d2, d1)
   | LLPropNot (LLPropTrue) -> LLPropFalse
   | LLPropNot (LLPropFalse) -> LLPropTrue
   | LLPropNot (LLPropNot prop1) -> canonicalizeProp prop1

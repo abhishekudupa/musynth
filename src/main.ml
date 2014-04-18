@@ -76,6 +76,7 @@ let processOptions arglist =
   processOptionsRec arglist
 
 let _ =
+  Printexc.record_backtrace true;
   let arglist = Array.to_list Sys.argv in
   processOptions arglist;
   let filename = !Opts.inputFileName in

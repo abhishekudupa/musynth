@@ -218,7 +218,7 @@ let exToString ex =
      let name, loc = ident in
      "Error: Undeclared Identifier " ^ name ^ "\nAt: " ^ (locOptToString loc)
   | BddException str ->
-     "Error: BDD operation failed. Message: " ^ str
+     "Error: BDD operation failed. Details: " ^ str
   | _ -> Printexc.to_string ex
 
 (* types for low-level representation *)

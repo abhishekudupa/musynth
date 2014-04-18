@@ -1,0 +1,88 @@
+messages {
+    MsgA,
+    MsgB,
+    AckA,
+    AckB,
+    MsgA',
+    MsgB',
+    AckA',
+    AckB'
+}
+
+automaton Environment 
+{
+    states : {
+        EInit,
+        SentA,
+        SentB
+    };
+
+    inputs {
+        AckA',
+        AckB'
+    };
+
+    outputs {
+        MsgA,
+        MsgB
+    };
+
+    transitions {
+        (EInit, MsgA, SentA),
+        (EInit, MsgB, SentB),
+        (SentA, AckA', EInit),
+        (SentB, AckB', EInit)
+    };
+}
+
+channelautomaton ForwardChannel
+{
+    ordered, lossless, nonduplicating;
+    capacity = 1;
+
+    messages {
+        MsgA,
+        MsgB
+    };
+}
+
+channelautomaton BackwardChannel
+{
+    ordered, lossless, nonduplicating;
+    capacity = 1;
+
+    messages {
+        AckA,
+        AckB
+    };
+}
+
+partialautomaton Echoer
+{
+    states : {
+        ECInit : incomplete,
+        GotA,
+        GotB
+    };
+
+    inputs {
+        MsgA',
+        MsgB'
+    };
+
+    outputs {
+        AckA,
+        AckB
+    };
+
+    transitions {
+        (ECInit, MsgA', GotA),
+        (GotA, AckA, ECInit),
+        (GotB, AckB, ECInit)
+    };
+}
+
+init {
+    (= Environment.state EInit),
+    (= Echoer.state ECInit)
+}

@@ -1,4 +1,6 @@
 open MusynthTypes
+open Format
+
 module AST = MusynthAST
 module Utils = MusynthUtils
 
@@ -82,14 +84,17 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
     List.concat
       (List.fold_left
          (fun acc1 cc ->
-          (List.fold_left
-             (fun acc2 input ->
-              if (contFun input cc) then
-                (TComplete (desigFun cc, 
-                            LLDesigMap.find input intooutmap, 
-                            desigFun (delFun input cc))) :: acc2
-              else
-                acc2) [] linmsgs) :: acc1) [] cclist)
+          if ((lenFun cc) <> 0) then
+            (List.fold_left
+               (fun acc2 input ->
+                if (contFun input cc) then
+                  (TComplete (desigFun cc, 
+                              LLDesigMap.find input intooutmap, 
+                              desigFun (delFun input cc))) :: acc2
+                else
+                  acc2) [] linmsgs) :: acc1
+          else
+            acc1) [] cclist)
   in
   (* duplicating output transitions *)
   let transitions4 =

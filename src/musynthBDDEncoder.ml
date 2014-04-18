@@ -2,6 +2,8 @@
 (* also performs rudimentary checks on determinism of incomplete automata *)
 
 open MusynthTypes
+open Format
+
 module AST = MusynthAST
 module Utils = MusynthUtils
 module Safety = MusynthSafety
@@ -37,7 +39,10 @@ let getNextStatePropForTrans primedstate transition =
   | TParametrizedDest (_, _, (paramname, valset)) ->
      LLDesigSet.fold
        (fun valu acc ->
-        LLPropOr
+        if (valu = (LLSimpleDesignator "defer")) then
+          acc
+        else
+          LLPropOr
             (LLPropAnd (LLPropEquals (paramname, valu),
                         LLPropEquals (primedstate, valu)),
              acc)) valset LLPropFalse
@@ -110,6 +115,11 @@ let encodeProg mgr prog =
       tranrelations LLDesigMap.empty
   in
   let badStateBDD = mgr#prop2BDD badstates in
+  fprintf std_formatter "InitProp:\n%a\n" AST.pLLProp (Utils.canonicalizePropFP initconstraints);
+  pp_print_flush std_formatter ();
   let initBDD = mgr#prop2BDD initconstraints in
+  (* fprintf std_formatter "InitBDD:\n"; *)
+  (* Bdd.print (mgr#getVarPrinter ()) std_formatter initBDD; *)
+  (* fprintf std_formatter "\n"; *)
   (transBDDs, initBDD, badStateBDD, dlfBDD)
     

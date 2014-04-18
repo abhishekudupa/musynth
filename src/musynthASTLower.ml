@@ -460,5 +460,15 @@ let lowerProg symtab prog =
   let linitstateProp = 
     List.fold_left (fun acc prop -> LLPropAnd (lowerProp symtab prop, acc)) LLPropTrue isdecls
   in
+  (* Also constrain all the channels to be empty *)
+  let linitstateProp =
+    List.fold_left 
+      (fun acc laut ->
+       match laut with
+       | LLCompleteAutomaton (name, _, _, _, _, true) ->
+          LLPropAnd (LLPropEquals (LLFieldDesignator (name, "state"), LLSimpleDesignator "Empty"),
+                     acc)
+       | _ -> acc) linitstateProp lautdecls
+  in
   (igmsgdecls, lautdecls, linitstateProp, lspecs)
     
