@@ -499,6 +499,8 @@ class bddManager :
       MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+    method getCubePrinter :
+      unit -> Format.formatter -> Cudd.Man.tbool array -> unit
     method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumTotalBits : unit -> int
     method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
@@ -519,6 +521,8 @@ class bddManager :
       int -> int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
     method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
     method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
+    method printCubes :
+      int -> Format.formatter -> Cudd.Man.d Cudd.Bdd.t -> unit
     method prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
     method private registerBits :
       MusynthTypes.LLDesigMap.key ->

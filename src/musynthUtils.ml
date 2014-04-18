@@ -340,3 +340,24 @@ let makeFormatterOfName name =
   let oc = open_out name in
   (oc, formatter_of_out_channel oc)
 
+(* utilities for making conjunctions and disjunctions *)
+let makeConjunction propList =
+  match propList with
+  | [] -> LLPropTrue
+  | [ head ] -> head
+  | head :: rest ->
+     let seed = head in
+     List.fold_left 
+       (fun acc prop ->
+        LLPropAnd (acc, prop)) seed rest
+
+let makeDisjunction propList =
+  match propList with
+  | [] -> LLPropFalse
+  | [ head ] -> head 
+  | head :: rest ->
+     let seed = head in
+     List.fold_left 
+       (fun acc prop ->
+        LLPropOr (acc, prop)) seed rest
+     

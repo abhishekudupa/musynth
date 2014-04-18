@@ -41,8 +41,11 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       SynthSafe
     else if (not (Bdd.is_inter_empty newReach badstates)) then
       begin
-        Bdd.print (mgr#getVarPrinter ()) std_formatter newReach;
-        fprintf std_formatter "Found counter example\n"; pp_print_flush std_formatter ();
+        fprintf std_formatter "Found counter example\n";
+        fprintf std_formatter "Counter example has %e states\n" 
+                (mgr#getNumMinTerms (Bdd.dand newReach badstates));
+        mgr#printCubes 1 std_formatter newReach;
+        pp_print_flush std_formatter ();
         SynthCEX newReach
       end
     else
@@ -55,10 +58,10 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       computeNextOrCEX (Bdd.dor reach frontier) postNew
   in
   
-  fprintf std_formatter "Transition bdd:\n";
-  Bdd.print (mgr#getVarPrinter ()) std_formatter transrel;
-  fprintf std_formatter "\n";
-  pp_print_flush std_formatter ();
+  (* fprintf std_formatter "Transition bdd:\n"; *)
+  (* Bdd.print (mgr#getVarPrinter ()) std_formatter transrel; *)
+  (* fprintf std_formatter "\n"; *)
+  (* pp_print_flush std_formatter (); *)
   computeNextOrCEX (mgr#makeFalse ()) initStates
 
 (* returns the bdd corresponding to the parameter values which work *)
@@ -74,7 +77,7 @@ let synthesize mgr transrel initstates badstates =
     | SynthSafe -> 
        Bdd.exist ucube refinedInit
     | SynthCEX cex -> 
-       let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.exist ucube cex)) in
+       let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.existand ucube cex badstates)) in
        synthesizeSafetyRec newInit
   in
   fprintf std_formatter "initStates has %e states\n" (mgr#getNumMinTerms initstates);
@@ -89,12 +92,12 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD =
   let transrel = 
     LLDesigMap.fold 
       (fun name bdd accbdd ->
-       fprintf std_formatter "Conjoining BDD for var %a\n" AST.pLLDesignator name;
+       (* fprintf std_formatter "Conjoining BDD for var %a\n" AST.pLLDesignator name; *)
        let res = Bdd.dand bdd accbdd in
-       fprintf std_formatter "Result\n";
-       Bdd.print (mgr#getVarPrinter ()) std_formatter res;
-       fprintf std_formatter "\n";
-       pp_print_flush std_formatter ();
+       (* fprintf std_formatter "Result\n"; *)
+       (* Bdd.print (mgr#getVarPrinter ()) std_formatter res; *)
+       (* fprintf std_formatter "\n"; *)
+       (* pp_print_flush std_formatter (); *)
        res) transBDDs (mgr#makeTrue ()) in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
   synthesize mgr transrel initBDD badstates

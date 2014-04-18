@@ -154,8 +154,31 @@ class bddManager =
            let l2 = self#lookupVar desig2 in
            begin
              match l1, l2 with
-             | Some _, Some _ ->
-                raise (BddException "Variable to variable equality detected")
+             | Some (_, low1, size1, _, _, _, constraints1),
+               Some (_, low2, size2, _, _, _, constraints2) ->
+                if (size1 <> size2) then
+                  raise (BddException ("Sizes of variables not equal in equality"))
+                else
+                  begin
+                    let rec mkEqual low1 low2 size =
+                      match size with
+                      | 0 -> assert false
+                      | _ -> 
+                         let bdd = 
+                           (Bdd.nxor 
+                              (Bdd.ithvar manager (low1 + (size - 1)))
+                              (Bdd.ithvar manager (low2 + (size - 1)))) 
+                         in
+                         if size = 1 then 
+                           bdd
+                         else
+                           Bdd.dand bdd (mkEqual low1 low2 (size - 1))
+                    in
+                    Bdd.dand 
+                      (Bdd.dand constraints1 constraints2) 
+                      (mkEqual low1 low2 size1)
+                  end
+                
              | Some (_, _, _, _, dv2Bdd, _, _), None ->
                 begin
                   try 
@@ -295,11 +318,38 @@ class bddManager =
     method getVarPrinter () =
       (fun fmt i -> fprintf fmt "%s" (IntMap.find i indexToBitNameMap))
 
+    method getCubePrinter () =
+      (fun fmt cube ->
+       Array.iteri
+         (fun idx valu ->
+          let name = IntMap.find idx indexToBitNameMap in
+          match valu with
+          | Man.True -> fprintf fmt "%s |--> true\n" name
+          | Man.False -> fprintf fmt "%s |--> false\n" name
+          | _ -> fprintf fmt "%s |--> dcare\n" name) cube)
+                          
+
     method getNumTotalBits () =
       numTotalBits
 
     method getNumMinTerms bdd =
       Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
+
+    method printCubes n fmt bdd =
+      let bdd = Bdd.dand bdd (self#makeTrue ()) in
+      let printer = self#getCubePrinter () in
+      let printer = printer fmt in
+      let count = ref 0 in
+      Bdd.iter_cube 
+        (fun cube ->
+         if !count >= n then 
+           ()
+         else
+           begin
+             fprintf fmt "Cube %d:\n" !count;
+             printer cube;
+             count := !count + 1
+           end) bdd
 
   end (* class bddEncoder *)
     

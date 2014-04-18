@@ -1954,6 +1954,111 @@ module Enc :
   end
 module MC :
   sig
+    module AST :
+      sig
+        val pLoc : Format.formatter -> int * int * int * int -> unit
+        val pLocOpt :
+          Format.formatter -> (int * int * int * int) option -> unit
+        val pIdentifier : Format.formatter -> string * 'a -> unit
+        val identToName : 'a * 'b -> 'a
+        val astToString : (Format.formatter -> 'a -> 'b) -> 'a -> string
+        val pList :
+          string ->
+          bool ->
+          bool ->
+          (Format.formatter -> 'a -> unit) ->
+          Format.formatter -> 'a list -> unit
+        val pSymType : Format.formatter -> MusynthTypes.musSymTypeT -> unit
+        val pSymTypeDecl :
+          Format.formatter ->
+          (string * 'a) * MusynthTypes.musSymTypeT -> unit
+        val musMakeIndentedBox :
+          Format.formatter ->
+          (Format.formatter -> 'a -> unit) ->
+          'a ->
+          (Format.formatter -> 'b -> unit) ->
+          'b -> (Format.formatter -> 'c -> unit) -> 'c -> unit
+        val pSymTypeDeclBlock :
+          Format.formatter ->
+          ((string * 'a) * MusynthTypes.musSymTypeT) list -> unit
+        val pDesignator :
+          Format.formatter -> MusynthTypes.musDesignatorT -> unit
+        val pProp : Format.formatter -> MusynthTypes.musPropT -> unit
+        val pPropOpt :
+          Format.formatter -> MusynthTypes.musPropT option -> unit
+        val pDecl :
+          (Format.formatter -> 'a -> 'b) ->
+          (Format.formatter -> 'a -> 'c) ->
+          Format.formatter -> 'a MusynthTypes.musDeclType -> 'c
+        val noopPrinter : 'a -> 'b -> unit
+        val pMsgDecl :
+          Format.formatter ->
+          MusynthTypes.musDesignatorT MusynthTypes.musDeclType -> unit
+        val pMsgDeclBlock :
+          string ->
+          Format.formatter ->
+          MusynthTypes.musDesignatorT MusynthTypes.musDeclType list -> unit
+        val pMessagesDeclBlock :
+          Format.formatter ->
+          MusynthTypes.musDesignatorT MusynthTypes.musDeclType list -> unit
+        val pStateAnnot :
+          Format.formatter -> MusynthTypes.musStateAnnotationT -> unit
+        val pStateDecl :
+          Format.formatter ->
+          MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
+          MusynthTypes.musStateAnnotationT -> unit
+        val pStateDeclBlock :
+          string ->
+          Format.formatter ->
+          (MusynthTypes.musDesignatorT MusynthTypes.musDeclType *
+           MusynthTypes.musStateAnnotationT)
+          list -> unit
+        val pTransDecl :
+          Format.formatter ->
+          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
+           MusynthTypes.musDesignatorT)
+          MusynthTypes.musDeclType -> unit
+        val pTransDeclBlock :
+          Format.formatter ->
+          (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
+           MusynthTypes.musDesignatorT)
+          MusynthTypes.musDeclType list -> unit
+        val pInitStateConstraint :
+          Format.formatter -> MusynthTypes.musPropT -> unit
+        val pInitStateDeclBlock :
+          Format.formatter -> MusynthTypes.musPropT list -> unit
+        val pChanProp :
+          Format.formatter ->
+          MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
+          MusynthTypes.musChanDupT * int -> unit
+        val pAutomatonDecl :
+          Format.formatter ->
+          MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
+        val pSpec : Format.formatter -> MusynthTypes.musSpecT -> unit
+        val pProg :
+          Format.formatter ->
+          ((string * 'a) * MusynthTypes.musSymTypeT) list *
+          MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
+          MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
+          MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> 
+          unit
+        val pLLDesignator :
+          Format.formatter -> MusynthTypes.llDesignatorT -> unit
+        val pLLIdent : Format.formatter -> MusynthTypes.llDesignatorT -> unit
+        val pLLVar :
+          Format.formatter ->
+          MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
+        val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
+        val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
+        val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
+        val pLLAutomaton :
+          Format.formatter -> MusynthTypes.llAutomatonT -> unit
+        val pLLProg :
+          Format.formatter ->
+          MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+      end
     type bddType = Cudd.Man.d Cudd.Bdd.t
     val fixPoint : ('a -> 'a) -> 'a -> 'a
     val post :
@@ -1965,8 +2070,8 @@ module MC :
       < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
         getNumMinTerms : 'a Cudd.Bdd.t -> float;
         getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getVarPrinter : unit -> Format.formatter -> int -> unit;
-        makeFalse : unit -> 'a Cudd.Bdd.t; .. > ->
+        makeFalse : unit -> 'a Cudd.Bdd.t;
+        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b; .. > ->
       'a Cudd.Bdd.t ->
       'a Cudd.Bdd.t ->
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t MusynthTypes.synthExitStatT
@@ -1974,8 +2079,8 @@ module MC :
       < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
         getNumMinTerms : 'a Cudd.Bdd.t -> float;
         getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getVarPrinter : unit -> Format.formatter -> int -> unit;
-        makeFalse : unit -> 'a Cudd.Bdd.t; .. > ->
+        makeFalse : unit -> 'a Cudd.Bdd.t;
+        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b; .. > ->
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
     val synthFrontEnd :
       < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
@@ -1983,7 +2088,7 @@ module MC :
         getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
         getVarPrinter : unit -> Format.formatter -> int -> unit;
         makeFalse : unit -> 'a Cudd.Bdd.t; makeTrue : unit -> 'a Cudd.Bdd.t;
-        .. > ->
+        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b; .. > ->
       'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
   end
@@ -2729,6 +2834,8 @@ module Mgr :
           MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+        method getCubePrinter :
+          unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
         method getNumTotalBits : unit -> int
         method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
@@ -2749,6 +2856,8 @@ module Mgr :
           int -> int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
         method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
         method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
+        method printCubes :
+          int -> Format.formatter -> Cudd.Man.d Cudd.Bdd.t -> unit
         method prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
         method private registerBits :
           MusynthTypes.LLDesigMap.key ->

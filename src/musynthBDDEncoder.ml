@@ -53,23 +53,37 @@ let getTransitionRelationForAut aut autlist =
   let transitions = Utils.getTransitionsForAut aut in
   let statename = Utils.getStateNameForAutomaton aut in
   let statenamep = Utils.getStateNamePForAutomaton aut in
+  let relationElems = 
+    List.fold_left 
+      (fun propList trans ->
+       match trans with
+       | TComplete (sstate, msg, _)
+       | TParametrizedDest (sstate, msg, _) ->
+          let sender = Utils.getSender msg autlist in
+          let receivers = Utils.getReceivers msg autlist in
+          let sprop = LLPropEquals (statename, sstate) in
+          let csprops = List.fold_left 
+                          (fun prop pred -> LLPropAnd (prop, pred))
+                          LLPropTrue (List.map (Utils.getCSPredsForMsg msg) (sender :: receivers))
+          in
+          let chooseprop = LLPropEquals (LLSimpleDesignator "choose", msg) in
+          let tsprop = LLPropAnd (sprop, LLPropAnd (csprops, chooseprop)) in
+          let nsprop = getNextStatePropForTrans statenamep trans in
+          (tsprop, nsprop) :: propList
+       | _ -> assert false) [] transitions 
+  in
+  (* we have all the relation elements *)
+  (* add on one for the case where no transition can occur *)
+  let someTransProp = 
+    List.fold_left 
+      (fun acc (tsprop, nsprop) -> LLPropOr (acc, tsprop))
+      LLPropFalse relationElems
+  in
+  let relationElems = 
+    (LLPropNot someTransProp, LLPropEquals (statename, statenamep)) :: relationElems in
   List.fold_left 
-    (fun accprop trans ->
-     match trans with
-     | TComplete (sstate, msg, _)
-     | TParametrizedDest (sstate, msg, _) ->
-        let sender = Utils.getSender msg autlist in
-        let receivers = Utils.getReceivers msg autlist in
-        let sprop = LLPropEquals (statename, sstate) in
-        let csprops = List.fold_left 
-                        (fun prop pred -> LLPropAnd (prop, pred))
-                        LLPropTrue (List.map (Utils.getCSPredsForMsg msg) (sender :: receivers))
-        in
-        let chooseprop = LLPropEquals (LLSimpleDesignator "choose", msg) in
-        let tsprop = LLPropAnd (sprop, LLPropAnd (csprops, chooseprop)) in
-        let nsprop = getNextStatePropForTrans statenamep trans in
-        LLPropOr (LLPropAnd (tsprop, nsprop), accprop)
-     | _ -> assert false) LLPropFalse transitions
+    (fun acc (tsprop, nsprop) ->
+     LLPropOr (acc, LLPropAnd (tsprop, nsprop))) LLPropFalse relationElems
         
 
 let encodeChooseTransitions choose choosep allmsgs =
