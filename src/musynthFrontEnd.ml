@@ -49,7 +49,9 @@ let musynthProcess filename =
 
     let mgr = new Mgr.bddManager in
     let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg mgr lprog in
-    MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD
+    let solbdd = MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD in
+    fprintf std_formatter "\n\nSolutions:\n";
+    mgr#printCubes 0 std_formatter solbdd
   with
   | ParseError (errstr, loc) -> 
      printf "%s\n%a\n" errstr AST.pLoc loc; 

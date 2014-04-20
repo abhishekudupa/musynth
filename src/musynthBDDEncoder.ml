@@ -113,6 +113,11 @@ let encodeProg mgr prog =
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
   let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
+  fprintf std_formatter "Transition Relations:\n";
+  LLDesigMap.iter
+    (fun name rel ->
+     fprintf std_formatter "%a:\n" AST.pLLDesignator name;
+     fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations;
   let invariants =
     List.fold_left
       (fun propacc spec ->
@@ -121,6 +126,11 @@ let encodeProg mgr prog =
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
+  fprintf std_formatter "Deadlock Freedom Property:\n";
+  fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP dlfProp);
+  fprintf std_formatter "Bad State Property:\n";
+  fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP badstates);
+          
   let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
     LLDesigMap.fold 

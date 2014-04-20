@@ -21,9 +21,11 @@ class bddManager =
     val mutable cachedUnprimedVarCube = None
     val mutable cachedP2USubstTable = None
     val mutable cachedU2PSubstTable = None
+    val mutable cachedAllButParamCube = None
 
     method reset () =
       manager <- Man.make_d ();
+      Man.disable_autodyn manager;
       numTotalBits <- 0;
       bitNameToBddMap <- StringMap.empty;
       indexToBitNameMap <- IntMap.empty;
@@ -37,7 +39,8 @@ class bddManager =
       cachedPrimedVarCube <- None;
       cachedUnprimedVarCube <- None;
       cachedP2USubstTable <- None;
-      cachedU2PSubstTable <- None
+      cachedU2PSubstTable <- None;
+      cachedAllButParamCube <- None
 
     method makeTrue () = 
       Bdd.dtrue manager
@@ -84,7 +87,7 @@ class bddManager =
       let dset = List.fold_left (fun acc v -> LLDesigSet.add v acc) LLDesigSet.empty valDomain in
       let sDom = LLDesigSet.elements dset in
       try
-        let pDom, _, _, _, _, _, _ = LLDesigMap.find name varMap in
+        let pDom, _, _, _, _, _, _, _ = LLDesigMap.find name varMap in
         if pDom <> sDom then
           raise (BddException ("Variable \"" ^ (lldesigToString name) ^ "\" already registered, " ^ 
                                  " with a different domain"))
@@ -115,6 +118,10 @@ class bddManager =
 
     method registerVar name valDomain =
       let valDomain = self#checkVarReregister name valDomain in
+      fprintf std_formatter "Variable \"%a\"\n" AST.pLLDesignator name;
+      List.iter 
+        (fun valu -> fprintf std_formatter "%a, " AST.pLLDesignator valu)
+        valDomain;
       let domainSize = List.length valDomain in
       let numBits = self#lg domainSize in
       
@@ -133,8 +140,39 @@ class bddManager =
           (LLDesigMap.empty, IntMap.empty, (self#makeFalse ()))
           valreppairs
       in
-      varMap <- LLDesigMap.add name (valDomain, low, numBits, bitNameList, 
-                                     domValToBDDMap, cubeToDomValMap, varConstraints)
+
+      let cubeToDomValFun cube =
+        let curidx = ref 0 in
+        let repr =
+          Array.fold_left
+            (fun repr valu ->
+             if ((!curidx < low) || (!curidx > (low + (numBits - 1)))) then
+               begin
+                 curidx := !curidx + 1;
+                 repr
+               end
+             else
+               begin
+                 let actval =
+                   match valu with
+                   | Man.False -> 0
+                   | _ -> 1
+                 in
+                 let shift = !curidx - low in
+                 curidx := !curidx + 1;
+                 if shift = 0 then
+                   repr lor actval
+                 else
+                   repr lor (actval lsl shift)
+               end) 0 cube
+        in
+        List.nth valDomain repr
+      in
+             
+      varMap <- LLDesigMap.add name 
+                               (valDomain, low, numBits, bitNameList, 
+                                domValToBDDMap, cubeToDomValMap, 
+                                cubeToDomValFun, varConstraints)
                                varMap;
       self#invalidateCaches ();
 
@@ -154,8 +192,8 @@ class bddManager =
            let l2 = self#lookupVar desig2 in
            begin
              match l1, l2 with
-             | Some (_, low1, size1, _, _, _, constraints1),
-               Some (_, low2, size2, _, _, _, constraints2) ->
+             | Some (_, low1, size1, _, _, _, _, constraints1),
+               Some (_, low2, size2, _, _, _, _, constraints2) ->
                 if (size1 <> size2) then
                   raise (BddException ("Sizes of variables not equal in equality"))
                 else
@@ -179,7 +217,7 @@ class bddManager =
                       (mkEqual low1 low2 size1)
                   end
                 
-             | Some (_, _, _, _, dv2Bdd, _, _), None ->
+             | Some (_, _, _, _, dv2Bdd, _, _, _), None ->
                 begin
                   try 
                     LLDesigMap.find desig2 dv2Bdd
@@ -192,7 +230,7 @@ class bddManager =
                                                 "\nIn subexpression:\n" ^ propString))
                      end
                 end
-             | None, Some (_, _, _, _, dv2Bdd, _, _) ->
+             | None, Some (_, _, _, _, dv2Bdd, _, _, _) ->
                 begin
                   try 
                     LLDesigMap.find desig1 dv2Bdd
@@ -221,14 +259,7 @@ class bddManager =
                                       (AST.astToString AST.pLLProp prop)))
       in
       let cprop = Utils.canonicalizePropFP prop in
-      fprintf std_formatter "Lowering Prop:\n%a\n" AST.pLLProp cprop;
-      pp_print_flush std_formatter ();
-      let bdd = prop2BDDInt cprop in
-      fprintf std_formatter "BDD:\n";
-      Bdd.print (self#getVarPrinter ()) std_formatter bdd;
-      fprintf std_formatter "\n";
-      pp_print_flush std_formatter ();
-      bdd
+      prop2BDDInt cprop
 
     method registerStateVariable varName varDomain =
       let varNameP = getPrimedLLDesig varName in
@@ -242,7 +273,7 @@ class bddManager =
       paramVars <- LLDesigSet.add varName paramVars
 
     method private getCubeForOneVar varname =
-      let (_, _, _, bitNameList, _, _, _) = LLDesigMap.find varname varMap in
+      let (_, _, _, bitNameList, _, _, _, _) = LLDesigMap.find varname varMap in
       List.fold_left 
         (fun acc bitname ->
          let bdd = StringMap.find bitname bitNameToBddMap in
@@ -275,8 +306,8 @@ class bddManager =
          cube
            
     method private substOneVarInTable table varName sVarName =
-      let _, lowsrc, size1, _, _, _, _ = LLDesigMap.find varName varMap in
-      let _, lowdst, size2, _, _, _, _ = LLDesigMap.find sVarName varMap in
+      let _, lowsrc, size1, _, _, _, _, _ = LLDesigMap.find varName varMap in
+      let _, lowdst, size2, _, _, _, _, _ = LLDesigMap.find sVarName varMap in
       if (size1 <> size2) then
         raise (Invalid_argument ("Types of variables \"" ^ (lldesigToString varName) ^ 
                                    "\" and \"" ^ (lldesigToString sVarName) ^ "\" are " ^ 
@@ -315,6 +346,16 @@ class bddManager =
          cachedU2PSubstTable <- Some table;
          table
 
+    method getAllButParamCube () = 
+      match cachedAllButParamCube with
+      | Some cube -> cube
+      | None ->
+         let cube1 = self#getCubeForPrimedVars () in
+         let cube2 = self#getCubeForUnprimedVars () in
+         let cube = Bdd.dand cube1 cube2 in
+         cachedAllButParamCube <- Some cube;
+         cube
+
     method getVarPrinter () =
       (fun fmt i -> fprintf fmt "%s" (IntMap.find i indexToBitNameMap))
 
@@ -336,6 +377,7 @@ class bddManager =
       Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
 
     method printCubes n fmt bdd =
+      let n = if n = 0 then max_int else n in
       let bdd = Bdd.dand bdd (self#makeTrue ()) in
       let printer = self#getCubePrinter () in
       let printer = printer fmt in
@@ -348,9 +390,42 @@ class bddManager =
            begin
              fprintf fmt "Cube %d:\n" !count;
              printer cube;
+             fprintf fmt "\n";
              count := !count + 1
            end) bdd
 
+    method printStateVars n fmt bdd =
+      let n = if n = 0 then max_int else n in
+      let bdd = Bdd.dand bdd (self#makeTrue ()) in
+      let count = ref 0 in
+
+      Bdd.iter_cube
+        (fun cube ->
+         if !count >= n then
+           ()
+         else
+           begin
+             fprintf std_formatter "Cube %d:\n" !count;
+             LLDesigMap.iter 
+               (fun name pname ->
+                let (_, _, _, _, _, _, cubeToDomValFun, _) = LLDesigMap.find name varMap in
+                fprintf fmt "%a |--> %a\n" AST.pLLDesignator name 
+                        AST.pLLDesignator (cubeToDomValFun cube))
+               stateVars;
+             count := !count + 1
+           end) bdd
+
+    method printStateVarsInCube fmt cube =
+      LLDesigMap.iter 
+        (fun name pname ->
+         let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+         fprintf fmt "%a |--> %a\n" AST.pLLDesignator name 
+                 AST.pLLDesignator (cubeToDomValFun cube)) stateVars
+      
+      
+    method getManager () =
+      manager
+        
   end (* class bddEncoder *)
     
 

@@ -1,0 +1,223 @@
+symmetrictypes {
+    CacheIDType : { C1, C2 };
+    DataType : { D0, D1 };
+}
+
+messages {
+    Req[c] foreach c in CacheIDType,
+    WB[c] foreach c in CacheIDType,
+    Havoc[c] foreach c in CacheIDType,
+    Req2Dir[c] foreach c in CacheIDType,
+    Req2Dir'[c] foreach c in CacheIDType,
+    WB2Dir[c][d] foreach c in CacheIDType foreach d in DataType,
+    WB2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+    InvAck2Dir[c][d] foreach c in CacheIDType foreach d in DataType,
+    InvAck2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+    Ack2Dir[c] foreach c in CacheIDType,
+    Ack2Dir'[c] foreach c in CacheIDType,
+    Rsp2Cache[c][d] foreach c in CacheIDType foreach d in DataType,
+    Rsp2Cache'[c][d] foreach c in CacheIDType foreach d in DataType,
+    WBAck2Cache[c] foreach c in CacheIDType,
+    WBAck2Cache'[c] foreach c in CacheIDType,
+    Inv2Cache[c] foreach c in CacheIDType,
+    Inv2Cache'[c] foreach c in CacheIDType
+}
+
+Automaton Environment[c] foreach c in CacheIDType
+{
+    states : { InitState };
+    
+    outputs {
+        Req[c],
+        WB[c],
+        Havoc[c]
+    };
+
+    transitions {
+        (InitState, Req[c], InitState),
+        (InitState, Havoc[c], InitState),
+        (InitState, WB[c], InitState)
+    };
+}
+
+Automaton Oracle
+{
+    states : { Data[d] foreach d in DataType };
+
+    inputs {
+        Havoc[c] foreach c in CacheIDType 
+    };
+
+    transitions {
+        (Data[d1], Havoc[c], Data[d2] foreach d1, d2 in DataType 
+                                      foreach c in CacheIDType (!= d1 d2))
+    };
+}
+
+ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
+{
+    unordered, lossless, nonduplicating;
+    capacity = 1;
+
+    messages {
+        Req2Dir[c],
+        WB2Dir[c][d] foreach d in DataType,
+        Ack2Dir[c],
+        InvAck2Dir[c][d] foreach d in DataType
+    };
+}
+
+ChannelAutomaton RspChannel[c] foreach c in CacheIDType
+{
+    unordered, lossless, nonduplicating;
+    capacity = 1;
+
+    messages {
+        Rsp2Cache[c][d] foreach d in DataType,
+        WBAck2Cache[c],
+        Inv2Cache[c]
+    };
+}
+
+PartialAutomaton Cache[c] foreach c in CacheIDType
+{
+    states : { CI : complete, 
+
+               CIV1 : complete,
+               CIV2 : complete,
+               CIV3[d] foreach d in DataType : complete,
+
+               CV[d] foreach d in DataType : complete,
+
+               CVI1[d] foreach d in DataType : complete,
+               CVI2 : complete, 
+               CVI3 : complete,
+               CVI4[d] foreach d in DataType : complete };
+
+    inputs {
+        Req[c],
+        WB[c],
+        Havoc[c] foreach d in DataType,
+
+        Rsp2Cache'[c][d] foreach d in DataType,
+        WBAck2Cache'[c],
+        Inv2Cache'[c]
+    };
+
+    outputs {
+        Req2Dir[c], 
+        WB2Dir[c][d] foreach d in DataType, 
+        InvAck2Dir[c][d] foreach d in DataType,
+        Ack2Dir[c]
+    };
+
+    transitions {
+        (CI, Req[c], CIV1),
+        (CIV1, Req2Dir[c], CIV2),
+        (CIV2, Rsp2Cache'[c][d], CIV3[d] foreach d in DataType),
+        (CIV3[d], Ack2Dir[c], CV[d] foreach d in DataType),
+
+        (CV[d1], Havoc[c], CV[d2] foreach d1, d2 in DataType (!= d1 d2)), 
+        
+        (CV[d], WB[c], CVI1[d] foreach d in DataType),
+        (CVI1[d], WB2Dir[c][d], CVI2 foreach d in DataType),
+        (CVI2, WBAck2Cache'[c], CI),
+
+        (CV[d], Inv2Cache'[c], CVI4[d] foreach d in DataType),
+        (CVI4[d], InvAck2Dir[c][d], CI foreach d in DataType),
+        
+        (CVI2, Inv2Cache'[c], CI)
+    };
+}
+
+PartialAutomaton Directory
+{
+    states : { DI[d] foreach d in DataType : complete,
+               DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               DIV2[c] foreach c in CacheIDType : complete,
+               DV[c] foreach c in CacheIDType : complete,
+               DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
+               DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
+               DVV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
+               DVV4[c] foreach c in CacheIDType : complete,
+               DVI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
+
+    inputs {
+        Req2Dir'[c] foreach c in CacheIDType,
+        WB2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+        InvAck2Dir'[c][d] foreach c in CacheIDType foreach d in DataType,
+        Ack2Dir'[c] foreach c in CacheIDType
+    };
+
+    outputs {
+        Rsp2Cache[c][d] foreach c in CacheIDType foreach d in DataType,
+        WBAck2Cache[c] foreach c in CacheIDType,
+        Inv2Cache[c] foreach c in CacheIDType
+    };
+
+    transitions {
+        (DI[d], Req2Dir'[c], DIV1[c][d] foreach d in DataType foreach c in CacheIDType),
+        (DIV1[c][d], Rsp2Cache[c][d], DIV2[c] foreach d in DataType foreach c in CacheIDType),
+        (DIV2[c], Ack2Dir'[c], DV[c] foreach c in CacheIDType),
+        
+        (DV[c1], Req2Dir'[c2], DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (DVV1[c1][c2], Inv2Cache[c1], DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2)),
+        (DVV2[c1][c2], InvAck2Dir'[c1][d], DVV3[c2][d] 
+         foreach c1, c2 in CacheIDType 
+         foreach d in DataType (!= c1 c2)),
+        (DVV3[c][d], Rsp2Cache[c][d], DVV4[c] foreach c in CacheIDType foreach d in DataType),
+        (DVV4[c], Ack2Dir'[c], DV[c] foreach c in CacheIDType),
+
+        (DV[c], WB2Dir'[c][d], DVI1[c][d] foreach c in CacheIDType foreach d in DataType),
+        (DVI1[c][d], WBAck2Cache[c], DI[d] foreach c in CacheIDType foreach d in DataType),
+        
+        (DVV2[c1][c2], WB2Dir'[c1][d], DVV3[c2][d] foreach c1, c2 in CacheIDType foreach d in DataType (!= c1 c2))
+    };
+}
+
+init {
+    (forall c in CacheIDType
+     (= Environment[c].state InitState)),
+
+    (exists d in DataType 
+     (and (= Oracle.state Data[d])  
+          (= Directory.state DI[d]))),
+    (forall c in CacheIDType
+     (= Cache[c].state CI))
+}
+
+/*
+invariant "Coherence Invariant" {
+    (forall d in DataType 
+     (forall c in CacheIDType
+      (-> (= Cache[c].state CV[d]) (= Oracle.state Data[d]))))
+}
+
+invariant "One Valid Invariant" {
+    (forall c1 in CacheIDType
+     (forall c2 in CacheIDType
+      (forall d1 in DataType
+       (forall d2 in DataType
+        (-> (!= c1 c2) (-> (= Cache[c1].state CV[d1]) 
+                           (!= Cache[c2].state CV[d2])))))))
+}
+*/
+/*
+ltlspec "I-V liveness on Get" {
+    (forall c in CacheIDType
+     (exists d in DataType
+      (G (-> (= Environment[c].state IssuedGet) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+}
+
+ltlspec "I-V liveness on Havoc" {
+    (forall c in CacheIDType
+     (forall d in DataType
+      (G (-> (= Environment[c].state IssuedHavoc[d]) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+}
+
+ltlspec "V-I liveness" {
+    (forall c in CacheIDType
+     (exists d in DataType
+      (G (-> (= Environment[c].state IssuedPut) (F (= Environment[c].state InitState[d]))))))
+}
+*/

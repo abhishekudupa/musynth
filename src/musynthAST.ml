@@ -91,7 +91,7 @@ let rec pProp fmt prop =
   | PropNEquals (desig1, desig2, _) ->
      fprintf fmt "@[<b 4>(!= %a@ %a)@]" pDesignator desig1 pDesignator desig2
   | PropNot (prop1, _) ->
-     fprintf fmt "@[<b 5>(not %a)" pProp prop1
+     fprintf fmt "@[<b 5>(not %a)@]" pProp prop1
   | PropAnd (prop1, prop2, _) ->
      fprintf fmt "@[<b 5>(and %a@ %a)@]" pProp prop1 pProp prop2
   | PropOr (prop1, prop2, _) ->
@@ -344,23 +344,23 @@ let rec pLLProp fmt prop =
   | LLPropTrue -> fprintf fmt "true"
   | LLPropFalse -> fprintf fmt "false"
   | LLPropEquals (desig1, desig2) -> 
-     fprintf fmt "(= %a %a)" pLLDesignator desig1 pLLDesignator desig2
+     fprintf fmt "@[<b 3>(= %a@ %a)@]" pLLDesignator desig1 pLLDesignator desig2
   | LLPropNot prop1 -> 
-     fprintf fmt "(not %a)" pLLProp prop1
+     fprintf fmt "@[<b 5>(not %a)@]" pLLProp prop1
   | LLPropAnd (prop1, prop2) ->
-     fprintf fmt "(and %a %a)" pLLProp prop1 pLLProp prop2
+     fprintf fmt "@[<b 5>(and %a@ %a)@]" pLLProp prop1 pLLProp prop2
   | LLPropOr (prop1, prop2) ->
-     fprintf fmt "(or %a %a)" pLLProp prop1 pLLProp prop2
+     fprintf fmt "@[<b 4>(or %a@ %a)@]" pLLProp prop1 pLLProp prop2
   | LLPropTLG prop1 ->
-     fprintf fmt "(G %a)" pLLProp prop1
+     fprintf fmt "@[<b 3>(G %a)@]" pLLProp prop1
   | LLPropTLF prop1 ->
-     fprintf fmt "(F %a)" pLLProp prop1
+     fprintf fmt "@[<b 3>(F %a)@]" pLLProp prop1
   | LLPropTLX prop1 ->
-     fprintf fmt "(X %a)" pLLProp prop1
+     fprintf fmt "@[<b 3>(X %a)@]" pLLProp prop1
   | LLPropTLU (prop1, prop2) ->
-     fprintf fmt "(U %a %a)" pLLProp prop1 pLLProp prop2
+     fprintf fmt "@[<b 3>(U %a %a)@]" pLLProp prop1 pLLProp prop2
   | LLPropTLR (prop1, prop2) ->
-     fprintf fmt "(R %a %a)" pLLProp prop1 pLLProp prop2
+     fprintf fmt "@[<b 3>(R %a %a)@]" pLLProp prop1 pLLProp prop2
 
 let pLLSpec fmt spec = 
   match spec with

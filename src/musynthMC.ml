@@ -20,9 +20,51 @@ let post mgr transRel states =
   let ucube = mgr#getCubeForUnprimedVars () in
   let substTable = mgr#getSubstTableP2U () in
   let postimage = Bdd.existand ucube states transRel in
-  fprintf std_formatter "Postimage has %e states\n" (mgr#getNumMinTerms postimage);
-  pp_print_flush std_formatter ();
+  (* fprintf std_formatter "Postimage has %e states\n" (mgr#getNumMinTerms postimage); *)
+  (* pp_print_flush std_formatter (); *)
   Bdd.vectorcompose substTable postimage
+
+let pre mgr transRel states =
+  let pcube = mgr#getCubeForPrimedVars () in
+  let substTable = mgr#getSubstTableU2P () in
+  let substBdd = Bdd.vectorcompose substTable states in
+  Bdd.existand pcube substBdd transRel
+
+(* construct a trace such that the error state is reachable *)
+let explain mgr initstates transRel errstate =
+  (* construct the set of states reachable in 1, 2, ... k steps *)
+  let rec forwardStates stateList reachable frontier =
+    let reachPlusFrontier = Bdd.dor reachable frontier in
+    if (not (Bdd.is_inter_empty reachPlusFrontier errstate)) then
+      stateList
+    else
+      begin
+        let actFrontier = Bdd.dand frontier (Bdd.dnot reachable) in
+        let newStateList = actFrontier :: stateList in
+        let newPost = post mgr transRel actFrontier in
+        forwardStates newStateList reachPlusFrontier newPost
+      end
+  in
+  
+  let stateList = forwardStates [] (mgr#makeFalse ()) initstates in
+  (* now extract a sequence of pres for the error state in the list *)
+  (* Not tail recursive, but WTF? we're already fucked anyway with  *)
+  (* a fucking counterexample. Fuck efficiency at this point!       *)
+  let rec foldStateList myState stateK =
+    match stateK with
+    | [] -> ()
+    | head :: rest ->
+       let preMyState = pre mgr transRel myState in
+       let preMyState = Bdd.dand preMyState head in
+       let minTerm = Bdd.pick_minterm preMyState in
+       foldStateList (Bdd.cube_of_minterm (mgr#getManager ()) minTerm) rest;
+       fprintf std_formatter "State:\n";
+       fprintf std_formatter "----------------------------\n";
+       mgr#printStateVarsInCube std_formatter minTerm;
+       fprintf std_formatter "\n----------------------------\n\n\n";
+  in
+  foldStateList errstate stateList
+
 
 let rec synthForwardSafety mgr transrel initStates badstates =
 
@@ -44,7 +86,12 @@ let rec synthForwardSafety mgr transrel initStates badstates =
         fprintf std_formatter "Found counter example\n";
         fprintf std_formatter "Counter example has %e states\n" 
                 (mgr#getNumMinTerms (Bdd.dand newReach badstates));
-        mgr#printCubes 1 std_formatter newReach;
+        mgr#printCubes 1 std_formatter (Bdd.dand newReach badstates);
+        fprintf std_formatter "Counterexample state:\n";
+        let errstate = Bdd.pick_minterm (Bdd.dand newReach badstates) in
+        mgr#printStateVarsInCube std_formatter errstate;
+        fprintf std_formatter "Backwards trail from initial state:\n\n";
+        explain mgr initStates transrel (Bdd.cube_of_minterm (mgr#getManager ()) errstate);
         pp_print_flush std_formatter ();
         SynthCEX newReach
       end
@@ -55,7 +102,7 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       let postNew = post mgr transrel newStates in
       fprintf std_formatter "Post has %e states\n" (mgr#getNumMinTerms postNew);
       pp_print_flush std_formatter ();
-      computeNextOrCEX (Bdd.dor reach frontier) postNew
+      computeNextOrCEX newReach postNew
   in
   
   (* fprintf std_formatter "Transition bdd:\n"; *)
@@ -75,7 +122,7 @@ let synthesize mgr transrel initstates badstates =
     let synthStat = synthForwardSafety mgr transrel refinedInit badstates in
     match synthStat with
     | SynthSafe -> 
-       Bdd.exist ucube refinedInit
+       Bdd.exist (mgr#getAllButParamCube ()) refinedInit
     | SynthCEX cex -> 
        let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.existand ucube cex badstates)) in
        synthesizeSafetyRec newInit
@@ -92,12 +139,7 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD =
   let transrel = 
     LLDesigMap.fold 
       (fun name bdd accbdd ->
-       (* fprintf std_formatter "Conjoining BDD for var %a\n" AST.pLLDesignator name; *)
-       let res = Bdd.dand bdd accbdd in
-       (* fprintf std_formatter "Result\n"; *)
-       (* Bdd.print (mgr#getVarPrinter ()) std_formatter res; *)
-       (* fprintf std_formatter "\n"; *)
-       (* pp_print_flush std_formatter (); *)
-       res) transBDDs (mgr#makeTrue ()) in
+       Bdd.dand bdd accbdd)
+      transBDDs (mgr#makeTrue ()) in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
   synthesize mgr transrel initBDD badstates
