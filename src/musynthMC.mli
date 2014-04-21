@@ -96,11 +96,38 @@ module AST :
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
       MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
   end
+module Debug :
+  sig
+    module Opts :
+      sig
+        val debugLevel : int ref
+        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val onlySafety : bool ref
+        val conjunctivePart : bool ref
+        val inputFileName : string ref
+      end
+    val debugOC : out_channel option ref
+    val debugFmt : Format.formatter option ref
+    val getDebugFmt : unit -> Format.formatter
+    val initDebugSubsys : string -> unit
+    val shutDownDebugSubsys : unit -> unit
+    val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+    val dflush : unit -> unit
+  end
+module Opts :
+  sig
+    val debugLevel : int ref
+    val debugFileName : string ref
+    val fairnessType : MusynthTypes.ltlFairnessT ref
+    val onlySafety : bool ref
+    val conjunctivePart : bool ref
+    val inputFileName : string ref
+    val numSolsRequested : int ref
+  end
 type bddType = Cudd.Man.d Cudd.Bdd.t
 val fixPoint : ('a -> 'a) -> 'a -> 'a
 val post :
   < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getNumMinTerms : 'a Cudd.Bdd.t -> float;
     getSubstTableP2U : unit -> 'a Cudd.Bdd.t array; .. > ->
   'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
 val pre :
@@ -108,54 +135,54 @@ val pre :
     getSubstTableU2P : unit -> 'a Cudd.Bdd.t array; .. > ->
   'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
 val explain :
-  < getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-    getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getManager : unit -> 'a Cudd.Man.t;
-    getNumMinTerms : 'a Cudd.Bdd.t -> float;
-    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-    getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-    makeFalse : unit -> 'a Cudd.Bdd.t;
-    printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'b;
-    .. > ->
-  'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> unit
+  < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+    getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+    getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+    getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+    getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+    makeFalse : unit -> 'b Cudd.Bdd.t;
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> unit
 val synthForwardSafety :
-  < getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-    getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getManager : unit -> 'a Cudd.Man.t;
-    getNumMinTerms : 'a Cudd.Bdd.t -> float;
-    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-    getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-    makeFalse : unit -> 'a Cudd.Bdd.t;
-    printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-    printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-    .. > ->
-  'a Cudd.Bdd.t ->
-  'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t MusynthTypes.synthExitStatT
+  < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+    getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+    getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+    getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+    makeFalse : unit -> 'b Cudd.Bdd.t;
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+  'b Cudd.Bdd.t ->
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t MusynthTypes.synthExitStatT
 val synthesize :
-  < getAllButParamCube : unit -> 'a Cudd.Bdd.t;
-    getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-    getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getManager : unit -> 'a Cudd.Man.t;
-    getNumMinTerms : 'a Cudd.Bdd.t -> float;
-    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-    getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-    makeFalse : unit -> 'a Cudd.Bdd.t;
-    printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-    printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-    .. > ->
-  'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
+  < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+    getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+    getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+    getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+    getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+    makeFalse : unit -> 'b Cudd.Bdd.t;
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
 val synthFrontEnd :
-  < getAllButParamCube : unit -> 'a Cudd.Bdd.t;
-    getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-    getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getManager : unit -> 'a Cudd.Man.t;
-    getNumMinTerms : 'a Cudd.Bdd.t -> float;
-    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-    getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-    getVarPrinter : unit -> Format.formatter -> int -> unit;
-    makeFalse : unit -> 'a Cudd.Bdd.t; makeTrue : unit -> 'a Cudd.Bdd.t;
-    printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-    printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-    .. > ->
-  'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
-  'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
+  < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+    getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+    getConstraintsOnParams : unit -> 'b Cudd.Bdd.t;
+    getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+    getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+    getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+    getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+    makeFalse : unit -> 'b Cudd.Bdd.t; makeTrue : unit -> 'b Cudd.Bdd.t;
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+  'b Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t

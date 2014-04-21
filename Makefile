@@ -28,6 +28,7 @@ GENSRC= \
 MODULES= \
 	musynthTypes \
 	musynthOptions \
+	musynthDebug \
 	musynthAST \
 	musynthUtils \
 	musynthParser \

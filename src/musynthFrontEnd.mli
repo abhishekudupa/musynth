@@ -2059,11 +2059,38 @@ module MC :
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
           MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
       end
+    module Debug :
+      sig
+        module Opts :
+          sig
+            val debugLevel : int ref
+            val fairnessType : MusynthTypes.ltlFairnessT ref
+            val onlySafety : bool ref
+            val conjunctivePart : bool ref
+            val inputFileName : string ref
+          end
+        val debugOC : out_channel option ref
+        val debugFmt : Format.formatter option ref
+        val getDebugFmt : unit -> Format.formatter
+        val initDebugSubsys : string -> unit
+        val shutDownDebugSubsys : unit -> unit
+        val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+        val dflush : unit -> unit
+      end
+    module Opts :
+      sig
+        val debugLevel : int ref
+        val debugFileName : string ref
+        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val onlySafety : bool ref
+        val conjunctivePart : bool ref
+        val inputFileName : string ref
+        val numSolsRequested : int ref
+      end
     type bddType = Cudd.Man.d Cudd.Bdd.t
     val fixPoint : ('a -> 'a) -> 'a -> 'a
     val post :
       < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getNumMinTerms : 'a Cudd.Bdd.t -> float;
         getSubstTableP2U : unit -> 'a Cudd.Bdd.t array; .. > ->
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
     val pre :
@@ -2071,66 +2098,68 @@ module MC :
         getSubstTableU2P : unit -> 'a Cudd.Bdd.t array; .. > ->
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
     val explain :
-      < getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getManager : unit -> 'a Cudd.Man.t;
-        getNumMinTerms : 'a Cudd.Bdd.t -> float;
-        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-        makeFalse : unit -> 'a Cudd.Bdd.t;
-        printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'b;
-        .. > ->
-      'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> unit
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+        getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        makeFalse : unit -> 'b Cudd.Bdd.t;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> unit
     val synthForwardSafety :
-      < getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getManager : unit -> 'a Cudd.Man.t;
-        getNumMinTerms : 'a Cudd.Bdd.t -> float;
-        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-        makeFalse : unit -> 'a Cudd.Bdd.t;
-        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-        printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-        .. > ->
-      'a Cudd.Bdd.t ->
-      'a Cudd.Bdd.t ->
-      'a Cudd.Bdd.t -> 'a Cudd.Bdd.t MusynthTypes.synthExitStatT
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        makeFalse : unit -> 'b Cudd.Bdd.t;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t ->
+      'b Cudd.Bdd.t ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t MusynthTypes.synthExitStatT
     val synthesize :
-      < getAllButParamCube : unit -> 'a Cudd.Bdd.t;
-        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getManager : unit -> 'a Cudd.Man.t;
-        getNumMinTerms : 'a Cudd.Bdd.t -> float;
-        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-        makeFalse : unit -> 'a Cudd.Bdd.t;
-        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-        printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-        .. > ->
-      'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        makeFalse : unit -> 'b Cudd.Bdd.t;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
     val synthFrontEnd :
-      < getAllButParamCube : unit -> 'a Cudd.Bdd.t;
-        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
-        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getManager : unit -> 'a Cudd.Man.t;
-        getNumMinTerms : 'a Cudd.Bdd.t -> float;
-        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
-        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-        getVarPrinter : unit -> Format.formatter -> int -> unit;
-        makeFalse : unit -> 'a Cudd.Bdd.t; makeTrue : unit -> 'a Cudd.Bdd.t;
-        printCubes : int -> Format.formatter -> 'a Cudd.Bdd.t -> 'b;
-        printStateVarsInCube : Format.formatter -> Cudd.Man.tbool array -> 'c;
-        .. > ->
-      'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
-      'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+        getConstraintsOnParams : unit -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubePrinter : unit -> Format.formatter -> 'a -> unit;
+        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        makeFalse : unit -> 'b Cudd.Bdd.t; makeTrue : unit -> 'b Cudd.Bdd.t;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
   end
 module Opts :
   sig
     val debugLevel : int ref
+    val debugFileName : string ref
     val fairnessType : MusynthTypes.ltlFairnessT ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
     val inputFileName : string ref
+    val numSolsRequested : int ref
   end
 module Utils :
   sig
@@ -2832,29 +2861,63 @@ module Mgr :
     module Opts :
       sig
         val debugLevel : int ref
+        val debugFileName : string ref
         val fairnessType : MusynthTypes.ltlFairnessT ref
         val onlySafety : bool ref
         val conjunctivePart : bool ref
         val inputFileName : string ref
+        val numSolsRequested : int ref
+      end
+    module Debug :
+      sig
+        module Opts :
+          sig
+            val debugLevel : int ref
+            val fairnessType : MusynthTypes.ltlFairnessT ref
+            val onlySafety : bool ref
+            val conjunctivePart : bool ref
+            val inputFileName : string ref
+          end
+        val debugOC : out_channel option ref
+        val debugFmt : Format.formatter option ref
+        val getDebugFmt : unit -> Format.formatter
+        val initDebugSubsys : string -> unit
+        val shutDownDebugSubsys : unit -> unit
+        val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+        val dflush : unit -> unit
       end
     class bddManager :
       object
         val mutable bitNameToBddMap :
           Cudd.Man.d Cudd.Bdd.t MusynthTypes.StringMap.t
         val mutable cachedAllButParamCube : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedAllVarPrinter :
+          (Format.formatter -> Cudd.Man.tbool array -> unit) option
+        val mutable cachedConstraintsOnAllVars : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedConstraintsOnParams : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedCubePrinter :
+          (Format.formatter -> Cudd.Man.tbool array -> unit) option
         val mutable cachedP2USubstTable : Cudd.Man.d Cudd.Bdd.t array option
+        val mutable cachedParamVarCube : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedParamVarPrinter :
+          (Format.formatter -> Cudd.Man.tbool array -> unit) option
         val mutable cachedPrimedVarCube : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedStateVarPrinter :
+          (Format.formatter -> Cudd.Man.tbool array -> unit) option
         val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
         val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
         val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
         val mutable manager : Cudd.Man.d Cudd.Man.t
-        val mutable numTotalBits : int
+        val mutable numTotalBits : MusynthTypes.IntSet.elt
+        val mutable pStateBitSet : MusynthTypes.IntSet.t
+        val mutable paramBitSet : MusynthTypes.IntSet.t
         val mutable paramVars : MusynthTypes.LLDesigSet.t
+        val mutable stateBitSet : MusynthTypes.IntSet.t
         val mutable stateVars :
           MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t
         val mutable varMap :
-          (MusynthTypes.LLDesigSet.elt list * int * int *
-           MusynthTypes.StringMap.key list *
+          (MusynthTypes.LLDesigSet.elt list * MusynthTypes.IntSet.elt * 
+           int * MusynthTypes.StringMap.key list *
            Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t *
            MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
            (Cudd.Man.tbool array -> MusynthTypes.LLDesigSet.elt) *
@@ -2863,46 +2926,68 @@ module Mgr :
         method private checkVarReregister :
           MusynthTypes.LLDesigMap.key ->
           MusynthTypes.LLDesigSet.elt list ->
-          MusynthTypes.LLDesigSet.elt list
+          MusynthTypes.LLDesigSet.elt list option
+        method cubeOfMinTerm : Cudd.Man.tbool array -> Cudd.Man.d Cudd.Bdd.t
+        method private determinizeOnSet :
+          MusynthTypes.IntSet.t ->
+          Cudd.Man.tbool array -> Cudd.Man.tbool array
         method getAllButParamCube : unit -> Cudd.Man.d Cudd.Bdd.t
+        method getAllVarPrinter :
+          unit -> Format.formatter -> Cudd.Man.tbool array -> unit
+        method getBitPrinter :
+          unit -> Format.formatter -> MusynthTypes.IntMap.key -> unit
+        method getConstraintsOnAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
+        method getConstraintsOnParams : unit -> Cudd.Man.d Cudd.Bdd.t
         method private getCubeForOneVar :
           MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+        method getCubeForParamVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubePrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
-        method getManager : unit -> Cudd.Man.d Cudd.Man.t
         method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
-        method getNumTotalBits : unit -> int
+        method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
+        method getParamVarPrinter :
+          unit -> Format.formatter -> Cudd.Man.tbool array -> unit
+        method getPeakBDDSize : unit -> int
+        method getStateVarPrinter :
+          unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
         method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
-        method getVarPrinter :
-          unit -> Format.formatter -> MusynthTypes.IntMap.key -> unit
         method private invalidateCaches : unit -> unit
         method private lg : int -> int
         method lookupVar :
           MusynthTypes.LLDesigMap.key ->
-          (MusynthTypes.LLDesigSet.elt list * int * int *
-           MusynthTypes.StringMap.key list *
+          (MusynthTypes.LLDesigSet.elt list * MusynthTypes.IntSet.elt * 
+           int * MusynthTypes.StringMap.key list *
            Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t *
            MusynthTypes.LLDesigMap.key MusynthTypes.IntMap.t *
            (Cudd.Man.tbool array -> MusynthTypes.LLDesigSet.elt) *
            Cudd.Man.d Cudd.Bdd.t)
           option
         method private makeBDDForRepr :
-          int -> int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
+          MusynthTypes.IntSet.elt ->
+          int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
         method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
         method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
+        method pickMinTermOnPStates :
+          Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
+        method pickMinTermOnParams :
+          Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
+        method pickMinTermOnStates :
+          Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
         method printCubes :
+          int -> Format.formatter -> Cudd.Man.d Cudd.Bdd.t -> unit
+        method printParamVars :
           int -> Format.formatter -> Cudd.Man.d Cudd.Bdd.t -> unit
         method printStateVars :
           int -> Format.formatter -> Cudd.Man.d Cudd.Bdd.t -> unit
-        method printStateVarsInCube :
-          Format.formatter -> Cudd.Man.tbool array -> unit
         method prop2BDD : MusynthTypes.llPropT -> Cudd.Man.d Cudd.Bdd.t
         method private registerBits :
           MusynthTypes.LLDesigMap.key ->
-          int -> int * MusynthTypes.StringMap.key list
+          int -> MusynthTypes.IntSet.elt * MusynthTypes.StringMap.key list
+        method private registerBitsForVar :
+          MusynthTypes.IntSet.elt -> int -> MusynthTypes.IntSet.t
         method registerParamVariable :
           MusynthTypes.LLDesigMap.key ->
           MusynthTypes.LLDesigSet.elt list -> unit
@@ -2917,5 +3002,23 @@ module Mgr :
           Cudd.Man.d Cudd.Bdd.t array ->
           MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigMap.key -> unit
       end
+  end
+module Debug :
+  sig
+    module Opts :
+      sig
+        val debugLevel : int ref
+        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val onlySafety : bool ref
+        val conjunctivePart : bool ref
+        val inputFileName : string ref
+      end
+    val debugOC : out_channel option ref
+    val debugFmt : Format.formatter option ref
+    val getDebugFmt : unit -> Format.formatter
+    val initDebugSubsys : string -> unit
+    val shutDownDebugSubsys : unit -> unit
+    val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+    val dflush : unit -> unit
   end
 val musynthProcess : string option -> unit

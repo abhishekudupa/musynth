@@ -5,6 +5,8 @@ open Cudd
 open Format
 
 module AST = MusynthAST
+module Debug = MusynthDebug
+module Opts = MusynthOptions
 
 type bddType = (Man.d Bdd.t)
 
@@ -20,8 +22,6 @@ let post mgr transRel states =
   let ucube = mgr#getCubeForUnprimedVars () in
   let substTable = mgr#getSubstTableP2U () in
   let postimage = Bdd.existand ucube states transRel in
-  (* fprintf std_formatter "Postimage has %e states\n" (mgr#getNumMinTerms postimage); *)
-  (* pp_print_flush std_formatter (); *)
   Bdd.vectorcompose substTable postimage
 
 let pre mgr transRel states =
@@ -50,96 +50,110 @@ let explain mgr initstates transRel errstate =
   (* now extract a sequence of pres for the error state in the list *)
   (* Not tail recursive, but WTF? we're already fucked anyway with  *)
   (* a fucking counterexample. Fuck efficiency at this point!       *)
+  let k = ref 0 in
+  let printer = mgr#getStateVarPrinter () in
   let rec foldStateList myState stateK =
     match stateK with
     | [] -> ()
     | head :: rest ->
+       Debug.dprintf 2 "Constructing pre...@,";
+       assert (not (Bdd.is_false myState));
        let preMyState = pre mgr transRel myState in
+       assert (not (Bdd.is_false preMyState));
        let preMyState = Bdd.dand preMyState head in
-       let minTerm = Bdd.pick_minterm preMyState in
-       foldStateList (Bdd.cube_of_minterm (mgr#getManager ()) minTerm) rest;
-       fprintf std_formatter "State:\n";
-       fprintf std_formatter "----------------------------\n";
-       mgr#printStateVarsInCube std_formatter minTerm;
-       fprintf std_formatter "\n----------------------------\n\n\n";
+       assert (not (Bdd.is_false preMyState));
+       let minTerm = mgr#pickMinTermOnStates preMyState in
+       foldStateList (mgr#cubeOfMinTerm minTerm) rest;
+       Debug.dprintf 3 "Cube %d:@," !k;
+       Debug.dprintf 3 "----------------------------------------------------------------------@,";
+       Debug.dprintf 3 "%a" (mgr#getCubePrinter ()) minTerm;
+       Debug.dprintf 3 "----------------------------------------------------------------------@,@,";
+       Debug.dprintf 2 "State %d:@," !k;
+       k := !k + 1;
+       Debug.dprintf 2 "----------------------------------------------------------------------@,";
+       Debug.dprintf 2 "%a" printer minTerm;
+       Debug.dprintf 2 "----------------------------------------------------------------------@,@,";
   in
-  foldStateList errstate stateList
+  foldStateList errstate stateList;
+  Debug.dprintf 2 "Ending with erroneous state:@,";
+  Debug.dprintf 2 "----------------------------------------------------------------------@,";
+  let minTerm = mgr#pickMinTermOnStates errstate in
+  Debug.dprintf 2 "%a" printer minTerm;
+  Debug.dprintf 2 "----------------------------------------------------------------------@,@,"
 
 
 let rec synthForwardSafety mgr transrel initStates badstates =
-
+  let itercount = ref 0 in
   let rec computeNextOrCEX reach frontier =
-    fprintf std_formatter "Reach has %e states\n" 
-            (mgr#getNumMinTerms reach);
-    fprintf std_formatter "Frontier has %e states\n"
-            (mgr#getNumMinTerms frontier);
-    pp_print_flush std_formatter ();
     let newReach = Bdd.dor reach frontier in
-    fprintf std_formatter "newReach has %e states\n" 
-            (mgr#getNumMinTerms newReach);
-    pp_print_flush std_formatter ();
+
+    Debug.dprintf 1 "@,@,Iteration %d:@," !itercount;
+    Debug.dprintf 1 "Reach has %e states@," 
+                  (mgr#getNumMinTerms reach);
+    Debug.dprintf 1 "Frontier has %e states@,"
+                  (mgr#getNumMinTerms frontier);
+    Debug.dprintf 1 "newReach has %e states@," 
+                  (mgr#getNumMinTerms newReach);
+    Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
+
+    itercount := !itercount + 1;
 
     if (Bdd.is_leq newReach reach) then
       SynthSafe
     else if (not (Bdd.is_inter_empty newReach badstates)) then
       begin
-        fprintf std_formatter "Found counter example\n";
-        fprintf std_formatter "Counter example has %e states\n" 
-                (mgr#getNumMinTerms (Bdd.dand newReach badstates));
-        mgr#printCubes 1 std_formatter (Bdd.dand newReach badstates);
-        fprintf std_formatter "Counterexample state:\n";
-        let errstate = Bdd.pick_minterm (Bdd.dand newReach badstates) in
-        mgr#printStateVarsInCube std_formatter errstate;
-        fprintf std_formatter "Backwards trail from initial state:\n\n";
-        explain mgr initStates transrel (Bdd.cube_of_minterm (mgr#getManager ()) errstate);
-        pp_print_flush std_formatter ();
+        let badReachStates = Bdd.dand newReach badstates in
+        let errstate = mgr#pickMinTermOnStates badReachStates in
+        Debug.dprintf 1 "@,@,Found counter example:@,@,";
+        Debug.dprintf 1 "%a@,@," (mgr#getStateVarPrinter ()) errstate;
+        Debug.dprintf 2 "Trail to counterexample from initial state:@,@,";
+        if (!Opts.debugLevel >= 2) then
+          explain mgr initStates transrel (mgr#cubeOfMinTerm errstate)
+        else
+          ();
         SynthCEX newReach
       end
     else
       let newStates = Bdd.dand frontier (Bdd.dnot reach) in
-      fprintf std_formatter "Computing post with %e states\n" (mgr#getNumMinTerms newStates);
-      pp_print_flush std_formatter ();
+      Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTerms newStates);
       let postNew = post mgr transrel newStates in
-      fprintf std_formatter "Post has %e states\n" (mgr#getNumMinTerms postNew);
-      pp_print_flush std_formatter ();
+      Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTerms postNew);
       computeNextOrCEX newReach postNew
   in
-  
-  (* fprintf std_formatter "Transition bdd:\n"; *)
-  (* Bdd.print (mgr#getVarPrinter ()) std_formatter transrel; *)
-  (* fprintf std_formatter "\n"; *)
-  (* pp_print_flush std_formatter (); *)
   computeNextOrCEX (mgr#makeFalse ()) initStates
 
 (* returns the bdd corresponding to the parameter values which work *)
 let synthesize mgr transrel initstates badstates =
   let ucube = mgr#getCubeForUnprimedVars () in
+  let iteration = ref 0 in
 
   let rec synthesizeSafetyRec refinedInit =
-    fprintf std_formatter "Attempting synthesis with %e candidates\n"
-            (mgr#getNumMinTerms refinedInit);
-    pp_print_flush std_formatter ();
+    Debug.dprintf 1 "CEGIS iteration %d...@," !iteration;
+    iteration := !iteration + 1;
+    Debug.dprintf 1 "Attempting synthesis with %e candidates@,"
+                  (mgr#getNumMinTerms refinedInit);
     let synthStat = synthForwardSafety mgr transrel refinedInit badstates in
     match synthStat with
-    | SynthSafe -> 
-       Bdd.exist (mgr#getAllButParamCube ()) refinedInit
+    | SynthSafe ->
+       Debug.dprintf 1 "Successfully synthesized solution!@,";
+       let r = Bdd.exist (mgr#getAllButParamCube ()) refinedInit in
+       assert (not (Bdd.is_false r));
+       Debug.dprintf 1 "Returning Solution!@,";
+       r
     | SynthCEX cex -> 
        let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.existand ucube cex badstates)) in
        synthesizeSafetyRec newInit
   in
-  fprintf std_formatter "initStates has %e states\n" (mgr#getNumMinTerms initstates);
-  pp_print_flush std_formatter ();
+  Debug.dprintf 1 "initStates has %e states@," (mgr#getNumMinTerms initstates);
   synthesizeSafetyRec initstates
 
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
 let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD =
-  Bdd.print (mgr#getVarPrinter ()) std_formatter initBDD;
-  fprintf std_formatter "\n";
   let transrel = 
     LLDesigMap.fold 
       (fun name bdd accbdd ->
        Bdd.dand bdd accbdd)
       transBDDs (mgr#makeTrue ()) in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
-  synthesize mgr transrel initBDD badstates
+  synthesize mgr transrel (Bdd.dand initBDD (mgr#getConstraintsOnParams ())) badstates

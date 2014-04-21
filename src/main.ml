@@ -3,6 +3,7 @@ open Printf
 
 module Opts = MusynthOptions
 module Front = MusynthFrontEnd
+module Debug = MusynthDebug
 
 let debug = ref true
 
@@ -10,10 +11,13 @@ let printUsage arg0 =
   fprintf stderr "Usage:\n";
   fprintf stderr "%s [options] filename\n" arg0;
   fprintf stderr "Permitted options:\n";
-  fprintf stderr "-v <num>         : Control verbosity\n";
-  fprintf stderr "-f <strong|weak> : Type of fairness to enforce\n";
-  fprintf stderr "-s               : Only synthesize for safety properties\n";
-  fprintf stderr "-c               : Use conjunctive partitioning of transition relation\n";
+  fprintf stderr ("-v <num >= 0>   : Control verbosity. Output will be in \"<filename>.debug\" by default. " ^^ 
+                    "Use the -df option to specify a different filename.\n");
+  fprintf stderr "-df <filename>   : Record debugging information into <filename>.\n";
+  fprintf stderr "-f <strong|weak> : Type of fairness to enforce.\n";
+  fprintf stderr "-s               : Only synthesize for safety properties.\n";
+  fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
+  fprintf stderr "-n               : Number of solutions to print (default 1).\n";
   fprintf stderr "\n\n";
   ignore (exit 1)
           
@@ -58,6 +62,10 @@ let processOptions arglist =
                Opts.onlySafety := true; rest
             | "-c" :: rest ->
                Opts.conjunctivePart := true; rest
+            | "-n" :: num :: rest ->
+               Opts.numSolsRequested := (int_of_string num); rest
+            | "-df" :: fname :: rest ->
+               Opts.debugFileName := fname; rest
             | str :: rest ->
                if !Opts.inputFileName <> "" then
                  begin
@@ -79,6 +87,7 @@ let _ =
   Printexc.record_backtrace true;
   let arglist = Array.to_list Sys.argv in
   processOptions arglist;
+  
   let filename = !Opts.inputFileName in
   if filename = "" then
     begin
@@ -87,10 +96,16 @@ let _ =
     end
   else
     begin
+      Debug.initDebugSubsys (if !Opts.debugFileName <> "" then 
+                               !Opts.debugFileName 
+                             else 
+                               (filename ^ ".debug"));
       try
-        ignore (Front.musynthProcess (Some filename))
+        Front.musynthProcess (Some filename);
+        Debug.shutDownDebugSubsys ()
       with
       | _ as ex ->
          Printf.fprintf stderr "Exception: %s\n" (exToString ex);
-         Printf.fprintf stderr "Backtrace:\n%s" (Printexc.get_backtrace ())
+         Printf.fprintf stderr "Backtrace:\n%s" (Printexc.get_backtrace ());
+         Debug.shutDownDebugSubsys ()
     end

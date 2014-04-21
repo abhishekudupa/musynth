@@ -90,7 +90,7 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
                CV[d] foreach d in DataType : complete,
 
                CVI1[d] foreach d in DataType : complete,
-               CVI2 : incomplete, 
+               CVI2 : complete, 
                CVI3 : complete,
                CVI4[d] foreach d in DataType : complete };
 
@@ -124,11 +124,9 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
         (CVI2, WBAck2Cache'[c], CI),
 
         (CV[d], Inv2Cache'[c], CVI4[d] foreach d in DataType),
-        (CVI4[d], InvAck2Dir[c][d], CI foreach d in DataType)
+        (CVI4[d], InvAck2Dir[c][d], CI foreach d in DataType),
 
-        /*        
         (CVI2, Inv2Cache'[c], CI)
-        */
     };
 }
 
@@ -139,7 +137,7 @@ PartialAutomaton Directory
                DIV2[c] foreach c in CacheIDType : complete,
                DV[c] foreach c in CacheIDType : complete,
                DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
-               DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : incomplete,
+               DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
                DVV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
                DVV4[c] foreach c in CacheIDType : complete,
                DVI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
@@ -171,11 +169,9 @@ PartialAutomaton Directory
         (DVV4[c], Ack2Dir'[c], DV[c] foreach c in CacheIDType),
 
         (DV[c], WB2Dir'[c][d], DVI1[c][d] foreach c in CacheIDType foreach d in DataType),
-        (DVI1[c][d], WBAck2Cache[c], DI[d] foreach c in CacheIDType foreach d in DataType)
+        (DVI1[c][d], WBAck2Cache[c], DI[d] foreach c in CacheIDType foreach d in DataType),
 
-        /*
         (DVV2[c1][c2], WB2Dir'[c1][d], DVV3[c2][d] foreach c1, c2 in CacheIDType foreach d in DataType (!= c1 c2))
-        */
     };
 }
 

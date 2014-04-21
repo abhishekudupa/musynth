@@ -1,7 +1,7 @@
 (* routines for parsing, etc *)
 
 open MusynthTypes
-open Format
+open Printf
 open Buffer
 open Lexing
 
@@ -15,6 +15,7 @@ module MC = MusynthMC
 module Opts = MusynthOptions
 module Utils = MusynthUtils
 module Mgr = MusynthBDDManager
+module Debug = MusynthDebug
 
 let musynthProcess filename =
   let inchan = 
@@ -22,39 +23,39 @@ let musynthProcess filename =
      | Some fname -> open_in fname
      | None -> stdin) in
   let lexbuf = Lexing.from_channel inchan in
-  try 
+  try
+    printf "Parsing... "; flush stdout;
     let prog = Parser.prog MusynthLexer.token lexbuf in
+    printf "Done!\n"; flush stdout;
     let symtab = ST.createSymTab () in
-    CK.checkProg symtab prog;
-    fprintf err_formatter "Semantic checks complete\n";
-    AST.pProg std_formatter prog;
+    printf "Performing Semantic Checks... "; flush stdout;
+    CK.checkProg symtab prog; 
+    printf "Done!\n"; flush stdout;
+    Debug.dprintf 1 "Program:@,@,%a@," AST.pProg prog;
+    printf "Lowering Program... "; flush stdout;
     let lprog = Lower.lowerProg symtab prog in
+    printf "Done!\n"; flush stdout;
     (* run low level checks *)
+    printf "Performing Checks on Lowered Program... "; flush stdout;
     CK.checkLLProg lprog;
+    printf "Done!\n"; flush stdout;
 
-    if (!Opts.debugLevel >= 1) then
-      begin
-        match filename with
-        | Some fname ->
-           let oc, fmt = Utils.makeFormatterOfName (fname ^ ".lowered") in
-           AST.pLLProg fmt lprog;
-           pp_print_flush fmt ();
-           close_out oc
-        | None -> 
-           AST.pLLProg std_formatter lprog;
-           pp_print_flush std_formatter ()
-      end
-    else
-      ();
+    Debug.dprintf 1 "%a" AST.pLLProg lprog;
 
     let mgr = new Mgr.bddManager in
+    printf "Encoding Program to BDDs... "; flush stdout;
     let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg mgr lprog in
+    printf "Done!\n"; flush stdout;
+    printf "Attempting to Synthesize... "; flush stdout;
     let solbdd = MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD in
-    fprintf std_formatter "\n\nSolutions:\n";
-    mgr#printCubes 0 std_formatter solbdd
+    printf "Done!\n"; flush stdout;
+    printf "\n\nSolutions:\n"; flush stdout;
+    Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd; 
+    Format.pp_print_flush Format.std_formatter ();
+    printf "Peak BDD node count = %d nodes\n\n" (mgr#getPeakBDDSize ()); flush stdout
   with
   | ParseError (errstr, loc) -> 
-     printf "%s\n%a\n" errstr AST.pLoc loc; 
+     Format.printf "%s\n%a\n" errstr AST.pLoc loc; 
      raise (ParseError (errstr, loc))
   | Parsing.Parse_error ->
      begin
@@ -62,16 +63,16 @@ let musynthProcess filename =
        let endpos = Lexing.lexeme_end_p lexbuf in
        let tok = Lexing.lexeme lexbuf in
        let buf = Buffer.create 16 in
-       let fmt = formatter_of_buffer buf in
-       fprintf fmt "Syntax Error: on token %s" tok;
-       pp_print_flush fmt ();
-       pp_print_flush std_formatter();
+       let fmt = Format.formatter_of_buffer buf in
+       Format.fprintf fmt "Syntax Error: on token %s" tok;
+       Format.pp_print_flush fmt ();
+       Format.pp_print_flush Format.std_formatter ();
        let loc = (startpos.pos_lnum,
                   (startpos.pos_cnum - startpos.pos_bol),
                   endpos.pos_lnum, (endpos.pos_cnum - endpos.pos_bol)) in
        let newex = ParseError (Buffer.contents buf, loc) in
-       printf "%s\n%a\n" (Buffer.contents buf) AST.pLoc loc;
-       pp_print_flush std_formatter ();
+       Format.printf "%s\n%a\n" (Buffer.contents buf) AST.pLoc loc;
+       Format.pp_print_flush Format.std_formatter ();
        raise newex
      end
        

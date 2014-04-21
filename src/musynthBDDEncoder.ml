@@ -7,6 +7,7 @@ open Format
 module AST = MusynthAST
 module Utils = MusynthUtils
 module Safety = MusynthSafety
+module Debug = MusynthDebug
 
 let encodeStateVariables mgr automaton =
   let name, states = 
@@ -113,11 +114,11 @@ let encodeProg mgr prog =
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
   let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
-  fprintf std_formatter "Transition Relations:\n";
+  Debug.dprintf 2 "Transition Relations:\n";
   LLDesigMap.iter
     (fun name rel ->
-     fprintf std_formatter "%a:\n" AST.pLLDesignator name;
-     fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations;
+     Debug.dprintf 2 "%a:@," AST.pLLDesignator name;
+     Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations;
   let invariants =
     List.fold_left
       (fun propacc spec ->
@@ -126,10 +127,10 @@ let encodeProg mgr prog =
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
-  fprintf std_formatter "Deadlock Freedom Property:\n";
-  fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP dlfProp);
-  fprintf std_formatter "Bad State Property:\n";
-  fprintf std_formatter "%a\n\n" AST.pLLProp (Utils.canonicalizePropFP badstates);
+  Debug.dprintf 2 "Deadlock Freedom Property:@,";
+  Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP dlfProp);
+  Debug.dprintf 2 "Bad State Property:@,";
+  Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP badstates);
           
   let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
@@ -139,11 +140,7 @@ let encodeProg mgr prog =
       tranrelations LLDesigMap.empty
   in
   let badStateBDD = mgr#prop2BDD badstates in
-  fprintf std_formatter "InitProp:\n%a\n" AST.pLLProp (Utils.canonicalizePropFP initconstraints);
-  pp_print_flush std_formatter ();
+  Debug.dprintf 2 "InitProp:@,%a@," AST.pLLProp (Utils.canonicalizePropFP initconstraints);
   let initBDD = mgr#prop2BDD initconstraints in
-  (* fprintf std_formatter "InitBDD:\n"; *)
-  (* Bdd.print (mgr#getVarPrinter ()) std_formatter initBDD; *)
-  (* fprintf std_formatter "\n"; *)
   (transBDDs, initBDD, badStateBDD, dlfBDD)
     
