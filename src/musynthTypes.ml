@@ -335,3 +335,7 @@ type 'a synthExitStatT =
   | SynthSafe
   | SynthCEX of 'a
 
+(* type for constructing fairness specs *)
+type schedFairnessSpec =
+  | SchedFairJustice of llPropT
+  | SchedFairCompassion of llPropT * llPropT

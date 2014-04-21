@@ -81,6 +81,18 @@ let explain mgr initstates transRel errstate =
   Debug.dprintf 2 "%a" printer minTerm;
   Debug.dprintf 2 "----------------------------------------------------------------------@,@,"
 
+let countCycles mgr states transRel =
+  let rec countCyclesRec mgr states transRel =
+    let next = post mgr transRel states in
+    let refinedStates = (Bdd.dand next states) in
+    if (Bdd.is_equal refinedStates states) then
+      mgr#getNumMinTermsState states
+    else if (Bdd.is_false refinedStates) then
+      0.0
+    else
+      countCyclesRec mgr refinedStates transRel
+  in
+  countCyclesRec mgr states transRel
 
 let rec synthForwardSafety mgr transrel initStates badstates =
   let itercount = ref 0 in
@@ -95,6 +107,11 @@ let rec synthForwardSafety mgr transrel initStates badstates =
     Debug.dprintf 1 "newReach has %e states@," 
                   (mgr#getNumMinTermsState newReach);
     Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
+    Debug.dprintf 1 "BDD size for newReach abstracted on params = %d nodes@," 
+                  (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach));
+    let ncycles = countCycles mgr newReach transrel in
+    Debug.dprintf 1 "%e states form cycles in newReach@," ncycles;
+    Debug.dflush ();
 
     itercount := !itercount + 1;
 
@@ -118,6 +135,7 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTermsState newStates);
       let postNew = post mgr transrel newStates in
       Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTermsState postNew);
+      Debug.dflush ();
       computeNextOrCEX newReach postNew
   in
   computeNextOrCEX (mgr#makeFalse ()) initStates

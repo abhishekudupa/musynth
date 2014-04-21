@@ -1,85 +1,3 @@
-module LTL :
-  sig
-    module StringMap :
-      sig
-        type key = string
-        type 'a t = 'a Ltl3ba.StringMap.t
-        val empty : 'a t
-        val is_empty : 'a t -> bool
-        val mem : key -> 'a t -> bool
-        val add : key -> 'a -> 'a t -> 'a t
-        val singleton : key -> 'a -> 'a t
-        val remove : key -> 'a t -> 'a t
-        val merge :
-          (key -> 'a option -> 'b option -> 'c option) ->
-          'a t -> 'b t -> 'c t
-        val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-        val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
-        val iter : (key -> 'a -> unit) -> 'a t -> unit
-        val fold : (key -> 'a -> 'b -> 'b) -> 'a t -> 'b -> 'b
-        val for_all : (key -> 'a -> bool) -> 'a t -> bool
-        val exists : (key -> 'a -> bool) -> 'a t -> bool
-        val filter : (key -> 'a -> bool) -> 'a t -> 'a t
-        val partition : (key -> 'a -> bool) -> 'a t -> 'a t * 'a t
-        val cardinal : 'a t -> int
-        val bindings : 'a t -> (key * 'a) list
-        val min_binding : 'a t -> key * 'a
-        val max_binding : 'a t -> key * 'a
-        val choose : 'a t -> key * 'a
-        val split : key -> 'a t -> 'a t * 'a option * 'a t
-        val find : key -> 'a t -> 'a
-        val map : ('a -> 'b) -> 'a t -> 'b t
-        val mapi : (key -> 'a -> 'b) -> 'a t -> 'b t
-      end
-    type ltl3baprop =
-      Ltl3ba.ltl3baprop =
-        LTL3BAPropTrue
-      | LTL3BAPropFalse
-      | LTL3BAPropLiteral of string
-      | LTL3BAPropNegation of ltl3baprop
-      | LTL3BAPropConjunction of ltl3baprop list
-      | LTL3BAPropDisjunction of ltl3baprop list
-    type ltl3baedge = string * ltl3baprop * string
-    type ltl3banode = string * bool * bool * ltl3baedge list
-    type ltl3baautomaton = ltl3banode StringMap.t * string list
-    type ltl3bapropLL = bool * bool * string * bool
-    type ltl3bacubeLL = ltl3bapropLL array
-    type ltl3baedgeLL = string * ltl3bacubeLL array * string
-    type ltl3banodeLL = string * bool * bool * ltl3baedgeLL array
-    type ltl3baautomatonLL = ltl3banodeLL array
-    val ltl3baproptostring : ltl3baprop -> string
-    val ltl3baToDot :
-      ('a * bool * bool * (string * ltl3baprop * string) list) StringMap.t *
-      'b -> string -> unit
-    external ltl3ba_mk_ba : string -> bool -> bool -> unit
-      = "ltl3ba_native_mk_ba"
-    external ltl3ba_translate_ba : unit -> ltl3baautomatonLL
-      = "ltl3ba_native_translate_ba"
-    external ltl3ba_teardown : unit -> unit = "ltl3ba_native_teardown"
-    val raiseLLProp : bool * bool * string * bool -> ltl3baprop
-    val raiseCube : (bool * bool * string * bool) list -> ltl3baprop
-    val raiseCubeList :
-      (bool * bool * string * bool) array list -> ltl3baprop
-    val raiseLLEdge :
-      'a * (bool * bool * string * bool) array array * 'b ->
-      'a * ltl3baprop * 'b
-    val raiseLLNode :
-      'a * 'b * 'c *
-      ('d * (bool * bool * string * bool) array array * 'e) array ->
-      'a * 'b * 'c * ('d * ltl3baprop * 'e) list
-    val raiseLLAut :
-      (StringMap.key * bool * 'a *
-       ('b * (bool * bool * string * bool) array array * 'c) array)
-      array ->
-      (StringMap.key * bool * 'a * ('b * ltl3baprop * 'c) list) StringMap.t *
-      StringMap.key list
-    val ltl3ba :
-      string ->
-      bool ->
-      bool ->
-      (StringMap.key * bool * bool * (string * ltl3baprop * string) list)
-      StringMap.t * StringMap.key list
-  end
 module Utils :
   sig
     module AST :
@@ -288,19 +206,21 @@ module Utils :
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
+    val makeFormatterOfName : string -> out_channel * Format.formatter
   end
 module Opts :
   sig
     val debugLevel : int ref
+    val debugFileName : string ref
     val fairnessType : MusynthTypes.ltlFairnessT ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
     val inputFileName : string ref
+    val numSolsRequested : int ref
+    val reorderEnabled : bool ref
+    val reorderMethod : Cudd.Man.reorder ref
+    val reorderMethods : string list
   end
-val propToLtl3BAStr :
-  MusynthTypes.llPropT ->
-  MusynthTypes.PropMap.key MusynthTypes.StringMap.t *
-  string MusynthTypes.PropMap.t * string
 val constructFairnessSpecForOneState :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT -> MusynthTypes.llPropT
@@ -309,10 +229,5 @@ val constructFairnessSpecForOneAut :
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
 val constructFairnessSpec :
   'a * MusynthTypes.llAutomatonT list * 'b * 'c -> MusynthTypes.llPropT
-val ltlspec2BA :
-  MusynthTypes.llPropT ->
-  MusynthTypes.PropMap.key MusynthTypes.StringMap.t *
-  string MusynthTypes.PropMap.t *
-  ((LTL.StringMap.key * bool * bool * (string * LTL.ltl3baprop * string) list)
-   LTL.StringMap.t * LTL.StringMap.key list)
+val ltlspec2BA : 'a -> unit
 val ltl3baProp2LLProp : 'a -> unit

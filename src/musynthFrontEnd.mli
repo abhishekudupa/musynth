@@ -2114,6 +2114,7 @@ module MC :
       'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> unit
     val synthForwardSafety :
       < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getCubeForParamVars : unit -> 'b Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
@@ -2129,6 +2130,7 @@ module MC :
     val synthesize :
       < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
         getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+        getCubeForParamVars : unit -> 'b Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
@@ -2144,6 +2146,7 @@ module MC :
       < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
         getAllButParamCube : unit -> 'b Cudd.Bdd.t;
         getConstraintsOnParams : unit -> 'b Cudd.Bdd.t;
+        getCubeForParamVars : unit -> 'b Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;

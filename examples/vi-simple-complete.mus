@@ -91,7 +91,6 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
 
                CVI1[d] foreach d in DataType : complete,
                CVI2 : complete, 
-               CVI3 : complete,
                CVI4[d] foreach d in DataType : complete };
 
     inputs {

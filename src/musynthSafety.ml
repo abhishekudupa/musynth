@@ -12,9 +12,9 @@ module AST = MusynthAST
 module Debug = MusynthDebug
 
 let constructDLFProps msglist automata =
-  Debug.dprintf 2 "Deadlock freedom props:@,";
+  (* Debug.dprintf 2 "Deadlock freedom props:@,"; *)
   List.fold_left 
     (fun prop msg ->
      let msgprop = Utils.getCSPredsForMsgAll msg automata in
-     Debug.dprintf 2 "%a@," AST.pLLProp (Utils.canonicalizePropFP msgprop);
+     (* Debug.dprintf 2 "%a@," AST.pLLProp (Utils.canonicalizePropFP msgprop); *)
      LLPropOr (msgprop, prop)) LLPropFalse msglist

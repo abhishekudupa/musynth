@@ -81,13 +81,13 @@ ChannelAutomaton RspChannel[c] foreach c in CacheIDType
 
 PartialAutomaton Cache[c] foreach c in CacheIDType
 {
-    states : { CI : complete, 
+    states : { CI : incomplete, 
 
                CIV1 : complete,
-               CIV2 : complete,
+               CIV2 : incomplete,
                CIV3[d] foreach d in DataType : complete,
 
-               CV[d] foreach d in DataType : complete,
+               CV[d] foreach d in DataType : incomplete,
 
                CVI1[d] foreach d in DataType : complete,
                CVI2 : incomplete, 
@@ -133,14 +133,14 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
 
 PartialAutomaton Directory
 {
-    states : { DI[d] foreach d in DataType : complete,
+    states : { DI[d] foreach d in DataType : incomplete,
                DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
-               DIV2[c] foreach c in CacheIDType : complete,
-               DV[c] foreach c in CacheIDType : complete,
+               DIV2[c] foreach c in CacheIDType : incomplete,
+               DV[c] foreach c in CacheIDType : incomplete,
                DVV1[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : complete,
                DVV2[c1][c2] foreach c1, c2 in CacheIDType (!= c1 c2) : incomplete,
                DVV3[c][d] foreach c in CacheIDType foreach d in DataType : complete,
-               DVV4[c] foreach c in CacheIDType : complete,
+               DVV4[c] foreach c in CacheIDType : incomplete,
                DVI1[c][d] foreach c in CacheIDType foreach d in DataType : complete };
 
     inputs {

@@ -114,11 +114,11 @@ let encodeProg mgr prog =
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
   let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
-  Debug.dprintf 2 "Transition Relations:\n";
-  LLDesigMap.iter
-    (fun name rel ->
-     Debug.dprintf 2 "%a:@," AST.pLLDesignator name;
-     Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations;
+  (* Debug.dprintf 2 "Transition Relations:\n"; *)
+  (* LLDesigMap.iter *)
+  (*   (fun name rel -> *)
+  (*    Debug.dprintf 2 "%a:@," AST.pLLDesignator name; *)
+  (*    Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations; *)
   let invariants =
     List.fold_left
       (fun propacc spec ->
@@ -127,10 +127,10 @@ let encodeProg mgr prog =
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
-  Debug.dprintf 2 "Deadlock Freedom Property:@,";
-  Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP dlfProp);
-  Debug.dprintf 2 "Bad State Property:@,";
-  Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP badstates);
+  (* Debug.dprintf 2 "Deadlock Freedom Property:@,"; *)
+  (* Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP dlfProp); *)
+  (* Debug.dprintf 2 "Bad State Property:@,"; *)
+  (* Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP badstates); *)
           
   let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
@@ -140,7 +140,7 @@ let encodeProg mgr prog =
       tranrelations LLDesigMap.empty
   in
   let badStateBDD = mgr#prop2BDD badstates in
-  Debug.dprintf 2 "InitProp:@,%a@," AST.pLLProp (Utils.canonicalizePropFP initconstraints);
+  (* Debug.dprintf 2 "InitProp:@,%a@," AST.pLLProp (Utils.canonicalizePropFP initconstraints); *)
   let initBDD = mgr#prop2BDD initconstraints in
   (transBDDs, initBDD, badStateBDD, dlfBDD)
     

@@ -283,6 +283,18 @@ let getMsgsToSyncOnFromState aut state =
   in
   LLDesigSet.elements msgs
 
+let getStatesFromWhichMsgSync aut msg =
+  let transitions = getTransitionsForAut aut in
+  let states = 
+    List.fold_left 
+      (fun accset trans ->
+       match trans with
+       | TComplete (s, m, _)
+       | TParametrizedDest (s, m, _) -> if m = msg then LLDesigSet.add s accset else accset
+       | _ -> assert false) LLDesigSet.empty transitions
+  in
+  LLDesigSet.elements states
+
 (* canonicalize a prop *)
 let rec canonicalizeProp prop =
   let sortProps prop1 prop2 =
