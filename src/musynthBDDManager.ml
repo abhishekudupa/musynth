@@ -12,6 +12,8 @@ class bddManager =
   object (self)
     val mutable manager = Man.make_d ()
     val mutable numTotalBits = 0
+    val mutable numStateBits = 0
+    val mutable numParamBits = 0
     val mutable bitNameToBddMap = StringMap.empty
     val mutable indexToBitNameMap = IntMap.empty
     val mutable varMap = LLDesigMap.empty
@@ -38,12 +40,20 @@ class bddManager =
     val mutable cachedAllVarPrinter = None
 
     initializer
-      Man.disable_autodyn manager
+      if !Opts.reorderEnabled then
+        Man.enable_autodyn manager !Opts.reorderMethod
+      else
+        Man.disable_autodyn manager
 
     method reset () =
       manager <- Man.make_d ();
-      Man.disable_autodyn manager;
+      if !Opts.reorderEnabled then
+        Man.enable_autodyn manager !Opts.reorderMethod
+      else
+        Man.disable_autodyn manager;
       numTotalBits <- 0;
+      numStateBits <- 0;
+      numParamBits <- 0;
       bitNameToBddMap <- StringMap.empty;
       indexToBitNameMap <- IntMap.empty;
       varMap <- LLDesigMap.empty;
@@ -343,6 +353,7 @@ class bddManager =
       (* register the bits as belonging to state vars and pstatevars *)
       let _, low, size, _, _, _, _, _ = LLDesigMap.find varName varMap in
       stateBitSet <- IntSet.union stateBitSet (self#registerBitsForVar low size);
+      numStateBits <- numStateBits + size;
       let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameP varMap in
       pStateBitSet <- IntSet.union pStateBitSet (self#registerBitsForVar low size)
 
@@ -351,6 +362,7 @@ class bddManager =
       paramVars <- LLDesigSet.add varName paramVars;
       (* register the bits *)
       let _, low, size, _, _, _, _, _ = LLDesigMap.find varName varMap in
+      numParamBits <- numParamBits + size;
       paramBitSet <- IntSet.union paramBitSet (self#registerBitsForVar low size)
 
     method private getCubeForOneVar varname =
@@ -475,6 +487,18 @@ class bddManager =
 
     method getNumMinTerms bdd =
       Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
+
+    method getNumMinTermsState bdd =
+      Bdd.nbminterms numStateBits (Bdd.exist 
+                                     (Bdd.dand (self#getCubeForPrimedVars ())
+                                               (self#getCubeForParamVars ()))
+                                     bdd)
+
+    method getNumMinTermsParam bdd =
+      Bdd.nbminterms numParamBits (Bdd.exist
+                                     (self#getAllButParamCube ())
+                                     bdd)
+                               
 
     method printCubes n fmt bdd =
       let n = if n = 0 then max_int else n in

@@ -472,6 +472,9 @@ module Opts :
     val conjunctivePart : bool ref
     val inputFileName : string ref
     val numSolsRequested : int ref
+    val reorderEnabled : bool ref
+    val reorderMethod : Cudd.Man.reorder ref
+    val reorderMethods : string list
   end
 module Debug :
   sig
@@ -513,6 +516,8 @@ class bddManager :
     val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
     val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
     val mutable manager : Cudd.Man.d Cudd.Man.t
+    val mutable numParamBits : int
+    val mutable numStateBits : int
     val mutable numTotalBits : MusynthTypes.IntSet.elt
     val mutable pStateBitSet : MusynthTypes.IntSet.t
     val mutable paramBitSet : MusynthTypes.IntSet.t
@@ -550,6 +555,8 @@ class bddManager :
     method getCubePrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit
     method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumMinTermsParam : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumMinTermsState : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
     method getParamVarPrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit

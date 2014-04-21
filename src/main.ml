@@ -5,8 +5,6 @@ module Opts = MusynthOptions
 module Front = MusynthFrontEnd
 module Debug = MusynthDebug
 
-let debug = ref true
-
 let printUsage arg0 =
   fprintf stderr "Usage:\n";
   fprintf stderr "%s [options] filename\n" arg0;
@@ -18,9 +16,41 @@ let printUsage arg0 =
   fprintf stderr "-s               : Only synthesize for safety properties.\n";
   fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
   fprintf stderr "-n               : Number of solutions to print (default 1).\n";
+  fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
+  fprintf stderr "                   Where <method> is one of (defaults to linear):\n";
+  List.iter 
+    (fun meth ->
+     fprintf stderr "                   %s\n" meth)
+    Opts.reorderMethods;
   fprintf stderr "\n\n";
   ignore (exit 1)
-          
+
+let reorderMethOptionToMethod opt = 
+  let meth = 
+    match opt with
+    | "random" -> Cudd.Man.REORDER_RANDOM
+    | "randompivot" -> Cudd.Man.REORDER_RANDOM_PIVOT
+    | "sift" -> Cudd.Man.REORDER_SIFT
+    | "siftconverge" -> Cudd.Man.REORDER_SIFT_CONVERGE
+    | "symmsift" -> Cudd.Man.REORDER_SYMM_SIFT
+    | "symmsiftconverge" -> Cudd.Man.REORDER_SYMM_SIFT_CONV
+    | "window2" -> Cudd.Man.REORDER_WINDOW2
+    | "window3" -> Cudd.Man.REORDER_WINDOW3
+    | "window4" -> Cudd.Man.REORDER_WINDOW4
+    | "window2converge" -> Cudd.Man.REORDER_WINDOW2_CONV
+    | "window3converge" -> Cudd.Man.REORDER_WINDOW3_CONV
+    | "window4converge" -> Cudd.Man.REORDER_WINDOW4_CONV
+    | "groupsift" -> Cudd.Man.REORDER_GROUP_SIFT
+    | "groupsiftconverge" -> Cudd.Man.REORDER_GROUP_SIFT_CONV
+    | "annealing" -> Cudd.Man.REORDER_ANNEALING
+    | "genetic" -> Cudd.Man.REORDER_GENETIC
+    | "linear" -> Cudd.Man.REORDER_LINEAR
+    | "linearconverge" -> Cudd.Man.REORDER_LINEAR_CONVERGE
+    | "lazysift" -> Cudd.Man.REORDER_LAZY_SIFT
+    | "exact" -> Cudd.Man.REORDER_EXACT
+    | _ -> raise (Invalid_argument "Not a valid reordering method")
+  in
+  meth
 
 let processOptions arglist =
   let arg0 = List.hd arglist in
@@ -66,11 +96,24 @@ let processOptions arglist =
                Opts.numSolsRequested := (int_of_string num); rest
             | "-df" :: fname :: rest ->
                Opts.debugFileName := fname; rest
+            | "-dr" :: dropt :: rest ->
+               Opts.reorderEnabled := true;
+               (try
+                   let meth = reorderMethOptionToMethod dropt in
+                   Opts.reorderMethod := meth;
+                   rest
+                 with 
+                 | Invalid_argument "Not a valid reordering method" ->
+                    Opts.reorderMethod := Cudd.Man.REORDER_LINEAR;
+                    (dropt :: rest))
+                 
             | str :: rest ->
                if !Opts.inputFileName <> "" then
                  begin
                    fprintf stderr "%s\n" !Opts.inputFileName;
-                   fprintf stderr "Only one input file may be specified\n";
+                   fprintf stderr "Only one input file may be specified.\n";
+                   fprintf stderr "Already have input file \"%s\".\n" !Opts.inputFileName;
+                   fprintf stderr "Don't know what to do with argument \"%s\".\n" str;
                    printUsage arg0
                  end
                else

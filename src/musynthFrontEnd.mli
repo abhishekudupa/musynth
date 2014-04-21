@@ -2086,6 +2086,9 @@ module MC :
         val conjunctivePart : bool ref
         val inputFileName : string ref
         val numSolsRequested : int ref
+        val reorderEnabled : bool ref
+        val reorderMethod : Cudd.Man.reorder ref
+        val reorderMethods : string list
       end
     type bddType = Cudd.Man.d Cudd.Bdd.t
     val fixPoint : ('a -> 'a) -> 'a -> 'a
@@ -2113,7 +2116,7 @@ module MC :
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getNumMinTermsState : 'b Cudd.Bdd.t -> float;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2128,7 +2131,8 @@ module MC :
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
+        getNumMinTermsState : 'b Cudd.Bdd.t -> float;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2142,7 +2146,8 @@ module MC :
         getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-        getNumMinTerms : 'b Cudd.Bdd.t -> float;
+        getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
+        getNumMinTermsState : 'b Cudd.Bdd.t -> float;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2160,6 +2165,9 @@ module Opts :
     val conjunctivePart : bool ref
     val inputFileName : string ref
     val numSolsRequested : int ref
+    val reorderEnabled : bool ref
+    val reorderMethod : Cudd.Man.reorder ref
+    val reorderMethods : string list
   end
 module Utils :
   sig
@@ -2867,6 +2875,9 @@ module Mgr :
         val conjunctivePart : bool ref
         val inputFileName : string ref
         val numSolsRequested : int ref
+        val reorderEnabled : bool ref
+        val reorderMethod : Cudd.Man.reorder ref
+        val reorderMethods : string list
       end
     module Debug :
       sig
@@ -2908,6 +2919,8 @@ module Mgr :
         val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
         val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
         val mutable manager : Cudd.Man.d Cudd.Man.t
+        val mutable numParamBits : int
+        val mutable numStateBits : int
         val mutable numTotalBits : MusynthTypes.IntSet.elt
         val mutable pStateBitSet : MusynthTypes.IntSet.t
         val mutable paramBitSet : MusynthTypes.IntSet.t
@@ -2946,6 +2959,8 @@ module Mgr :
         method getCubePrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
+        method getNumMinTermsParam : Cudd.Man.d Cudd.Bdd.t -> float
+        method getNumMinTermsState : Cudd.Man.d Cudd.Bdd.t -> float
         method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
         method getParamVarPrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit

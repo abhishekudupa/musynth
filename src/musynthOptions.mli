@@ -5,3 +5,6 @@ val onlySafety : bool ref
 val conjunctivePart : bool ref
 val inputFileName : string ref
 val numSolsRequested : int ref
+val reorderEnabled : bool ref
+val reorderMethod : Cudd.Man.reorder ref
+val reorderMethods : string list

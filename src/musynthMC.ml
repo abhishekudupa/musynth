@@ -89,11 +89,11 @@ let rec synthForwardSafety mgr transrel initStates badstates =
 
     Debug.dprintf 1 "@,@,Iteration %d:@," !itercount;
     Debug.dprintf 1 "Reach has %e states@," 
-                  (mgr#getNumMinTerms reach);
+                  (mgr#getNumMinTermsState reach);
     Debug.dprintf 1 "Frontier has %e states@,"
-                  (mgr#getNumMinTerms frontier);
+                  (mgr#getNumMinTermsState frontier);
     Debug.dprintf 1 "newReach has %e states@," 
-                  (mgr#getNumMinTerms newReach);
+                  (mgr#getNumMinTermsState newReach);
     Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
 
     itercount := !itercount + 1;
@@ -115,9 +115,9 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       end
     else
       let newStates = Bdd.dand frontier (Bdd.dnot reach) in
-      Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTerms newStates);
+      Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTermsState newStates);
       let postNew = post mgr transrel newStates in
-      Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTerms postNew);
+      Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTermsState postNew);
       computeNextOrCEX newReach postNew
   in
   computeNextOrCEX (mgr#makeFalse ()) initStates
@@ -131,20 +131,28 @@ let synthesize mgr transrel initstates badstates =
     Debug.dprintf 1 "CEGIS iteration %d...@," !iteration;
     iteration := !iteration + 1;
     Debug.dprintf 1 "Attempting synthesis with %e candidates@,"
-                  (mgr#getNumMinTerms refinedInit);
+                  (mgr#getNumMinTermsParam refinedInit);
     let synthStat = synthForwardSafety mgr transrel refinedInit badstates in
     match synthStat with
     | SynthSafe ->
-       Debug.dprintf 1 "Successfully synthesized solution!@,";
+       Debug.dprintf 1 "Successfully synthesized %e solutions!@," 
+                     (mgr#getNumMinTermsParam refinedInit);
        let r = Bdd.exist (mgr#getAllButParamCube ()) refinedInit in
        assert (not (Bdd.is_false r));
-       Debug.dprintf 1 "Returning Solution!@,";
+       Debug.dprintf 1 "Returning Solutions!@,";
        r
     | SynthCEX cex -> 
        let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.existand ucube cex badstates)) in
-       synthesizeSafetyRec newInit
+       if (not (Bdd.is_leq newInit initstates)) then
+         begin
+           Debug.dprintf 1 "Synthesis eliminated one or more initial states!@,";
+           Debug.dprintf 1 "No solution possible.@,";
+           mgr#makeFalse ()
+         end
+       else
+         synthesizeSafetyRec newInit
   in
-  Debug.dprintf 1 "initStates has %e states@," (mgr#getNumMinTerms initstates);
+  Debug.dprintf 1 "initStates has %e states@," (mgr#getNumMinTermsState initstates);
   synthesizeSafetyRec initstates
 
 (* TODO: Currently hardwired to use monolithic transition *)

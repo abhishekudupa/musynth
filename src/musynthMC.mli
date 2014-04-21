@@ -123,6 +123,9 @@ module Opts :
     val conjunctivePart : bool ref
     val inputFileName : string ref
     val numSolsRequested : int ref
+    val reorderEnabled : bool ref
+    val reorderMethod : Cudd.Man.reorder ref
+    val reorderMethods : string list
   end
 type bddType = Cudd.Man.d Cudd.Bdd.t
 val fixPoint : ('a -> 'a) -> 'a -> 'a
@@ -150,7 +153,7 @@ val synthForwardSafety :
     getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
     getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getNumMinTermsState : 'b Cudd.Bdd.t -> float;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -164,7 +167,8 @@ val synthesize :
     getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
     getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
+    getNumMinTermsState : 'b Cudd.Bdd.t -> float;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -178,7 +182,8 @@ val synthFrontEnd :
     getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
     getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
-    getNumMinTerms : 'b Cudd.Bdd.t -> float;
+    getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
+    getNumMinTermsState : 'b Cudd.Bdd.t -> float;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
