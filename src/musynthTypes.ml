@@ -126,7 +126,8 @@ type musAutomatonDeclT = musAutomatonDeclType musDeclType
 
 type musSpecT = 
   | SpecInvar of string * musPropT * sourcelocation option
-  | SpecLTL of string * musPropT * musPropT list * sourcelocation option
+  | SpecLTL of string * musPropT * musPropT list * 
+                 (musPropT * musPropT) list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
@@ -161,7 +162,7 @@ type symtabEntry =
   | AutomatonName of (string * autType * symTabScope) declEntry
   | InvariantName of string * musPropT
   (* name, ltl property * fairness list *)
-  | LTLSpecName of string * musPropT * musPropT list
+  | LTLSpecName of string * musPropT * musPropT list * (musPropT * musPropT) list
   | DeclaredExpr of string * musPropT
 
  and symTabScope = symtabEntry IdentMap.t ref
@@ -305,7 +306,7 @@ type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIden
 
 type llSpecT =
   | LLSpecInvar of string * llPropT
-  | LLSpecLTL of string * llPropT * llPropT list
+  | LLSpecLTL of string * llPropT * llPropT list * (llPropT * llPropT) list
 
 (* global messages, automata, initial state constraints, properties *)
 type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list)

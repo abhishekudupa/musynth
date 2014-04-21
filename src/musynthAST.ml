@@ -273,16 +273,28 @@ let pSpec fmt spec =
   | SpecInvar (name, prop, _) -> 
      musMakeIndentedBox fmt pp_print_string ("invariant \"" ^ name ^ "\" {")
                         pProp prop pp_print_string "}"
-  | SpecLTL (name, prop, fairnesslist, _) -> 
+  | SpecLTL (name, prop, justicelist, compassionlist, _) -> 
      musMakeIndentedBox fmt pp_print_string ("ltlspec \"" ^ name ^ "\" {")
-                        (fun fmt (prop, flist) ->
+                        (fun fmt (prop, jlist, clist) ->
                          pProp fmt prop;
-                         if flist = [] then
+                         if jlist = [] then
                            ()
                          else
-                           musMakeIndentedBox fmt pp_print_string " with fairness ("
-                                              (pList "," true false pProp) flist pp_print_string ")")
-                        (prop, fairnesslist)
+                           musMakeIndentedBox fmt pp_print_string 
+                                              " with justice ("
+                                              (pList "," true false pProp) 
+                                              jlist pp_print_string ")";
+                        if clist = [] then
+                          () 
+                        else
+                          musMakeIndentedBox fmt pp_print_string 
+                                             " with compassion ("
+                                             (pList "," true false 
+                                                    (fun fmt (a, b) -> 
+                                                     fprintf fmt "(%a, %a)" 
+                                                             pProp a pProp b))
+                                             clist pp_print_string ")")
+                        (prop, justicelist, compassionlist)
                         pp_print_string "}"
   | SpecDefine (ident, prop, _) -> 
      fprintf fmt "define %a %a" pIdentifier ident pProp prop
@@ -367,17 +379,26 @@ let pLLSpec fmt spec =
   | LLSpecInvar (name, prop) -> 
      musMakeIndentedBox fmt pp_print_string ("invariant \"" ^ name ^ "\" {")
                         pLLProp prop pp_print_string "}"
-  | LLSpecLTL (name, prop, fairnesslist) -> 
+  | LLSpecLTL (name, prop, justicelist, compassionlist) -> 
      musMakeIndentedBox fmt pp_print_string ("ltlspec \"" ^ name ^ "\" {")
-                        (fun fmt (prop, flist) ->
+                        (fun fmt (prop, jlist, clist) ->
                          pLLProp fmt prop;
-                         if flist = [] then
+                         if jlist = [] then
                            ()
                          else
-                           musMakeIndentedBox fmt pp_print_string " with fairness ("
+                           musMakeIndentedBox fmt pp_print_string " with justice ("
                                               (pList "," true false pLLProp) 
-                                              flist pp_print_string ")")
-                        (prop, fairnesslist)
+                                              jlist pp_print_string ")";
+                         if clist = [] then
+                           () 
+                         else
+                           musMakeIndentedBox fmt pp_print_string " with compassion ("
+                                              (pList "," true false 
+                                                     (fun fmt (a, b) -> 
+                                                      fprintf fmt "(%a, %a)" 
+                                                              pLLProp a pLLProp b))
+                                              clist pp_print_string ")")
+                        (prop, justicelist, compassionlist)
                         pp_print_string "}"
 
 let pLLAutomaton fmt aut =

@@ -1167,7 +1167,8 @@ module Parser :
       | INPUTS
       | OUTPUTS
       | DEFINE
-      | FAIRNESS
+      | JUSTICE
+      | COMPASSION
       | CANSYNCON
       | CTLSPEC
       | LTLSPEC

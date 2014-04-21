@@ -192,7 +192,8 @@ type musAutomatonDeclType =
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT =
     SpecInvar of string * musPropT * sourcelocation option
-  | SpecLTL of string * musPropT * musPropT list * sourcelocation option
+  | SpecLTL of string * musPropT * musPropT list *
+      (musPropT * musPropT) list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 type musProgT =
     musSymTypeDeclBlockT * musMsgDeclBlockT * musAutomatonDeclT list *
@@ -213,7 +214,8 @@ type symtabEntry =
   | SymVarName of string * musSymTypeT
   | AutomatonName of (string * autType * symTabScope) declEntry
   | InvariantName of string * musPropT
-  | LTLSpecName of string * musPropT * musPropT list
+  | LTLSpecName of string * musPropT * musPropT list *
+      (musPropT * musPropT) list
   | DeclaredExpr of string * musPropT
 and symTabScope = symtabEntry IdentMap.t ref
 type symTableT = symTabScope list ref
@@ -445,7 +447,7 @@ type llMonitorT =
     llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list
 type llSpecT =
     LLSpecInvar of string * llPropT
-  | LLSpecLTL of string * llPropT * llPropT list
+  | LLSpecLTL of string * llPropT * llPropT list * (llPropT * llPropT) list
 type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT

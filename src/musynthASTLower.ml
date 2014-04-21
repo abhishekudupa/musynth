@@ -445,8 +445,10 @@ let lowerSpec symtab spec =
   match spec with
   | SpecInvar (name, prop, _) -> 
      LLSpecInvar (name, lowerProp symtab prop)
-  | SpecLTL (name, prop, flist, _) ->
-     LLSpecLTL (name, lowerProp symtab prop, List.map (lowerProp symtab) flist)
+  | SpecLTL (name, prop, jlist, clist, _) ->
+     LLSpecLTL (name, lowerProp symtab prop, 
+                List.map (lowerProp symtab) jlist,
+                List.map (fun (a, b) -> (lowerProp symtab a, lowerProp symtab b)) clist)
   | _ -> assert false
   
 

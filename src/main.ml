@@ -9,19 +9,19 @@ let printUsage arg0 =
   fprintf stderr "Usage:\n";
   fprintf stderr "%s [options] filename\n" arg0;
   fprintf stderr "Permitted options:\n";
-  fprintf stderr ("-v <num >= 0>   : Control verbosity. Output will be in \"<filename>.debug\" by default. " ^^ 
+  fprintf stderr ("-v <num >= 0>    : Control verbosity. Output will be in \"<filename>.debug\" by default. " ^^ 
                     "Use the -df option to specify a different filename.\n");
   fprintf stderr "-df <filename>   : Record debugging information into <filename>.\n";
   fprintf stderr "-f <strong|weak> : Type of fairness to enforce.\n";
   fprintf stderr "-s               : Only synthesize for safety properties.\n";
   fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
-  fprintf stderr "-n               : Number of solutions to print (default 1).\n";
   fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
   fprintf stderr "                   Where <method> is one of (defaults to linear):\n";
   List.iter 
     (fun meth ->
-     fprintf stderr "                   %s\n" meth)
+     fprintf stderr "                       %s\n" meth)
     Opts.reorderMethods;
+  fprintf stderr "-n               : Number of solutions to print (default 1).\n";
   fprintf stderr "\n\n";
   ignore (exit 1)
 

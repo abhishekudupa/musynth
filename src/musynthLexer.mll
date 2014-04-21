@@ -28,7 +28,8 @@ let musynthKeywords =
     ("outputs", OUTPUTS);
     ("define", DEFINE);
     ("with", WITH);
-    ("fairness", FAIRNESS);
+    ("justice", JUSTICE);
+    ("compassion", COMPASSION);
     ("cansyncon", CANSYNCON);
     ("ltlspec", LTLSPEC);
     ("invariant", INVARIANT);

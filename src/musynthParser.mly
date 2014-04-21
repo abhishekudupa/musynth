@@ -6,7 +6,7 @@
 %token DETAUTOMATON AUTOMATON CHANNELAUTOMATON
 %token LOSSY LOSSLESS DUPLICATING NONDUPLICATING
 %token ORDERED UNORDERED PARTIALAUTOMATON TRANSITIONS
-%token INPUTS OUTPUTS DEFINE FAIRNESS CANSYNCON CTLSPEC
+%token INPUTS OUTPUTS DEFINE JUSTICE COMPASSION CANSYNCON CTLSPEC
 %token LTLSPEC INVARIANT INCOMPLETE COMPLETE LBRACE RBRACE
 %token LPAREN RPAREN LSQUARE RSQUARE STATES
 %token BCTRUE BCFALSE NEQUALS IN WITH 
@@ -318,13 +318,26 @@ oneSpec : invariant
 invariant : INVARIANT STRINGCONST LBRACE prop RBRACE
         { SpecInvar ($2, $4, Some (getlhsloc ())) }
 
-ltlspec : LTLSPEC STRINGCONST LBRACE prop optFairness RBRACE
-        { SpecLTL ($2, $4, $5, Some (getlhsloc ())) }
+ltlspec : LTLSPEC STRINGCONST LBRACE prop optJustice optCompassion RBRACE
+        { SpecLTL ($2, $4, $5, $6, Some (getlhsloc ())) }
 
-optFairness : WITH FAIRNESS LPAREN propList RPAREN
+optJustice : WITH JUSTICE LPAREN propList RPAREN
         { $4 }
     | /* empty */
-      { [] }
+        { [] }
+
+optCompassion : WITH COMPASSION LPAREN propPairList RPAREN
+        { $4 }
+    | /* empty */
+        { [] }
+
+propPairList : propPairList COMMA propPair
+        { $1 @ [ $3 ] }
+    | propPair
+        { [ $1 ] }
+
+propPair : LPAREN prop COMMA prop RPAREN
+        { ( $2, $4) }
 
 propList : propList COMMA prop
         { $1 @ [ $3 ] }
