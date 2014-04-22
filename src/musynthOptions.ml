@@ -6,8 +6,6 @@ let debugLevel = ref (- 1)
 
 let debugFileName = ref ""
 
-let fairnessType = ref (FairnessTypeWeak)
-
 let onlySafety = ref true 
 
 let conjunctivePart = ref false 

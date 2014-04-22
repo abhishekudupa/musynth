@@ -177,18 +177,29 @@ type musChanOrdT =
 type musChanLossT =
     ChanLossy of sourcelocation option
   | ChanLossless of sourcelocation option
-type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
+type musChanBlockT =
+    ChanBlocking of sourcelocation option
+  | ChanNonBlocking of sourcelocation option
+type musChanPropT =
+    musChanOrdT * musChanLossT * musChanDupT * musChanBlockT * int
+type musLossFairnessT =
+    LossFairnessNone
+  | LossFairnessFinite of sourcelocation option
+type musFairnessT =
+    FairnessTypeJustice of sourcelocation option
+  | FairnessTypeCompassion of sourcelocation option
+  | FairnessTypeNone
 type musInitStateDeclT = musPropT
 type musInitStateDeclBlockT = musInitStateDeclT list
 type musAutomatonDeclType =
     CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
       musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT *
-      sourcelocation option
+      musFairnessT * sourcelocation option
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
       musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT *
-      sourcelocation option
-  | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT *
-      sourcelocation option
+      musFairnessT * sourcelocation option
+  | ChannelAutomaton of musDesignatorT * musFairnessT * musLossFairnessT *
+      musChanPropT * musMsgDeclBlockT * sourcelocation option
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT =
     SpecInvar of string * musPropT * sourcelocation option
@@ -448,8 +459,5 @@ type llSpecT =
 type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
-type ltlFairnessT = FairnessTypeWeak | FairnessTypeStrong
 type 'a synthExitStatT = SynthSafe | SynthCEX of 'a
-type schedFairnessSpec =
-    SchedFairJustice of llPropT
-  | SchedFairCompassion of llPropT * llPropT
+type fairnessSpecT = Justice of llPropT | Compassion of llPropT * llPropT

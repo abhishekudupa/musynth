@@ -182,9 +182,8 @@ val synthesize :
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
     makeFalse : unit -> 'b Cudd.Bdd.t;
-    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a;
-    printParamVars : int -> Format.formatter -> 'b Cudd.Bdd.t -> 'c; .. > ->
-  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'c -> 'b Cudd.Bdd.t
 val synthFrontEnd :
   < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
     getAllButParamCube : unit -> 'b Cudd.Bdd.t;
@@ -200,7 +199,6 @@ val synthFrontEnd :
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
     makeFalse : unit -> 'b Cudd.Bdd.t; makeTrue : unit -> 'b Cudd.Bdd.t;
-    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a;
-    printParamVars : int -> Format.formatter -> 'b Cudd.Bdd.t -> 'c; .. > ->
+    pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
   'b Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
-  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
+  'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'c -> 'b Cudd.Bdd.t

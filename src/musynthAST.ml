@@ -208,7 +208,7 @@ let pInitStateDeclBlock fmt block =
                      pp_print_string "}"
 
 let pChanProp fmt chanprop =
-  let ord, loss, dup, cap = chanprop in
+  let ord, loss, dup, block, cap = chanprop in
   (match ord with
    | ChanUnordered _ ->
       fprintf fmt "ordered"
@@ -226,9 +226,23 @@ let pChanProp fmt chanprop =
       fprintf fmt "duplicating"
    | _ ->
       fprintf fmt "nonduplicating");
+  fprintf fmt ", ";
+  (match block with
+   | ChanNonBlocking _ -> fprintf fmt "nonblocking"
+   | ChanBlocking _ -> fprintf fmt "blocking");
   fprintf fmt ";@,";
   fprintf fmt "capacity = %d;@," cap
 
+let pFairness fmt f =
+  match f with
+  | FairnessTypeNone -> ()
+  | FairnessTypeJustice _ -> fprintf fmt " justice"
+  | FairnessTypeCompassion _ -> fprintf fmt " compassion"
+
+let pLossFairness fmt f =
+  match f with
+  | LossFairnessNone -> ()
+  | LossFairnessFinite _ -> fprintf fmt " finiteloss"
 
 let pAutomatonDecl fmt autdecl =
   let pBlockCond ?br:(b = true) pfun fmt block =
@@ -242,16 +256,16 @@ let pAutomatonDecl fmt autdecl =
   in
   let prefixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (d, _, _, _, _, _) ->
+    | CompleteAutomaton (d, _, _, _, _, _, _) ->
        fprintf fmt "@[<v 0>automaton %a" pDesignator d
-    | IncompleteAutomaton (d, _, _, _, _, _) ->
+    | IncompleteAutomaton (d, _, _, _, _, _, _) ->
        fprintf fmt "@[<v 0>partialautomaton %a" pDesignator d
-    | ChannelAutomaton (d, _, _, _) ->
+    | ChannelAutomaton (d, _, _, _, _, _) ->
        fprintf fmt "@[<v 0>channelautomaton %a" pDesignator d
   in
   let suffixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (_, states, inblock, outblock, transblock, _)
+    | CompleteAutomaton (_, states, inblock, outblock, transblock, _, _)
     | IncompleteAutomaton (_, states, inblock, outblock, transblock, _) ->
        fprintf fmt "@,@[<v 4>{@,";
        pBlockCond (pStateDeclBlock "states") fmt states;

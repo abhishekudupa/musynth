@@ -12,7 +12,6 @@ let printUsage arg0 =
   fprintf stderr ("-v <num >= 0>    : Control verbosity. Output will be in \"<filename>.debug\" by default. " ^^ 
                     "Use the -df option to specify a different filename.\n");
   fprintf stderr "-df <filename>   : Record debugging information into <filename>.\n";
-  fprintf stderr "-f <strong|weak> : Type of fairness to enforce.\n";
   fprintf stderr "-s               : Only synthesize for safety properties.\n";
   fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
   fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
@@ -76,17 +75,6 @@ let processOptions arglist =
                    printUsage arg0
                  end
                end;
-               rest
-            | "-f" :: ftype :: rest ->
-               if ftype = "weak" then
-                 Opts.fairnessType := FairnessTypeWeak
-               else if ftype = "strong" then
-                 Opts.fairnessType := FairnessTypeStrong
-               else
-                 begin
-                   fprintf stderr "Fairnesstype must be \"weak\" or \"strong\" (without quotes)\n";
-                   printUsage arg0
-                 end;
                rest
             | "-s" :: rest ->
                Opts.onlySafety := true; rest

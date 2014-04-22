@@ -7,7 +7,8 @@ open Lexing
 open Printf
 
 let musynthKeywords = 
-  [ ("var", VAR);
+  [ 
+    ("var", VAR);
     ("detautomaton", DETAUTOMATON);
     ("symmetrictypes", SYMMETRICTYPES);
     ("automaton", AUTOMATON);
@@ -17,6 +18,8 @@ let musynthKeywords =
     ("messages", MESSAGES);
     ("init", INIT);
     ("in", IN);
+    ("nonblocking", NONBLOCKING);
+    ("blocking", BLOCKING);
     ("lossy", LOSSY);
     ("lossless", LOSSLESS);
     ("duplicating", DUPLICATING);
@@ -30,6 +33,7 @@ let musynthKeywords =
     ("with", WITH);
     ("justice", JUSTICE);
     ("compassion", COMPASSION);
+    ("finiteloss", FINITELOSS);
     ("cansyncon", CANSYNCON);
     ("ltlspec", LTLSPEC);
     ("invariant", INVARIANT);

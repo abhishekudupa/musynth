@@ -233,7 +233,7 @@ val constructEnabledProp :
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
 val constructSchedFairnessSpecs :
   'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
-  MusynthTypes.schedFairnessSpec list
+  MusynthTypes.fairnessSpecT list
 val createTablueaxVars :
   MusynthTypes.PropMap.key ->
   MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
@@ -251,5 +251,7 @@ val substForVars :
   MusynthTypes.llPropT -> MusynthTypes.llPropT
 val constructTableau :
   MusynthTypes.PropMap.key ->
-  MusynthTypes.llPropT *
-  ((MusynthTypes.PropMap.key * 'a) list -> MusynthTypes.llPropT list)
+  MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
+  MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
+  MusynthTypes.PropMap.key MusynthTypes.PropMap.t * MusynthTypes.llPropT *
+  MusynthTypes.llPropT list

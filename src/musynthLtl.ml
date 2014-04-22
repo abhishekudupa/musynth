@@ -22,9 +22,9 @@ let constructSchedFairnessSpecs prog =
      let chooseprop = LLPropEquals (choose, autname) in
      match !Opts.fairnessType with
      | FairnessTypeWeak ->
-        SchedFairJustice (LLPropOr (LLPropNot enprop, chooseprop)) :: flist
+        Justice (LLPropOr (LLPropNot enprop, chooseprop)) :: flist
      | FairnessTypeStrong ->
-        SchedFairCompassion (enprop, LLPropAnd (enprop, chooseprop)) :: flist)
+        Compassion (enprop, LLPropAnd (enprop, chooseprop)) :: flist)
     [] automata
 
 let createTablueaxVars prop =
@@ -134,11 +134,16 @@ let rec substForVars var2PrimedMap prop =
 
 
 (* construct a tableau for the ltl property *)
-(* returns: (1) a transition relation *)
-(*          (2) a list of justice properties *)
+(* returns: (1) A prop to var map *)
+(*          (2) A var to prop man *)
+(*          (3) A mapping chi for subformulas *)
+(*          (4) a transition relation *)
+(*          (5) a list of justice properties *)
 (* Initial states and compassion properties aren't required *)
 (* because we're only dealing with LTL properties now *)
+(* NOTE: We actually construct the tableau for \neg prop! *)
 let constructTableau ltlprop =
+  let ltlprop = LLPropNot ltlprop in
   let p2vmap, v2pmap, chimap = createTablueaxVars ltlprop in
   let var2PrimedMap = constructPrimedVarMap v2pmap in
   let xFormulaVarPairs = getXFormulaVarPairs p2vmap in
@@ -183,7 +188,7 @@ let constructTableau ltlprop =
        | LLPropTLU (p, q) ->
           let chiofq = PropMap.find q chimap in
           let chiofform = PropMap.find formula chimap in
-          LLPropOr (chiofq, LLPropNot chiofform)
-       | _ -> assert false)
+          (LLPropOr (chiofq, LLPropNot chiofform))
+       | _ -> assert false) uFormulaVarPairs
   in
-  (transrel, jlist)
+  (p2vmap, v2pmap, chimap, transrel, jlist)

@@ -6,7 +6,8 @@
 %token DETAUTOMATON AUTOMATON CHANNELAUTOMATON
 %token LOSSY LOSSLESS DUPLICATING NONDUPLICATING
 %token ORDERED UNORDERED PARTIALAUTOMATON TRANSITIONS
-%token INPUTS OUTPUTS DEFINE JUSTICE COMPASSION CANSYNCON CTLSPEC
+%token INPUTS OUTPUTS DEFINE JUSTICE COMPASSION 
+%token FINITELOSS NONBLOCKING BLOCKING CANSYNCON CTLSPEC
 %token LTLSPEC INVARIANT INCOMPLETE COMPLETE LBRACE RBRACE
 %token LPAREN RPAREN LSQUARE RSQUARE STATES
 %token BCTRUE BCFALSE NEQUALS IN WITH 
@@ -163,35 +164,52 @@ oneAutomatonDecl : oneCompAutomatonDecl
     | oneChannelAutomatonDecl
         { $1 }
 
-oneCompAutomatonDecl : AUTOMATON designator optQuants LBRACE 
+oneCompAutomatonDecl : AUTOMATON designator optQuants optFairness LBRACE 
         stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = CompleteAutomaton ($2, $5, $6, $7, $8, Some (getlhsloc ())) in
+          let aut = CompleteAutomaton ($2, $6, $7, $8, $9, $4, Some (getlhsloc ())) in
           match $3 with
           | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
           | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
-oneIncompAutomatonDecl : PARTIALAUTOMATON designator optQuants LBRACE
+optFairness : WITH JUSTICE
+        { FairnessTypeJustice (Some (getrhsloc 2)) }
+    | WITH COMPASSION
+        { FairnessTypeCompassion (Some (getrhsloc 2)) }
+    | /* empty */
+        { FairnessTypeNone }
+
+oneIncompAutomatonDecl : PARTIALAUTOMATON designator optQuants optFairness LBRACE
         stateDecl optInputDecl optOutputDecl transDecl RBRACE
         {
-          let aut = IncompleteAutomaton ($2, $5, $6, $7, $8, Some (getlhsloc ())) in
+          let aut = IncompleteAutomaton ($2, $6, $7, $8, $9, $4, Some (getlhsloc ())) in
           match $3 with
           | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
           | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
-oneChannelAutomatonDecl : CHANNELAUTOMATON designator optQuants LBRACE
+oneChannelAutomatonDecl : CHANNELAUTOMATON designator optQuants optFairness optLossQuant LBRACE
         chanPropDecl MESSAGES LBRACE msgList RBRACE SEMICOLON RBRACE
         {
-          let aut = ChannelAutomaton ($2, $5, $8, Some (getlhsloc ())) in
+          let aut = ChannelAutomaton ($2, $7, $10, $4, $5, Some (getlhsloc ())) in
           match $3 with
           | Some (qMap, propOpt) -> DeclQuantified(aut, qMap, propOpt, Some (getlhsloc ()))
           | None -> DeclSimple (aut, Some (getlhsloc ()))
         }
 
-chanPropDecl : orderDecl COMMA lossDecl COMMA dupDecl SEMICOLON chanCapDecl
-        { ($1, $3, $5, $7) }
+optLossQuant : FINITELOSS
+        { LossFairnessFinite }
+    | /* empty */
+        { LossFairnessNone }
+
+chanPropDecl : orderDecl COMMA lossDecl COMMA dupDecl COMMA blockDecl SEMICOLON chanCapDecl
+        { ($1, $3, $5, $7, $9) }
+
+blockDecl : NONBLOCKING
+        { ChanNonBlocking }
+    | BLOCKING
+        { ChanBlocking }
 
 orderDecl : ORDERED
         { ChanOrdered (Some (getlhsloc ())) }

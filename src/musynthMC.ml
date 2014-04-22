@@ -93,6 +93,9 @@ let countCycles mgr states transRel =
   in
   countCyclesRec mgr states transRel
 
+let getParamsForFeasible mgr transRel tableau reachStates =
+  ()
+
 let rec synthForwardSafety mgr transrel initStates badstates =
   let itercount = ref 0 in
 
@@ -144,14 +147,14 @@ let rec synthForwardSafety mgr transrel initStates badstates =
           computeNextOrCEX newReach postNew
       end
   in
-
   computeNextOrCEX (mgr#makeFalse ()) initStates
-
+                   
 (* returns the bdd corresponding to the parameter values which work *)
-let synthesize mgr transrel initstates badstates =
-  let iteration = ref 0 in
+let synthesize mgr transrel initstates badstates tableaulist =
 
-  let rec synthesizeSafetyRec refinedInit =
+  let iteration = ref 0 in
+  
+  let rec synthesizeRec refinedInit =
     Debug.dprintf 1 "CEGIS iteration %d...@," !iteration;
     iteration := !iteration + 1;
     Debug.dprintf 1 "Attempting synthesis with %e candidates@,"
@@ -185,18 +188,19 @@ let synthesize mgr transrel initstates badstates =
            mgr#makeFalse ()
          end
        else
-         synthesizeSafetyRec newInit
+         synthesizeRec newInit
   in
   Debug.dprintf 1 "initStates has %e states@," (mgr#getNumMinTermsState initstates);
-  synthesizeSafetyRec initstates
+  synthesizeRec initstates
 
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
-let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD =
+let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
   let transrel = 
     LLDesigMap.fold 
       (fun name bdd accbdd ->
        Bdd.dand bdd accbdd)
       transBDDs (mgr#makeTrue ()) in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
-  synthesize mgr transrel (Bdd.dand initBDD (mgr#getConstraintsOnParams ())) badstates
+  synthesize mgr transrel (Bdd.dand initBDD (mgr#getConstraintsOnParams ())) 
+             badstates ltltableaulist

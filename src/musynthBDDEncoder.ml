@@ -150,16 +150,48 @@ let encodeProg mgr prog =
        | LLSpecInvar (_, prop) -> LLPropAnd (prop, propacc)
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
 
-  let _ =
+  let schedFairnessSpecs = LTL.constructSchedFairnessSpecs prog in
+  let universaljlist = 
+    List.fold_left 
+      (fun acc spec -> 
+       match spec with
+       | Justice prop -> prop :: acc
+       | _ -> acc) [] schedFairnessSpecs in
+  let universalclist = 
+    List.fold_left
+      (fun acc spec ->
+       match spec with
+       | Compassion (prop1, prop2) -> (prop1, prop2) :: acc
+       | _ -> acc) [] schedFairnessSpecs in
+
+  let ltltableaulist =
     List.fold_left
       (fun lst spec ->
        match spec with
        | LLSpecLTL (name, prop, justicelist, compassionlist) ->
-          let transrel, tableaujlist = LTL.constructTableau prop in
-          Debug.dprintf 1 "Tableau:@,%a@,@," AST.pLLProp transrel;
-          (transrel, tableaujlist, justicelist, compassionlist) :: lst
+          let tableaudesc = LTL.constructTableau prop in
+          let p2vmap, v2pmap, chimap, t, tjlist = tableaudesc in
+          let myjlist = universaljlist @ justicelist @ tjlist in
+          let myclist = universalclist @ compassionlist in
+          (* Debug.dprintf 1 "Tableau:@,%a@,@," AST.pLLProp transrel; *)
+          (p2vmap, v2pmap, chimap, t, myjlist, myclist) :: lst
        | _ -> lst) [] specs in
 
+  let boolValDomain = [ Utils.makeFalseDesig (); Utils.makeTrueDesig () ] in
+  let encodedTableauList =
+    List.map 
+      (fun (p2vmap, v2pmap, chimap, t, myjlist, myclist) ->
+       LLDesigMap.iter 
+         (fun v p -> 
+          mgr#registerStateVariable v boolValDomain) 
+         v2pmap;
+       let enct = mgr#prop2BDD t in
+       let encjlist = List.map mgr#prop2BDD myjlist in
+       let encclist = List.map (fun (a, b) -> (mgr#prop2BDD a, mgr#prop2BDD b)) myclist in
+       (p2vmap, v2pmap, chimap, enct, encjlist, encclist)) 
+      ltltableaulist
+  in
+        
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
   (* Debug.dprintf 2 "Deadlock Freedom Property:@,"; *)
@@ -177,5 +209,5 @@ let encodeProg mgr prog =
   let badStateBDD = mgr#prop2BDD badstates in
   (* Debug.dprintf 2 "InitProp:@,%a@," AST.pLLProp (Utils.canonicalizePropFP initconstraints); *)
   let initBDD = mgr#prop2BDD initconstraints in
-  (transBDDs, initBDD, badStateBDD, dlfBDD)
+  (transBDDs, initBDD, badStateBDD, dlfBDD, encodedTableauList)
     

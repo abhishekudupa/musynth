@@ -109,7 +109,20 @@ type musChanLossT =
   | ChanLossy of sourcelocation option
   | ChanLossless of sourcelocation option
 
-type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * int
+type musChanBlockT =
+  | ChanBlocking of sourcelocation option
+  | ChanNonBlocking of sourcelocation option
+
+type musChanPropT = musChanOrdT * musChanLossT * musChanDupT * musChanBlockT * int
+
+type musLossFairnessT =
+  | LossFairnessNone
+  | LossFairnessFinite of sourcelocation option
+
+type musFairnessT = 
+  | FairnessTypeJustice of sourcelocation option
+  | FairnessTypeCompassion of sourcelocation option
+  | FairnessTypeNone
 
 type musInitStateDeclT = musPropT
 
@@ -117,10 +130,15 @@ type musInitStateDeclBlockT = musInitStateDeclT list
 
 type musAutomatonDeclType = 
   | CompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-                           musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
+                           musMsgDeclBlockT * musMsgDeclBlockT * 
+                             musTransDeclBlockT * musFairnessT * 
+                               sourcelocation option
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
-                             musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT * sourcelocation option
-  | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT * sourcelocation option
+                             musMsgDeclBlockT * musMsgDeclBlockT * 
+                               musTransDeclBlockT * musFairnessT * 
+                                 sourcelocation option
+  | ChannelAutomaton of musDesignatorT * musFairnessT * musLossFairnessT *
+                          musChanPropT * musMsgDeclBlockT * sourcelocation option
 
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 
@@ -321,18 +339,13 @@ let rec getPrimedLLDesig lldesig =
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "'")
 
-(* types for model checking properties *)
-
-type ltlFairnessT =
-  | FairnessTypeWeak
-  | FairnessTypeStrong
-
 (* type for signalling synthesis status *)
 type 'a synthExitStatT =
   | SynthSafe
   | SynthCEX of 'a
 
 (* type for constructing fairness specs *)
-type schedFairnessSpec =
-  | SchedFairJustice of llPropT
-  | SchedFairCompassion of llPropT * llPropT
+(* Paramterized. We use the same type for bdds as well as props *)
+type fairnessSpecT =
+  | Justice of llPropT
+  | Compassion of llPropT * llPropT

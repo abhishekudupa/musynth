@@ -44,10 +44,14 @@ let musynthProcess filename =
 
     let mgr = new Mgr.bddManager in
     printf "Encoding Program to BDDs and LTL to BDDs via Tableau... "; flush stdout;
-    let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg mgr lprog in
+    let (transBDDs, initBDD, badStateBDD, dlfBDD, ltltableaulist) = 
+      Enc.encodeProg mgr lprog
+    in
     printf "Done!\n"; flush stdout;
     printf "Attempting to Synthesize... "; flush stdout;
-    let solbdd = MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD in
+    let solbdd = 
+      MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist 
+    in
     printf "Done!\n"; flush stdout;
     if (mgr#isFalse solbdd) then
       printf "\n\nNo Solutions Found!\n\n"
@@ -80,4 +84,3 @@ let musynthProcess filename =
        Format.pp_print_flush Format.std_formatter ();
        raise newex
      end
-       
