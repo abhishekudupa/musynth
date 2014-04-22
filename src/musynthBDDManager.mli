@@ -459,9 +459,16 @@ module Utils :
     val getMsgsToSyncOnFromState :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val getStatesFromWhichMsgSync :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val makeFormatterOfName : string -> out_channel * Format.formatter
+    val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Opts :
   sig
@@ -566,6 +573,7 @@ class bddManager :
     method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
     method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
     method private invalidateCaches : unit -> unit
+    method isFalse : Cudd.Man.d Cudd.Bdd.t -> bool
     method private lg : int -> int
     method lookupVar :
       MusynthTypes.LLDesigMap.key ->

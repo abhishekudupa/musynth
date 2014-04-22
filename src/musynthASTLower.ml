@@ -364,19 +364,11 @@ let rec substInLProp substMap lprop =
   | LLPropOr (prop1, prop2) -> 
      LLPropOr (substInLProp substMap prop1,
                substInLProp substMap prop2)
-  | LLPropTLG prop1 ->
-     LLPropTLG (substInLProp substMap prop1)
-  | LLPropTLF prop1 ->
-     LLPropTLF (substInLProp substMap prop1)
   | LLPropTLX prop1 ->
      LLPropTLX (substInLProp substMap prop1)
   | LLPropTLU (prop1, prop2) ->
      LLPropTLU (substInLProp substMap prop1,
-                substInLProp substMap prop2)
-  | LLPropTLR (prop1, prop2) ->
-     LLPropTLR (substInLProp substMap prop1,
-                substInLProp substMap prop2)
-  
+                substInLProp substMap prop2)  
      
 
 let rec lowerProp symtab prop = 
@@ -431,24 +423,30 @@ let rec lowerProp symtab prop =
            (fun acc prop -> LLPropOr (prop, acc)) LLPropFalse propLists
       | _ -> assert false)
   | PropTLG (prop1, _) ->
-     LLPropTLG (lowerProp symtab prop1)
+     let lprop1 = lowerProp symtab prop1 in
+     LLPropNot (LLPropTLU (LLPropTrue, LLPropNot lprop1))
   | PropTLF (prop1, _) ->
-     LLPropTLF (lowerProp symtab prop1)
+     LLPropTLU (LLPropTrue, lowerProp symtab prop1)
   | PropTLX (prop1, _) ->
      LLPropTLX (lowerProp symtab prop1)
   | PropTLU (prop1, prop2, _) ->
      LLPropTLU (lowerProp symtab prop1, lowerProp symtab prop2)
   | PropTLR (prop1, prop2, _) ->
-     LLPropTLR (lowerProp symtab prop1, lowerProp symtab prop2)
+     LLPropNot (LLPropTLU (LLPropNot (lowerProp symtab prop1), 
+                           LLPropNot (lowerProp symtab prop2)))
+
+let lowerAndCanonicalizeProp symtab prop =
+  Utils.canonicalizePropFP (lowerProp symtab prop)
 
 let lowerSpec symtab spec = 
   match spec with
   | SpecInvar (name, prop, _) -> 
-     LLSpecInvar (name, lowerProp symtab prop)
+     LLSpecInvar (name, lowerAndCanonicalizeProp symtab prop)
   | SpecLTL (name, prop, jlist, clist, _) ->
-     LLSpecLTL (name, lowerProp symtab prop, 
-                List.map (lowerProp symtab) jlist,
-                List.map (fun (a, b) -> (lowerProp symtab a, lowerProp symtab b)) clist)
+     LLSpecLTL (name, lowerAndCanonicalizeProp symtab prop, 
+                List.map (lowerAndCanonicalizeProp symtab) jlist,
+                List.map (fun (a, b) -> (lowerAndCanonicalizeProp symtab a, 
+                                         lowerAndCanonicalizeProp symtab b)) clist)
   | _ -> assert false
   
 
@@ -460,17 +458,23 @@ let lowerProg symtab prog =
       (List.map (instantiateDecl symtab IdentMap.empty None autDeclInstantiator) autdecls) in
   let lspecs = List.map (lowerSpec symtab) specs in
   let linitstateProp = 
-    List.fold_left (fun acc prop -> LLPropAnd (lowerProp symtab prop, acc)) LLPropTrue isdecls
+    List.fold_left 
+      (fun acc prop -> 
+       LLPropAnd (lowerAndCanonicalizeProp symtab prop, acc)) 
+      LLPropTrue 
+      isdecls
   in
   (* Also constrain all the channels to be empty *)
   let linitstateProp =
-    List.fold_left 
-      (fun acc laut ->
-       match laut with
-       | LLCompleteAutomaton (name, _, _, _, _, true) ->
-          LLPropAnd (LLPropEquals (LLFieldDesignator (name, "state"), LLSimpleDesignator "Empty"),
-                     acc)
-       | _ -> acc) linitstateProp lautdecls
+    Utils.canonicalizePropFP
+      (List.fold_left 
+         (fun acc laut ->
+          match laut with
+          | LLCompleteAutomaton (name, _, _, _, _, true) ->
+             LLPropAnd (LLPropEquals (LLFieldDesignator (name, "state"), 
+                                      LLSimpleDesignator "Empty"),
+                        acc)
+          | _ -> acc) linitstateProp lautdecls)
   in
   (igmsgdecls, lautdecls, linitstateProp, lspecs)
     

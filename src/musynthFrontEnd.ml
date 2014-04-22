@@ -43,14 +43,19 @@ let musynthProcess filename =
     Debug.dprintf 1 "%a" AST.pLLProg lprog;
 
     let mgr = new Mgr.bddManager in
-    printf "Encoding Program to BDDs... "; flush stdout;
+    printf "Encoding Program to BDDs and LTL to BDDs via Tableau... "; flush stdout;
     let transBDDs, initBDD, badStateBDD, dlfBDD = Enc.encodeProg mgr lprog in
     printf "Done!\n"; flush stdout;
     printf "Attempting to Synthesize... "; flush stdout;
     let solbdd = MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD in
     printf "Done!\n"; flush stdout;
-    printf "\n\nSolutions:\n"; flush stdout;
-    Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd; 
+    if (mgr#isFalse solbdd) then
+      printf "\n\nNo Solutions Found!\n\n"
+    else 
+      begin
+        printf "\n\nSolutions:\n"; flush stdout;
+        Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd
+      end;
     Format.pp_print_flush Format.std_formatter ();
     printf "Peak BDD node count = %d nodes\n\n" (mgr#getPeakBDDSize ()); flush stdout
   with

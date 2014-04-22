@@ -189,7 +189,7 @@ init {
      (= Cache[c].state CI))
 }
 
-/*
+
 invariant "Coherence Invariant" {
     (forall d in DataType 
      (forall c in CacheIDType
@@ -204,7 +204,7 @@ invariant "One Valid Invariant" {
         (-> (!= c1 c2) (-> (= Cache[c1].state CV[d1]) 
                            (!= Cache[c2].state CV[d2])))))))
 }
-*/
+
 /*
 ltlspec "I-V liveness on Get" {
     (forall c in CacheIDType

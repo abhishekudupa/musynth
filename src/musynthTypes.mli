@@ -408,11 +408,8 @@ type llPropT =
   | LLPropNot of llPropT
   | LLPropAnd of (llPropT * llPropT)
   | LLPropOr of (llPropT * llPropT)
-  | LLPropTLG of llPropT
-  | LLPropTLF of llPropT
   | LLPropTLX of llPropT
   | LLPropTLU of (llPropT * llPropT)
-  | LLPropTLR of (llPropT * llPropT)
 module PropMap :
   sig
     type key = llPropT
@@ -453,3 +450,6 @@ val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
 type ltlFairnessT = FairnessTypeWeak | FairnessTypeStrong
 type 'a synthExitStatT = SynthSafe | SynthCEX of 'a
+type schedFairnessSpec =
+    SchedFairJustice of llPropT
+  | SchedFairCompassion of llPropT * llPropT

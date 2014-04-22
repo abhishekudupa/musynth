@@ -8,6 +8,7 @@ module AST = MusynthAST
 module Utils = MusynthUtils
 module Safety = MusynthSafety
 module Debug = MusynthDebug
+module LTL = MusynthLtl
 
 let encodeStateVariables mgr automaton =
   let name, states = 
@@ -49,19 +50,28 @@ let getNextStatePropForTrans primedstate transition =
              acc)) valset LLPropFalse
   | _ -> assert false
 
-let getNextStatePropOnSenderForMsg autlist msg =
+let getNextStatePropOnAllForMsg autlist msg =
   let sender = Utils.getSender msg autlist in
-  let reltrans = 
-    List.filter 
-      (fun trans ->
-       match trans with
-       | TComplete (_, m, _) 
-       | TParametrizedDest (_, m, _) -> msg = m
-       | _ -> assert false) (Utils.getTransitionsForAut sender) in
-  let statenameP = Utils.getStateNamePForAutomaton sender in
+  let receivers = Utils.getReceivers msg autlist in
+  let relaut = sender :: receivers in
+
   List.fold_left 
-    (fun prop trans ->
-     LLPropOr (getNextStatePropForTrans statenameP trans, prop)) LLPropFalse reltrans
+    (fun autprop aut ->
+     let reltrans = 
+       List.filter 
+         (fun trans ->
+          match trans with
+          | TComplete (_, m, _) 
+          | TParametrizedDest (_, m, _) -> msg = m
+          | _ -> assert false) (Utils.getTransitionsForAut aut) 
+     in
+     let statenameP = Utils.getStateNamePForAutomaton aut in
+     let myprop = 
+       List.fold_left 
+         (fun prop trans ->
+          LLPropOr (getNextStatePropForTrans statenameP trans, prop)) LLPropFalse reltrans
+     in
+     LLPropAnd (myprop, autprop)) LLPropTrue relaut
 
 
 let getTransitionRelationForAut aut autlist =
@@ -78,11 +88,7 @@ let getTransitionRelationForAut aut autlist =
           let csprop = Utils.getCSPredsForMsgAll msg autlist in
           let sender = Utils.getSender msg autlist in
           let sendername = Utils.getNameForAut sender in
-          let otherautprop = 
-            if sender = aut then 
-              LLPropTrue else 
-              getNextStatePropOnSenderForMsg autlist msg 
-          in
+          let otherautprop = getNextStatePropOnAllForMsg autlist msg in
           let chooseprop = LLPropEquals (LLSimpleDesignator "choose", sendername) in
           let nsprop = getNextStatePropForTrans statenamep trans in
           let tsprop = LLPropAnd (otherautprop, LLPropAnd (sprop, LLPropAnd (csprop, chooseprop))) in
@@ -143,6 +149,17 @@ let encodeProg mgr prog =
        match spec with
        | LLSpecInvar (_, prop) -> LLPropAnd (prop, propacc)
        | LLSpecLTL _ -> propacc) LLPropTrue specs in
+
+  let _ =
+    List.fold_left
+      (fun lst spec ->
+       match spec with
+       | LLSpecLTL (name, prop, justicelist, compassionlist) ->
+          let transrel, tableaujlist = LTL.constructTableau prop in
+          Debug.dprintf 1 "Tableau:@,%a@,@," AST.pLLProp transrel;
+          (transrel, tableaujlist, justicelist, compassionlist) :: lst
+       | _ -> lst) [] specs in
+
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
   (* Debug.dprintf 2 "Deadlock Freedom Property:@,"; *)

@@ -2171,7 +2171,8 @@ module MC :
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
         makeFalse : unit -> 'b Cudd.Bdd.t;
-        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a;
+        printParamVars : int -> Format.formatter -> 'b Cudd.Bdd.t -> 'c; .. > ->
       'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
     val synthFrontEnd :
       < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
@@ -2188,7 +2189,8 @@ module MC :
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
         makeFalse : unit -> 'b Cudd.Bdd.t; makeTrue : unit -> 'b Cudd.Bdd.t;
-        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a;
+        printParamVars : int -> Format.formatter -> 'b Cudd.Bdd.t -> 'c; .. > ->
       'b Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
       'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
   end
@@ -2419,6 +2421,8 @@ module Utils :
     val makeFormatterOfName : string -> out_channel * Format.formatter
     val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Mgr :
   sig
@@ -2903,9 +2907,18 @@ module Mgr :
         val getMsgsToSyncOnFromState :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val getStatesFromWhichMsgSync :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
         val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
         val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
         val makeFormatterOfName : string -> out_channel * Format.formatter
+        val makeConjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
+        val makeDisjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
+        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
       end
     module Opts :
       sig
@@ -3011,6 +3024,7 @@ module Mgr :
         method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
         method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
         method private invalidateCaches : unit -> unit
+        method isFalse : Cudd.Man.d Cudd.Bdd.t -> bool
         method private lg : int -> int
         method lookupVar :
           MusynthTypes.LLDesigMap.key ->

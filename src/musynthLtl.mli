@@ -212,6 +212,8 @@ module Utils :
     val makeFormatterOfName : string -> out_channel * Format.formatter
     val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Opts :
   sig
@@ -226,12 +228,28 @@ module Opts :
     val reorderMethod : Cudd.Man.reorder ref
     val reorderMethods : string list
   end
-val constructFairnessSpecForOneState :
-  MusynthTypes.llAutomatonT list ->
-  MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT -> MusynthTypes.llPropT
-val constructFairnessSpecForOneAut :
+val constructEnabledProp :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
-val constructFairnessSpec :
-  'a * MusynthTypes.llAutomatonT list * 'b * 'c -> MusynthTypes.llPropT
-val constructTableau : 'a -> 'b -> unit
+val constructSchedFairnessSpecs :
+  'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
+  MusynthTypes.schedFairnessSpec list
+val createTablueaxVars :
+  MusynthTypes.PropMap.key ->
+  MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
+  MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
+  MusynthTypes.PropMap.key MusynthTypes.PropMap.t
+val getXFormulaVarPairs :
+  'a MusynthTypes.PropMap.t -> (MusynthTypes.PropMap.key * 'a) list
+val getUFormulaVarPairs :
+  'a MusynthTypes.PropMap.t -> (MusynthTypes.PropMap.key * 'a) list
+val constructPrimedVarMap :
+  'a MusynthTypes.LLDesigMap.t ->
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t
+val substForVars :
+  MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ->
+  MusynthTypes.llPropT -> MusynthTypes.llPropT
+val constructTableau :
+  MusynthTypes.PropMap.key ->
+  MusynthTypes.llPropT *
+  ((MusynthTypes.PropMap.key * 'a) list -> MusynthTypes.llPropT list)

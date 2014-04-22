@@ -335,11 +335,8 @@ let rec canonicalizeProp prop =
        | nprop, LLPropFalse -> canonicalizeProp nprop
        | nprop1, nprop2 -> LLPropOr (canonicalizeProp nprop1, canonicalizeProp nprop2)
      end
-  | LLPropTLF prop1 -> LLPropTLF (canonicalizeProp prop1)
-  | LLPropTLG prop1 -> LLPropTLG (canonicalizeProp prop1)
   | LLPropTLX prop1 -> LLPropTLX (canonicalizeProp prop1)
   | LLPropTLU (prop1, prop2) -> LLPropTLU (canonicalizeProp prop1, canonicalizeProp prop2)
-  | LLPropTLR (prop1, prop2) -> LLPropTLR (canonicalizeProp prop1, canonicalizeProp prop2)
 
 let rec canonicalizePropFP prop =
   let cprop = canonicalizeProp prop in
@@ -373,3 +370,8 @@ let makeDisjunction propList =
        (fun acc prop ->
         LLPropOr (acc, prop)) seed rest
      
+let makeTrueDesig () =
+  LLSimpleDesignator "true"
+
+let makeFalseDesig () = 
+  LLSimpleDesignator "false"

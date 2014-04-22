@@ -95,30 +95,11 @@ let countCycles mgr states transRel =
 
 let rec synthForwardSafety mgr transrel initStates badstates =
   let itercount = ref 0 in
+
   let rec computeNextOrCEX reach frontier =
-    let newReach = Bdd.dor reach frontier in
-
-    Debug.dprintf 1 "@,@,Iteration %d:@," !itercount;
-    Debug.dprintf 1 "Reach has %e states@," 
-                  (mgr#getNumMinTermsState reach);
-    Debug.dprintf 1 "Frontier has %e states@,"
-                  (mgr#getNumMinTermsState frontier);
-    Debug.dprintf 1 "newReach has %e states@," 
-                  (mgr#getNumMinTermsState newReach);
-    Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
-    Debug.dprintf 1 "BDD size for newReach abstracted on params = %d nodes@," 
-                  (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach));
-    (* let ncycles = countCycles mgr newReach transrel in *)
-    (* Debug.dprintf 1 "%e states form cycles in newReach@," ncycles; *)
-    (* Debug.dflush (); *)
-
-    itercount := !itercount + 1;
-
-    if (Bdd.is_leq newReach reach) then
-      SynthSafe
-    else if (not (Bdd.is_inter_empty newReach badstates)) then
+    if (not (Bdd.is_inter_empty frontier badstates)) then
       begin
-        let badReachStates = Bdd.dand newReach badstates in
+        let badReachStates = Bdd.dand frontier badstates in
         let errstate = mgr#pickMinTermOnStates badReachStates in
         Debug.dprintf 1 "@,@,Found counter example:@,@,";
         Debug.dprintf 1 "%a@,@," (mgr#getStateVarPrinter ()) errstate;
@@ -129,21 +110,45 @@ let rec synthForwardSafety mgr transrel initStates badstates =
           explain mgr initStates transrel (mgr#cubeOfMinTerm errstate)
         else
           ();
-        SynthCEX newReach
+        SynthCEX badReachStates
       end
     else
-      let newStates = Bdd.dand frontier (Bdd.dnot reach) in
-      Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTermsState newStates);
-      let postNew = post mgr transrel newStates in
-      Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTermsState postNew);
-      Debug.dflush ();
-      computeNextOrCEX newReach postNew
+      begin
+        let newReach = Bdd.dor reach frontier in
+        
+        Debug.dprintf 1 "@,@,Iteration %d:@," !itercount;
+        Debug.dprintf 1 "Reach has %e states@," 
+                      (mgr#getNumMinTermsState reach);
+        Debug.dprintf 1 "Frontier has %e states@,"
+                      (mgr#getNumMinTermsState frontier);
+        Debug.dprintf 1 "newReach has %e states@," 
+                      (mgr#getNumMinTermsState newReach);
+        Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
+        Debug.dprintf 1 "BDD size for newReach abstracted on params = %d nodes@," 
+                      (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach));
+
+        (* let ncycles = countCycles mgr newReach transrel in *)
+        (* Debug.dprintf 1 "%e states form cycles in newReach@," ncycles; *)
+        (* Debug.dflush (); *)
+
+        itercount := !itercount + 1;
+        
+        if (Bdd.is_leq newReach reach) then
+          SynthSafe
+        else
+          let newStates = Bdd.dand frontier (Bdd.dnot reach) in
+          Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTermsState newStates);
+          let postNew = post mgr transrel newStates in
+          Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTermsState postNew);
+          Debug.dflush ();
+          computeNextOrCEX newReach postNew
+      end
   in
+
   computeNextOrCEX (mgr#makeFalse ()) initStates
 
 (* returns the bdd corresponding to the parameter values which work *)
 let synthesize mgr transrel initstates badstates =
-  let ucube = mgr#getCubeForUnprimedVars () in
   let iteration = ref 0 in
 
   let rec synthesizeSafetyRec refinedInit =
@@ -160,9 +165,20 @@ let synthesize mgr transrel initstates badstates =
        assert (not (Bdd.is_false r));
        Debug.dprintf 1 "Returning Solutions!@,";
        r
-    | SynthCEX cex -> 
-       let newInit = Bdd.dand refinedInit (Bdd.dnot (Bdd.existand ucube cex badstates)) in
-       if (not (Bdd.is_leq newInit initstates)) then
+    | SynthCEX cex ->
+       let badParamValues = Bdd.exist (mgr#getAllButParamCube ()) cex in
+       Debug.dprintf 1 "%e param values eliminated@," (mgr#getNumMinTermsParam badParamValues);
+       let newInit = 
+         Bdd.dand refinedInit 
+                  (Bdd.dnot (Bdd.existand 
+                               (mgr#getAllButParamCube ()) 
+                               cex badstates))
+       in
+       assert (not (Bdd.is_false newInit));
+       Debug.dprintf 1 "newInit has %e states@," (mgr#getNumMinTermsState newInit);
+       if (not (Bdd.is_leq (Bdd.exist (mgr#getCubeForParamVars ()) newInit) 
+                           (Bdd.exist (Bdd.dand (mgr#getCubeForPrimedVars ())
+                                                (mgr#getCubeForParamVars ())) initstates))) then
          begin
            Debug.dprintf 1 "Synthesis eliminated one or more initial states!@,";
            Debug.dprintf 1 "No solution possible.@,";

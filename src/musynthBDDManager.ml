@@ -650,5 +650,8 @@ class bddManager =
 
     method getPeakBDDSize () =
       Man.get_node_count_peak manager
+
+    method isFalse bdd =
+      Bdd.is_false (Bdd.dand bdd (self#makeTrue ()))
         
   end (* class bddEncoder *)

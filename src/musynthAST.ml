@@ -363,16 +363,10 @@ let rec pLLProp fmt prop =
      fprintf fmt "@[<b 5>(and %a@ %a)@]" pLLProp prop1 pLLProp prop2
   | LLPropOr (prop1, prop2) ->
      fprintf fmt "@[<b 4>(or %a@ %a)@]" pLLProp prop1 pLLProp prop2
-  | LLPropTLG prop1 ->
-     fprintf fmt "@[<b 3>(G %a)@]" pLLProp prop1
-  | LLPropTLF prop1 ->
-     fprintf fmt "@[<b 3>(F %a)@]" pLLProp prop1
   | LLPropTLX prop1 ->
      fprintf fmt "@[<b 3>(X %a)@]" pLLProp prop1
   | LLPropTLU (prop1, prop2) ->
      fprintf fmt "@[<b 3>(U %a %a)@]" pLLProp prop1 pLLProp prop2
-  | LLPropTLR (prop1, prop2) ->
-     fprintf fmt "@[<b 3>(R %a %a)@]" pLLProp prop1 pLLProp prop2
 
 let pLLSpec fmt spec = 
   match spec with

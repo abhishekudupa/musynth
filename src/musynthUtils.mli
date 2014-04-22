@@ -199,3 +199,5 @@ val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
 val makeFormatterOfName : string -> out_channel * Format.formatter
 val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
 val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
