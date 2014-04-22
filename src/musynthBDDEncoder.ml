@@ -49,6 +49,20 @@ let getNextStatePropForTrans primedstate transition =
              acc)) valset LLPropFalse
   | _ -> assert false
 
+let getNextStatePropOnSenderForMsg autlist msg =
+  let sender = Utils.getSender msg autlist in
+  let reltrans = 
+    List.filter 
+      (fun trans ->
+       match trans with
+       | TComplete (_, m, _) 
+       | TParametrizedDest (_, m, _) -> msg = m
+       | _ -> assert false) (Utils.getTransitionsForAut sender) in
+  let statenameP = Utils.getStateNamePForAutomaton sender in
+  List.fold_left 
+    (fun prop trans ->
+     LLPropOr (getNextStatePropForTrans statenameP trans, prop)) LLPropFalse reltrans
+
 
 let getTransitionRelationForAut aut autlist =
   let transitions = Utils.getTransitionsForAut aut in
@@ -60,16 +74,18 @@ let getTransitionRelationForAut aut autlist =
        match trans with
        | TComplete (sstate, msg, _)
        | TParametrizedDest (sstate, msg, _) ->
-          let sender = Utils.getSender msg autlist in
-          let receivers = Utils.getReceivers msg autlist in
           let sprop = LLPropEquals (statename, sstate) in
-          let csprops = List.fold_left 
-                          (fun prop pred -> LLPropAnd (prop, pred))
-                          LLPropTrue (List.map (Utils.getCSPredsForMsg msg) (sender :: receivers))
+          let csprop = Utils.getCSPredsForMsgAll msg autlist in
+          let sender = Utils.getSender msg autlist in
+          let sendername = Utils.getNameForAut sender in
+          let otherautprop = 
+            if sender = aut then 
+              LLPropTrue else 
+              getNextStatePropOnSenderForMsg autlist msg 
           in
-          let chooseprop = LLPropEquals (LLSimpleDesignator "choose", msg) in
-          let tsprop = LLPropAnd (sprop, LLPropAnd (csprops, chooseprop)) in
+          let chooseprop = LLPropEquals (LLSimpleDesignator "choose", sendername) in
           let nsprop = getNextStatePropForTrans statenamep trans in
+          let tsprop = LLPropAnd (otherautprop, LLPropAnd (sprop, LLPropAnd (csprop, chooseprop))) in
           (tsprop, nsprop) :: propList
        | _ -> assert false) [] transitions 
   in
@@ -87,13 +103,14 @@ let getTransitionRelationForAut aut autlist =
      LLPropOr (acc, LLPropAnd (tsprop, nsprop))) LLPropFalse relationElems
         
 
-let encodeChooseTransitions choose choosep allmsgs =
+let encodeChooseTransitions choose choosep autlist =
   List.fold_left 
     (fun acc msg ->
-     LLPropOr (LLPropEquals (choosep, msg), acc)) LLPropFalse allmsgs
+     LLPropOr (LLPropEquals (choosep, msg), acc)) LLPropFalse 
+    (List.map Utils.getNameForAut autlist)
 
 (* evaluates to a map of transition relations *)
-let encodeTransitionRelation automata allmsgs choose choosep =
+let encodeTransitionRelation automata choose choosep =
   let m = 
     List.fold_left 
       (fun mapacc aut -> 
@@ -101,19 +118,20 @@ let encodeTransitionRelation automata allmsgs choose choosep =
        LLDesigMap.add (Utils.getStateNameForAutomaton aut) t mapacc)
       LLDesigMap.empty automata
   in
-  LLDesigMap.add choose (encodeChooseTransitions choose choosep allmsgs) m
+  LLDesigMap.add choose (encodeChooseTransitions choose choosep automata) m
 
 let encodeProg mgr prog =
   (* encode the choose variable for scheduling first *)
   let msgdecls, automata, initconstraints, specs = prog in
+  let automataname = List.map Utils.getNameForAut automata in
   let choose = LLSimpleDesignator ("choose") in
   let choosep = getPrimedLLDesig choose in
-  let _ = mgr#registerStateVariable choose msgdecls in
+  let _ = mgr#registerStateVariable choose automataname in
   (* encode the state variables of the automata next *)
   List.iter (fun aut -> ignore (encodeStateVariables mgr aut)) automata;
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
-  let tranrelations = encodeTransitionRelation automata msgdecls choose choosep in
+  let tranrelations = encodeTransitionRelation automata choose choosep in
   (* Debug.dprintf 2 "Transition Relations:\n"; *)
   (* LLDesigMap.iter *)
   (*   (fun name rel -> *)

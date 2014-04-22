@@ -148,6 +148,11 @@ val explain :
     makeFalse : unit -> 'b Cudd.Bdd.t;
     pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
   'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> unit
+val countCycles :
+  < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+    getNumMinTermsState : 'a Cudd.Bdd.t -> float;
+    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array; .. > ->
+  'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> float
 val synthForwardSafety :
   < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
     getCubeForParamVars : unit -> 'b Cudd.Bdd.t;
@@ -155,6 +160,7 @@ val synthForwardSafety :
     getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
     getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+    getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -171,6 +177,7 @@ val synthesize :
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
     getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
     getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+    getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -187,6 +194,7 @@ val synthFrontEnd :
     getCubePrinter : unit -> Format.formatter -> 'a -> unit;
     getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
     getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+    getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
     getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;

@@ -1667,9 +1667,16 @@ module Enc :
         val getMsgsToSyncOnFromState :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val getStatesFromWhichMsgSync :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
         val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
         val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
         val makeFormatterOfName : string -> out_channel * Format.formatter
+        val makeConjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
+        val makeDisjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
       end
     module Safety :
       sig
@@ -1916,6 +1923,24 @@ module Enc :
           MusynthTypes.llIdentT list ->
           MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
       end
+    module Debug :
+      sig
+        module Opts :
+          sig
+            val debugLevel : int ref
+            val fairnessType : MusynthTypes.ltlFairnessT ref
+            val onlySafety : bool ref
+            val conjunctivePart : bool ref
+            val inputFileName : string ref
+          end
+        val debugOC : out_channel option ref
+        val debugFmt : Format.formatter option ref
+        val getDebugFmt : unit -> Format.formatter
+        val initDebugSubsys : string -> unit
+        val shutDownDebugSubsys : unit -> unit
+        val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+        val dflush : unit -> unit
+      end
     val encodeStateVariables :
       < registerStateVariable : MusynthTypes.llDesignatorT ->
                                 MusynthTypes.llIdentT list -> 'a;
@@ -1935,10 +1960,9 @@ module Enc :
     val encodeChooseTransitions :
       'a ->
       MusynthTypes.llDesignatorT ->
-      MusynthTypes.llDesignatorT list -> MusynthTypes.llPropT
+      MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
     val encodeTransitionRelation :
       MusynthTypes.llAutomatonT list ->
-      MusynthTypes.llDesignatorT list ->
       MusynthTypes.LLDesigMap.key ->
       MusynthTypes.llDesignatorT ->
       MusynthTypes.llPropT MusynthTypes.LLDesigMap.t
@@ -2112,6 +2136,11 @@ module MC :
         makeFalse : unit -> 'b Cudd.Bdd.t;
         pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
       'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> unit
+    val countCycles :
+      < getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getNumMinTermsState : 'a Cudd.Bdd.t -> float;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array; .. > ->
+      'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> float
     val synthForwardSafety :
       < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
         getCubeForParamVars : unit -> 'b Cudd.Bdd.t;
@@ -2119,6 +2148,7 @@ module MC :
         getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
         getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+        getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2136,6 +2166,7 @@ module MC :
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
         getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
         getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+        getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2152,6 +2183,7 @@ module MC :
         getCubePrinter : unit -> Format.formatter -> 'a -> unit;
         getNumMinTermsParam : 'b Cudd.Bdd.t -> float;
         getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+        getParamVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
         getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
         getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
@@ -2379,9 +2411,14 @@ module Utils :
     val getMsgsToSyncOnFromState :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val getStatesFromWhichMsgSync :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val makeFormatterOfName : string -> out_channel * Format.formatter
+    val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
   end
 module Mgr :
   sig

@@ -56,7 +56,6 @@ let explain mgr initstates transRel errstate =
     match stateK with
     | [] -> ()
     | head :: rest ->
-       Debug.dprintf 2 "Constructing pre...@,";
        assert (not (Bdd.is_false myState));
        let preMyState = pre mgr transRel myState in
        assert (not (Bdd.is_false preMyState));
@@ -109,9 +108,9 @@ let rec synthForwardSafety mgr transrel initStates badstates =
     Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
     Debug.dprintf 1 "BDD size for newReach abstracted on params = %d nodes@," 
                   (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach));
-    let ncycles = countCycles mgr newReach transrel in
-    Debug.dprintf 1 "%e states form cycles in newReach@," ncycles;
-    Debug.dflush ();
+    (* let ncycles = countCycles mgr newReach transrel in *)
+    (* Debug.dprintf 1 "%e states form cycles in newReach@," ncycles; *)
+    (* Debug.dflush (); *)
 
     itercount := !itercount + 1;
 
@@ -123,6 +122,8 @@ let rec synthForwardSafety mgr transrel initStates badstates =
         let errstate = mgr#pickMinTermOnStates badReachStates in
         Debug.dprintf 1 "@,@,Found counter example:@,@,";
         Debug.dprintf 1 "%a@,@," (mgr#getStateVarPrinter ()) errstate;
+        Debug.dprintf 1 "With parameter values:@,@,";
+        Debug.dprintf 1 "%a@,@," (mgr#getParamVarPrinter ()) errstate;
         Debug.dprintf 2 "Trail to counterexample from initial state:@,@,";
         if (!Opts.debugLevel >= 2) then
           explain mgr initStates transrel (mgr#cubeOfMinTerm errstate)

@@ -302,9 +302,14 @@ module Utils :
     val getMsgsToSyncOnFromState :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val getStatesFromWhichMsgSync :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val makeFormatterOfName : string -> out_channel * Format.formatter
+    val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
   end
 module Safety :
   sig
@@ -536,6 +541,24 @@ module Safety :
       MusynthTypes.llIdentT list ->
       MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
   end
+module Debug :
+  sig
+    module Opts :
+      sig
+        val debugLevel : int ref
+        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val onlySafety : bool ref
+        val conjunctivePart : bool ref
+        val inputFileName : string ref
+      end
+    val debugOC : out_channel option ref
+    val debugFmt : Format.formatter option ref
+    val getDebugFmt : unit -> Format.formatter
+    val initDebugSubsys : string -> unit
+    val shutDownDebugSubsys : unit -> unit
+    val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+    val dflush : unit -> unit
+  end
 val encodeStateVariables :
   < registerStateVariable : MusynthTypes.llDesignatorT ->
                             MusynthTypes.llIdentT list -> 'a;
@@ -554,10 +577,9 @@ val getTransitionRelationForAut :
 val encodeChooseTransitions :
   'a ->
   MusynthTypes.llDesignatorT ->
-  MusynthTypes.llDesignatorT list -> MusynthTypes.llPropT
+  MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
 val encodeTransitionRelation :
   MusynthTypes.llAutomatonT list ->
-  MusynthTypes.llDesignatorT list ->
   MusynthTypes.LLDesigMap.key ->
   MusynthTypes.llDesignatorT ->
   MusynthTypes.llPropT MusynthTypes.LLDesigMap.t

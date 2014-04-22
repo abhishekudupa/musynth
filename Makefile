@@ -2,7 +2,7 @@ PROJECTROOT=$(realpath .)
 SRCDIR=$(PROJECTROOT)/src
 MAKEFLAGS+=-Oline
 
-ECHO=/usr/bin/echo
+ECHO=/bin/echo
 
 OCAMLC=ocamlc.opt
 OCAMLOPT=ocamlopt.opt

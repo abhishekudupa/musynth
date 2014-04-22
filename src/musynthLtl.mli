@@ -204,9 +204,14 @@ module Utils :
     val getMsgsToSyncOnFromState :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val getStatesFromWhichMsgSync :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
     val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
     val makeFormatterOfName : string -> out_channel * Format.formatter
+    val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
   end
 module Opts :
   sig
@@ -229,5 +234,4 @@ val constructFairnessSpecForOneAut :
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
 val constructFairnessSpec :
   'a * MusynthTypes.llAutomatonT list * 'b * 'c -> MusynthTypes.llPropT
-val ltlspec2BA : 'a -> unit
-val ltl3baProp2LLProp : 'a -> unit
+val constructTableau : 'a -> 'b -> unit

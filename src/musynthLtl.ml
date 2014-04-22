@@ -51,4 +51,4 @@ let constructFairnessSpec prog =
 (* Initial states and compassion properties aren't required *)
 (* because we're only dealing with LTL properties now *)
 let constructTableau mgr ltlprop =
-  
+  ()
