@@ -1,0 +1,119 @@
+symmetrictypes {
+    DataType : { D0, D1 };
+}
+
+messages {
+    Msg[d] foreach d in DataType,
+    Msg'[d] foreach d in DataType,
+    Ack[d] foreach d in DataType,
+    Ack'[d] foreach d in DataType,
+    Timeout,
+    Send[d] foreach d in DataType,
+    Deliver[d] foreach d in DataType
+}
+
+automaton with compassion Environment {
+    states : {
+        EInit,
+        Pending[d] foreach d in DataType,
+        EError
+    };
+    
+    inputs {
+        Send[d] foreach d in DataType,
+        Deliver[d] foreach d in DataType
+    };
+
+    outputs {
+        Timeout
+    };
+
+    transitions {
+        (EInit, Send[d], Pending[d] foreach d in DataType),
+        (Pending[d], Deliver[d], EInit foreach d in DataType),
+        (Pending[d], Timeout, Pending[d] foreach d in DataType),
+        (Pending[d1], Deliver[d2], EError foreach d1, d2 in DataType (!= d1 d2))
+    };
+}
+
+partialautomaton with compassion ABPSender {
+    states : {
+        RInitial[d] foreach d in DataType : complete,
+        BeforeSending[d] foreach d in DataType : complete,
+        WaitingForAck[d] foreach d in DataType : complete
+    };
+
+    inputs {
+        Ack'[d] foreach d in DataType,
+        Timeout
+    };
+
+    outputs {
+        Msg[d] foreach d in DataType,
+        Send[d] foreach d in DataType
+    };
+
+    transitions {
+        (RInitial[d], Send[d], BeforeSending[d] foreach d in DataType),
+        (BeforeSending[d], Msg[d], WaitingForAck[d] foreach d in DataType),
+        (WaitingForAck[d], Timeout, BeforeSending[d] foreach d in DataType),    
+        (WaitingForAck[d1], Ack'[d1], RInitial[d2] foreach d1, d2 in DataType (!= d1 d2)),
+        (WaitingForAck[d1], Ack'[d2], WaitingForAck[d1] foreach d1, d2 in DataType (!= d1 d2))
+    };
+}
+
+partialautomaton with compassion ABPReceiver {
+    states : {
+        WaitingFor[d] foreach d in DataType,
+        Got[d] foreach d in DataType,
+        BeforeAck[d] foreach d in DataType        
+    };
+
+    inputs {
+        Msg'[d] foreach d in DataType
+    };
+
+    outputs {
+        Ack[d] foreach d in DataType,
+        Deliver[d] foreach d in DataType
+    };
+
+    transitions {
+        (WaitingFor[d], Msg'[d], Got[d] foreach d in DataType),
+        (WaitingFor[d1], Msg'[d2], WaitingFor[d1] foreach d1, d2 in DataType (!= d1 d2)),
+        (Got[d], Deliver[d], BeforeAck[d] foreach d in DataType),
+        (BeforeAck[d1], Ack[d1], WaitingFor[d2] foreach d1, d2 in DataType (!= d1 d2))
+    };
+}
+
+channelautomaton with compassion finiteloss finitedup ForwardChannel {
+    ordered, lossy, duplicating, blocking;
+    capacity = 1;
+
+    messages {
+        Msg[d] foreach d in DataType
+    };
+}
+
+channelautomaton with compassion finiteloss finitedup BackwardChannel {
+    ordered, lossy, duplicating, blocking;
+    capacity = 1;
+    messages {
+        Ack[d] foreach d in DataType
+    };
+}
+
+init {
+    (= Environment.state EInit),
+    (exists d in DataType
+     (and (= ABPReceiver.state WaitingFor[d]) (= ABPSender.state RInitial[d])))
+}
+
+invariant "No Error" {
+    (!= Environment.state EError)
+}
+
+ltlspec "Eventually Deliver" {
+    (forall d in DataType
+     (G (-> (= Environment.state Pending[d]) (F (= Environment.state EInit)))))
+}

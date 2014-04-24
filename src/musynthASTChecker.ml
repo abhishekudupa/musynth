@@ -225,7 +225,8 @@ let transChecker symtab trans locopt =
   match sstateentry, msgentry, fstateentry with
   | StateName (_, aut1), AutomatonMsgName (_, aut2), StateName (_, aut3) -> 
      if ((aut1 <> aut2) || (aut2 <> aut3)) then
-       raise (SemanticError ("States and messages in transition must refer only to the automaton's states " ^ 
+       raise (SemanticError ("States and messages in transition must refer " ^ 
+                               "only to the automaton's states " ^ 
                                "and messages", locopt))
      else
        ("", [])
@@ -545,7 +546,7 @@ let checkLLProg prog =
     (fun aut ->
      match aut with
      | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, true) -> ()
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, false)
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, false) -> ()
      | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _) ->
         List.iter (fun state -> checkState state transitions inmsgs outmsgs) states) autlist;
 
