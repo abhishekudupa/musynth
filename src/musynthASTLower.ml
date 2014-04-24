@@ -225,19 +225,19 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype l
   let ident, paramlist = CK.destructDesigDecl desig in 
   let name, _ = ident in
   let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
-  let lftype = 
+  let loweredftype = 
     match ftype with
-    | FairnessTypeNone -> LLFairnessNone
-    | LLFairnessJustice
+    | FairnessTypeNone _ -> LLFairnessNone
+    | _ -> LLFairnessJustice
   in
   let llftype = 
     match chanprops with
     | _, ChanLossy _, _, _, _ -> lowerLossFairness lftype
     | _ -> LLLossFairnessNone
   in
-  let ldtype = 
+  let ldftype = 
     match chanprops with
-    | _, _, ChanDuplicating, _, _ -> lowerDupFairness dftype
+    | _, _, ChanDuplicating _, _, _ -> lowerDupFairness dftype
     | _ -> LLDupFairnessNone
   in
 
@@ -247,7 +247,7 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype l
     let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
     let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
     [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, 
-                           lftype, llftype, ldftype, true) ]
+                           loweredftype, llftype, ldftype, true) ]
   else
     let qMap = lowerQMap symtab qMap in
     let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
@@ -258,7 +258,7 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype l
        let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
        let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
        LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, 
-                            lftype, llftype, ldftype, true)) evalMaps
+                            loweredftype, llftype, ldftype, true)) evalMaps
 
 let rec checkParamCompatibility lstate paramlist =
   (* check that all the params mentioned in the state are available *)

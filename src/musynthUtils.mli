@@ -177,6 +177,12 @@ val getStatesForAut : MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT list
 val getAutomatonByName :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+val getFairnessForAutomaton :
+  MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+val getLFairnessForAutomaton :
+  MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+val getDFairnessForAutomaton :
+  MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
 val getSender :
   MusynthTypes.llIdentT ->
   MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT

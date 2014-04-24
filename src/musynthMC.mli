@@ -69,7 +69,11 @@ module AST :
     val pChanProp :
       Format.formatter ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-      MusynthTypes.musChanDupT * int -> unit
+      MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+      unit
+    val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+    val pLossFairness :
+      Format.formatter -> MusynthTypes.musLossFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -101,10 +105,14 @@ module Debug :
     module Opts :
       sig
         val debugLevel : int ref
-        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val debugFileName : string ref
         val onlySafety : bool ref
         val conjunctivePart : bool ref
         val inputFileName : string ref
+        val numSolsRequested : int ref
+        val reorderEnabled : bool ref
+        val reorderMethod : Cudd.Man.reorder ref
+        val reorderMethods : string list
       end
     val debugOC : out_channel option ref
     val debugFmt : Format.formatter option ref
@@ -118,7 +126,6 @@ module Opts :
   sig
     val debugLevel : int ref
     val debugFileName : string ref
-    val fairnessType : MusynthTypes.ltlFairnessT ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
     val inputFileName : string ref
@@ -153,6 +160,7 @@ val countCycles :
     getNumMinTermsState : 'a Cudd.Bdd.t -> float;
     getSubstTableP2U : unit -> 'a Cudd.Bdd.t array; .. > ->
   'a Cudd.Bdd.t -> 'a Cudd.Bdd.t -> float
+val getParamsForFeasible : 'a -> 'b -> 'c -> 'd -> unit
 val synthForwardSafety :
   < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
     getCubeForParamVars : unit -> 'b Cudd.Bdd.t;

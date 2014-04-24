@@ -189,6 +189,12 @@ module Utils :
     val getAutomatonByName :
       MusynthTypes.llAutomatonT list ->
       MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+    val getFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+    val getLFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+    val getDFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
     val getSender :
       MusynthTypes.llIdentT ->
       MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
@@ -234,6 +240,21 @@ module Opts :
 val constructEnabledProp :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
+val makeLastChooseDesig : unit -> MusynthTypes.llDesignatorT
+val makeChooseDesig : unit -> MusynthTypes.llDesignatorT
+val constructFairnessSpecsAut :
+  MusynthTypes.llAutomatonT list ->
+  MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT
+val constructFiniteLossFairness :
+  MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT list
+val constructFiniteDupFairness :
+  MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT list
+val constructFairnessSpecsChan :
+  MusynthTypes.llAutomatonT list ->
+  MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT list
+val constructFairnessSpecs :
+  'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
+  MusynthTypes.fairnessSpecT list
 val createTablueaxVars :
   MusynthTypes.PropMap.key ->
   MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *

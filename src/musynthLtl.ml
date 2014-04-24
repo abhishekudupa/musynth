@@ -12,41 +12,70 @@ let constructEnabledProp autlist automaton =
     (fun prop msg ->
      LLPropOr (Utils.getCSPredsForMsgAll msg autlist, prop)) LLPropFalse outmsgs
 
-(* works with any kind of automaton *)
-let constructSchedFairnessSpecs aut =
-  let autname = Utils.getNameForAut aut in
-  let enprop = constructEnabledProp automata aut in
-  let chooseprop = LLPropEquals (choose, autname) in
-  match !Opts.fairnessType with
-  | FairnessTypeWeak ->
-     Justice (LLPropOr (LLPropNot enprop, chooseprop))
-  | FairnessTypeStrong ->
-     Compassion (enprop, LLPropAnd (enprop, chooseprop))
+let makeLastChooseDesig () =
+  LLSimpleDesignator ("lastchosen")
+                    
+let makeChooseDesig () =
+  LLSimpleDesignator ("choose")
 
-let constructChannelFairnessSpecs aut =
+(* works with any kind of automaton *)
+let constructFairnessSpecsAut autlist aut =
+  let autname = Utils.getNameForAut aut in
+  let enprop = constructEnabledProp autlist aut in
+  let chooseprop = LLPropEquals (makeChooseDesig (), autname) in
   let ftype = Utils.getFairnessForAutomaton aut in
-  let lftype = Utils.getLFairnessForAutomaton aut in
-  let dftype = Utils.getDFairnessForAutomaton aut in
-  
-  
+  match ftype with
+  | LLFairnessJustice ->
+     Justice (LLPropOr (LLPropNot enprop, chooseprop))
+  | LLFairnessCompassion ->
+     Compassion (enprop, LLPropAnd (enprop, chooseprop))
+  | LLFairnessNone -> Justice (LLPropTrue)
+
+let constructFiniteLossFairness chan =
+  let inmsgs, _ = Utils.getMsgsForAut chan in
+  List.map
+    (fun msg ->
+     Compassion (LLPropEquals (makeLastChooseDesig (), msg),
+                 LLPropEquals (makeLastChooseDesig (), getPrimedLLDesig msg)))
+    inmsgs
+
+let constructFiniteDupFairness chan =
+  let inmsgs, _ = Utils.getMsgsForAut chan in
+  List.map
+    (fun msg ->
+     Compassion (LLPropEquals (makeLastChooseDesig (), getPrimedLLDesig msg),
+                 LLPropEquals (makeLastChooseDesig (), msg)))
+    inmsgs
+
+let constructFairnessSpecsChan autlist chan =
+  let lftype = Utils.getLFairnessForAutomaton chan in
+  let dftype = Utils.getDFairnessForAutomaton chan in
+  let fspecs = constructFairnessSpecsAut autlist chan in
+  let fspecs = 
+    match fspecs with
+    | Justice LLPropTrue -> []
+    | _ -> [ fspecs ]
+  in
+  let lfspecs = 
+    (match lftype with
+     | LLLossFairnessNone -> []
+     | LLLossFairnessFinite -> constructFiniteLossFairness chan) 
+  in
+  let dfspecs = 
+    (match dftype with
+     | LLDupFairnessNone -> []
+     | LLDupFairnessFinite -> constructFiniteDupFairness chan) 
+  in
+  fspecs @ lfspecs @ dfspecs
+     
+let constructFairnessSpecs autlist aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, _, _, _, _, _, _, true) -> constructFairnessSpecsChan autlist aut
+  | _ -> [ constructFairnessSpecsAut autlist aut ]
 
 let constructFairnessSpecs prog = 
   let _, automata, _, _ = prog in
-  let choose = LLSimpleDesignator "choose" in
-  List.fold_left 
-    (fun flist aut ->
-     let autname = Utils.getNameForAut aut in
-     let enprop = constructEnabledProp automata aut in
-     let chooseprop = LLPropEquals (choose, autname) in
-     match !Opts.fairnessType with
-     | FairnessTypeWeak ->
-        Justice (LLPropOr (LLPropNot enprop, chooseprop)) :: flist
-     | FairnessTypeStrong ->
-        Compassion (enprop, LLPropAnd (enprop, chooseprop)) :: flist)
-    [] automata
-
-  
-
+  List.concat (List.map (constructFairnessSpecs automata) automata)
 
 let createTablueaxVars prop =
   let rec createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop =

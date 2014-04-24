@@ -13,7 +13,6 @@ OCAMLCFLAGS=-g -annot
 OCAMLOPTFLAGS=
 
 INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
-INCDIRS+=-I $(PROJECTROOT)/extern/ltl3ba-1.0.2
 OCAMLCFLAGS+=$(INCDIRS)
 OCAMLOPTFLAGS+=$(INCDIRS)
 
@@ -79,21 +78,21 @@ opt : $(DEPEND) $(CMX) $(OPTEXES)
 $(BINDIR)/%.byte : $(CMO)
 ifeq "x$(VERBOSE_BUILD)" "x"
 	@$(ECHO) -e "[ocamlc] $(BASECMO)\n\t--> `basename $@`"; tput setaf 1;\
-	($(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma ltl3ba.cma $(CMO) \
-		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@ || (tput sgr0 && exit 1)) && tput sgr0
+	($(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma $(CMO) \
+		-ccopt -lcuddcaml -o $@ || (tput sgr0 && exit 1)) && tput sgr0
 else
-	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma ltl3ba.cma $(CMO) \
-		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@
+	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma $(CMO) \
+		-ccopt -lcuddcaml -o $@
 endif
 
 $(BINDIR)/%.opt : $(CMX)
 ifeq "x$(VERBOSE_BUILD)" "x"
 	@$(ECHO) -e "[ocamlopt] $(BASECMX)\n\t--> `basename $@`"; tput setaf 1;\
-	($(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa ltl3ba.cmxa $(CMX)
-		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@ || (tput sgr0 && exit 1)) && tput sgr0
+	($(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa $(CMX) \
+		-ccopt -lcuddcaml -o $@ || (tput sgr0 && exit 1)) && tput sgr0
 else
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa ltl3ba.cmxa $(CMX) \
-		-ccopt -lcuddcaml -ccopt -lltl3ba -o $@ 
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa $(CMX) \
+		-ccopt -lcuddcaml -o $@ 
 endif
 
 $(DEPEND) : $(MLI) $(ML)
@@ -149,7 +148,7 @@ endif
 $(SRCDIR)/%.cmx : $(SRCDIR)/%.ml
 ifeq "x$(VERBOSE_BUILD)" "x"
 	@$(ECHO) -e "[ocamlopt] `basename $<` --> `basename $@`"; tput setaf 1;\
-	($(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $<; || (tput sgr0 && exit 1)) && tput sgr0 \
+	($(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $< || (tput sgr0 && exit 1)) && tput sgr0 \
 	tput sgr0
 else
 	$(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $<
