@@ -226,7 +226,11 @@ module AST :
     val pChanProp :
       Format.formatter ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-      MusynthTypes.musChanDupT * int -> unit
+      MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+      unit
+    val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+    val pLossFairness :
+      Format.formatter -> MusynthTypes.musLossFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -331,7 +335,11 @@ module Utils :
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-          MusynthTypes.musChanDupT * int -> unit
+          MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+          unit
+        val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+        val pLossFairness :
+          Format.formatter -> MusynthTypes.musLossFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -474,7 +482,6 @@ module Opts :
   sig
     val debugLevel : int ref
     val debugFileName : string ref
-    val fairnessType : MusynthTypes.ltlFairnessT ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
     val inputFileName : string ref
@@ -488,10 +495,14 @@ module Debug :
     module Opts :
       sig
         val debugLevel : int ref
-        val fairnessType : MusynthTypes.ltlFairnessT ref
+        val debugFileName : string ref
         val onlySafety : bool ref
         val conjunctivePart : bool ref
         val inputFileName : string ref
+        val numSolsRequested : int ref
+        val reorderEnabled : bool ref
+        val reorderMethod : Cudd.Man.reorder ref
+        val reorderMethods : string list
       end
     val debugOC : out_channel option ref
     val debugFmt : Format.formatter option ref

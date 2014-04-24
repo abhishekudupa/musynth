@@ -200,26 +200,41 @@ let getMapsForProp paramlist qMap propOpt =
 (* utils for dealing with LL automata *)              
 let getMsgsForAut aut =
   match aut with
-  | LLCompleteAutomaton (_, _, inmsgs, outmsgs, _, _)
-  | LLIncompleteAutomaton (_, _, inmsgs, outmsgs, _) -> (inmsgs, outmsgs)
+  | LLCompleteAutomaton (_, _, inmsgs, outmsgs, _, _, _, _, _)
+  | LLIncompleteAutomaton (_, _, inmsgs, outmsgs, _, _) -> (inmsgs, outmsgs)
 
 let getNameForAut aut =
   match aut with
-  | LLCompleteAutomaton (name, _, _, _, _, _)
-  | LLIncompleteAutomaton (name, _, _, _, _) -> name
+  | LLCompleteAutomaton (name, _, _, _, _, _, _, _, _)
+  | LLIncompleteAutomaton (name, _, _, _, _, _) -> name
 
 let getTransitionsForAut aut =
   match aut with
-  | LLCompleteAutomaton (_, _, _, _, transitions, _)
-  | LLIncompleteAutomaton (_, _, _, _, transitions) -> transitions
+  | LLCompleteAutomaton (_, _, _, _, transitions, _, _, _, _)
+  | LLIncompleteAutomaton (_, _, _, _, transitions, _) -> transitions
 
 let getStatesForAut aut =
   match aut with
-  | LLCompleteAutomaton (_, states, _, _, _, _)
-  | LLIncompleteAutomaton (_, states, _, _, _) -> states
+  | LLCompleteAutomaton (_, states, _, _, _, _, _, _, _)
+  | LLIncompleteAutomaton (_, states, _, _, _, _) -> states
 
 let getAutomatonByName autlist autname =
   List.find (fun aut -> (getNameForAut aut) = autname) autlist
+
+let getFairnessForAutomaton aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, _, _, _, ftype, _, _, _)
+  | LLIncompleteAutomaton (_, _, _, _, _, ftype) -> ftype
+
+let getLFairnessForAutomaton aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, _, _, _, _, lftype, _, _) -> lftype
+  | _ -> LLLossFairnessNone
+
+let getDFairnessForAutomaton aut =
+  match aut with
+  | LLCompleteAutomaton (_, _, _, _, _, _, _, dftype, _) -> dftype
+  | _ -> LLDupFairnessNone
 
 let getSender msg autlist = 
   let lst = 

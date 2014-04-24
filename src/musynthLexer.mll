@@ -34,6 +34,7 @@ let musynthKeywords =
     ("justice", JUSTICE);
     ("compassion", COMPASSION);
     ("finiteloss", FINITELOSS);
+    ("finitedup", FINITEDUP);
     ("cansyncon", CANSYNCON);
     ("ltlspec", LTLSPEC);
     ("invariant", INVARIANT);

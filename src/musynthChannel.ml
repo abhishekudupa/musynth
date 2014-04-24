@@ -45,9 +45,10 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
        LLDesigMap.add inmsg outmsg acc)
       LLDesigMap.empty linmsgs loutmsgs
   in
-  let _, l, d, size = chanprop in
+  let _, l, d, b, size = chanprop in
   let lossy = match l with | ChanLossy _ -> true | _ -> false in
   let duplicating = match d with | ChanDuplicating _ -> true | _ -> false in
+  let blocking = match b with | ChanBlocking _ -> true | _ -> false in
   (* base input transitions *)
   let transitions1 =
     List.concat 
@@ -71,9 +72,12 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
            (fun acc1 cc ->
             (List.fold_left
                (fun acc2 input ->
-                (TComplete (desigFun cc, 
-                            input, 
-                            desigFun cc)) :: acc2)
+                if (((lenFun cc) = size) && blocking) then
+                  acc2
+                else
+                  (TComplete (desigFun cc, 
+                              input, 
+                              desigFun cc)) :: acc2)
                [] linmsgs) :: acc1)
            [] cclist)
     else
@@ -119,7 +123,7 @@ let makeChanTran addFun delFun contFun lenFun desigFun chanprop states linmsgs l
   transitions1 @ transitions2 @ transitions3 @ transitions4
                                                  
 let buildChannelAutomaton linmsgs loutmsgs chanprops =
-  let o, _, _, size = chanprops in
+  let o, _, _, _, size = chanprops in
   begin
     match o with
     | ChanOrdered _ ->

@@ -353,16 +353,20 @@ let checkAutDef symtab autdef loc =
     (autname, autparamtypelist)
   in
   match autdef with
-  | CompleteAutomaton (autdesig, sblock, inblock, outblock, transblock, loc) ->
+  | CompleteAutomaton (autdesig, sblock, inblock, outblock, transblock, _, loc) ->
      checkAutDefInternal autdesig sblock inblock outblock transblock loc false
-  | IncompleteAutomaton (autdesig, sblock, inblock, outblock, transblock, loc) ->
+  | IncompleteAutomaton (autdesig, sblock, inblock, outblock, transblock, _, loc) ->
      checkAutDefInternal autdesig sblock inblock outblock transblock loc true
-  | ChannelAutomaton (autdesig, chanProp, msgs, loc) ->
+  | ChannelAutomaton (autdesig, chanProp, msgs, ftype, lftype, dftype, loc) ->
      let autname, autparamtypelist = desigDeclChecker symtab autdesig loc in
      List.iter (checkAutomatonMsgDecl symtab InputMsg) msgs;
      List.iter 
        (fun msgdecl ->
         checkAutomatonMsgDecl symtab OutputMsg (convertDesigDeclToPrimed msgdecl)) msgs;
+     (match chanProp with
+     | _, ChanLossless _, _, ChanNonBlocking loc, _ ->
+        raise (SemanticError ("Only lossy channels can be declared non-blocking", loc))
+     | _ -> ());
      (autname, autparamtypelist)
 
 let initStateDeclChecker symtab propList =
@@ -460,8 +464,8 @@ let checkLLProg prog =
     List.fold_left 
       (fun acc aut ->
        match aut with
-       | LLCompleteAutomaton (_, _, inmsgs, _, _, _)
-       | LLIncompleteAutomaton (_, _, inmsgs, _, _) ->
+       | LLCompleteAutomaton (_, _, inmsgs, _, _, _, _, _, _)
+       | LLIncompleteAutomaton (_, _, inmsgs, _, _, _) ->
           List.fold_left
             (fun acc2 inmsg -> LLDesigSet.add inmsg acc2) acc inmsgs) 
       LLDesigSet.empty autlist;
@@ -470,8 +474,8 @@ let checkLLProg prog =
     List.fold_left
       (fun acc aut ->
        match aut with
-       | LLCompleteAutomaton (_, _, _, outmsgs, _, _)
-       | LLIncompleteAutomaton (_, _, _, outmsgs, _) ->
+       | LLCompleteAutomaton (_, _, _, outmsgs, _, _, _, _, _)
+       | LLIncompleteAutomaton (_, _, _, outmsgs, _, _) ->
           List.fold_left
             (fun acc2 outmsg -> LLDesigSet.add outmsg acc2) acc outmsgs)
       LLDesigSet.empty autlist
@@ -500,8 +504,8 @@ let checkLLProg prog =
          (fun aut -> 
           let outmsgs = 
             (match aut with
-             | LLCompleteAutomaton (_, _, _, outmsgs, _, _) -> outmsgs
-             | LLIncompleteAutomaton (_, _, _, outmsgs, _) -> outmsgs) 
+             | LLCompleteAutomaton (_, _, _, outmsgs, _, _, _, _, _) -> outmsgs
+             | LLIncompleteAutomaton (_, _, _, outmsgs, _, _) -> outmsgs) 
           in
           List.mem msg outmsgs) autlist
      in
@@ -540,9 +544,9 @@ let checkLLProg prog =
   List.iter 
     (fun aut ->
      match aut with
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, true) -> ()
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, false)
-     | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions) ->
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, true) -> ()
+     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, false)
+     | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _) ->
         List.iter (fun state -> checkState state transitions inmsgs outmsgs) states) autlist;
 
   (* Incomplete automata must be deterministic *)
@@ -554,7 +558,7 @@ let checkLLProg prog =
     (fun aut ->
      match aut with
      | LLCompleteAutomaton _ -> ()
-     | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
+     | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions, _) ->
         (* build a mapping from each state to the messages it transitions on *)
         let transmap = 
           List.fold_left 

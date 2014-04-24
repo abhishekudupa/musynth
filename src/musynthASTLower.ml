@@ -158,6 +158,22 @@ let stateAnnotationInstantiator symtab qMap propOpt allmsgs annot =
   | AnnotComplete _
   | AnnotNone _ -> LLAnnotNone
 
+let lowerFairness f =
+  match f with
+  | FairnessTypeJustice _ -> LLFairnessJustice
+  | FairnessTypeCompassion _ -> LLFairnessCompassion
+  | FairnessTypeNone -> LLFairnessNone
+
+let lowerLossFairness f =
+  match f with
+  | LossFairnessNone -> LLLossFairnessNone
+  | LossFairnessFinite _ -> LLLossFairnessFinite
+
+let lowerDupFairness f =
+  match f with
+  | DupFairnessNone -> LLDupFairnessNone
+  | DupFairnessFinite _ -> LLDupFairnessFinite
+
 let rec stateAnnotSubstitutor substMap annot =
   match annot with
   | AnnotNone _
@@ -171,19 +187,21 @@ let rec stateAnnotSubstitutor substMap annot =
      AnnotIncompleteNumEventList
        (num, List.map (fun mdecl -> substInDecl substMap desigSubstitutor mdecl) msgdecllist, None)
 
-let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions = 
+let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions ftype = 
   let ident, paramlist = CK.destructDesigDecl desig in 
   let name, _ = ident in
   let sdecls = List.map (fun (decl, annot) -> decl) states in
   let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
   let transInstantiator = instantiateTransBlock symtab IdentMap.empty None in
+  let lftype = lowerFairness ftype in
   if paramlist = [] then
     [ LLCompleteAutomaton (LLSimpleDesignator name,
                            desigInstantiator sdecls,
                            desigInstantiator inmsgs,
                            desigInstantiator outmsgs,
-                           transInstantiator transitions, 
-                           false) ]
+                           transInstantiator transitions,
+                           lftype, LLLossFairnessNone, 
+                           LLDupFairnessNone, false) ]
   else
     let qMap = lowerQMap symtab qMap in
     let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
@@ -195,7 +213,7 @@ let instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs
                             desigInstantiator (substituteInDesigBlock evalMap inmsgs),
                             desigInstantiator (substituteInDesigBlock evalMap outmsgs),
                             transInstantiator (substituteInTransBlock evalMap transitions),
-                            false)) evalMaps
+                            lftype, LLLossFairnessNone, LLDupFairnessNone, false)) evalMaps
 
 let rec convertLLDesigToPrimed desig = 
   match desig with
@@ -203,16 +221,33 @@ let rec convertLLDesigToPrimed desig =
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (convertLLDesigToPrimed ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (convertLLDesigToPrimed ndesig, name)
 
-let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs =
+let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype lftype dftype =
   let ident, paramlist = CK.destructDesigDecl desig in 
   let name, _ = ident in
   let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
+  let lftype = 
+    match ftype with
+    | FairnessTypeNone -> LLFairnessNone
+    | LLFairnessJustice
+  in
+  let llftype = 
+    match chanprops with
+    | _, ChanLossy _, _, _, _ -> lowerLossFairness lftype
+    | _ -> LLLossFairnessNone
+  in
+  let ldtype = 
+    match chanprops with
+    | _, _, ChanDuplicating, _, _ -> lowerDupFairness dftype
+    | _ -> LLDupFairnessNone
+  in
+
   if paramlist = [] then
     let lldesig = LLSimpleDesignator name in
     let linmsgs = desigInstantiator msgs in
     let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
     let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
-    [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, true) ]
+    [ LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, 
+                           lftype, llftype, ldftype, true) ]
   else
     let qMap = lowerQMap symtab qMap in
     let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
@@ -222,7 +257,8 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs =
        let linmsgs = desigInstantiator (substituteInDesigBlock evalMap msgs) in
        let loutmsgs = List.map convertLLDesigToPrimed linmsgs in
        let states, transitions = Chan.buildChannelAutomaton linmsgs loutmsgs chanprops in
-       LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, true)) evalMaps
+       LLCompleteAutomaton (lldesig, states, linmsgs, loutmsgs, transitions, 
+                            lftype, llftype, ldftype, true)) evalMaps
 
 let rec checkParamCompatibility lstate paramlist =
   (* check that all the params mentioned in the state are available *)
@@ -254,12 +290,14 @@ let identMapToStringMap map =
     (fun (name1, _) (name2, _) acc -> StringMap.add name1 name2 acc)
     map StringMap.empty
 
-let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions =
+let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs 
+                                   transitions ftype =
   let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
   let transInstantiator = instantiateTransBlock symtab IdentMap.empty None in
 
   let linmsgs = desigInstantiator inmsgs in
   let loutmsgs = desigInstantiator outmsgs in
+  let lftype = lowerFairness ftype in
 
   let lstate2AnnotMap =
     List.fold_left 
@@ -325,7 +363,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
   let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
   if paramlist = [] then
     [ (LLIncompleteAutomaton (LLSimpleDesignator name,
-                              lstates, linmsgs, loutmsgs, ltrans @ ptrans)) ]
+                              lstates, linmsgs, loutmsgs, ltrans @ ptrans, lftype)) ]
   else
     List.map 
       (fun evalMap ->
@@ -335,18 +373,20 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
                               List.map (lldesigSubstitutor sevalMap) lstates, 
                               List.map (lldesigSubstitutor sevalMap) linmsgs, 
                               List.map (lldesigSubstitutor sevalMap) loutmsgs,
-                              List.map (lltransSubstitutor sevalMap) (ltrans @ ptrans)))
+                              List.map (lltransSubstitutor sevalMap) (ltrans @ ptrans), lftype))
       evalMaps
     
 
 let autDeclInstantiator symtab qMap propOpt autDecl =
   match autDecl with
-  | CompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, _) ->
-     instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions
-  | ChannelAutomaton (desig, chanprops, msgs, _) ->
-     instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs
-  | IncompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, _) ->
-     instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outmsgs transitions
+  | CompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, ftype, _) ->
+     instantiateCompleteAutomaton symtab qMap propOpt desig states inmsgs 
+                                  outmsgs transitions ftype
+  | ChannelAutomaton (desig, chanprops, msgs, ftype, lftype, dftype, _) ->
+     instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype lftype dftype
+  | IncompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, ftype, _) ->
+     instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs 
+                                    outmsgs transitions ftype
 
 
 let rec substInLProp substMap lprop =
@@ -470,11 +510,10 @@ let lowerProg symtab prog =
       (List.fold_left 
          (fun acc laut ->
           match laut with
-          | LLCompleteAutomaton (name, _, _, _, _, true) ->
+          | LLCompleteAutomaton (name, _, _, _, _, _, _, _, true) ->
              LLPropAnd (LLPropEquals (LLFieldDesignator (name, "state"), 
                                       LLSimpleDesignator "Empty"),
                         acc)
           | _ -> acc) linitstateProp lautdecls)
   in
   (igmsgdecls, lautdecls, linitstateProp, lspecs)
-    

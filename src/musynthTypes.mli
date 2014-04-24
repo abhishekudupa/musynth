@@ -185,6 +185,9 @@ type musChanPropT =
 type musLossFairnessT =
     LossFairnessNone
   | LossFairnessFinite of sourcelocation option
+type musDupFairnessT =
+    DupFairnessNone
+  | DupFairnessFinite of sourcelocation option
 type musFairnessT =
     FairnessTypeJustice of sourcelocation option
   | FairnessTypeCompassion of sourcelocation option
@@ -198,8 +201,9 @@ type musAutomatonDeclType =
   | IncompleteAutomaton of musDesignatorT * musStateDeclBlockT *
       musMsgDeclBlockT * musMsgDeclBlockT * musTransDeclBlockT *
       musFairnessT * sourcelocation option
-  | ChannelAutomaton of musDesignatorT * musFairnessT * musLossFairnessT *
-      musChanPropT * musMsgDeclBlockT * sourcelocation option
+  | ChannelAutomaton of musDesignatorT * musChanPropT * musMsgDeclBlockT *
+      musFairnessT * musLossFairnessT * musDupFairnessT *
+      sourcelocation option
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT =
     SpecInvar of string * musPropT * sourcelocation option
@@ -405,13 +409,17 @@ type llAnnotT =
     LLAnnotEventList of llIdentT list
   | LLAnnotNumEventList of (int * llIdentT list)
   | LLAnnotNone
+type llFairnessT = LLFairnessJustice | LLFairnessCompassion | LLFairnessNone
+type llDupFairnessT = LLDupFairnessNone | LLDupFairnessFinite
+type llLossFairnessT = LLLossFairnessNone | LLLossFairnessFinite
 type llAutomatonT =
     LLCompleteAutomaton of
       (llIdentT * llIdentT list * llIdentT list * llIdentT list *
-       llTransT list * bool)
+       llTransT list * llFairnessT * llLossFairnessT * llDupFairnessT * 
+       bool)
   | LLIncompleteAutomaton of
       (llIdentT * llIdentT list * llIdentT list * llIdentT list *
-       llTransT list)
+       llTransT list * llFairnessT)
 type llPropT =
     LLPropTrue
   | LLPropFalse

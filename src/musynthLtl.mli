@@ -76,7 +76,11 @@ module Utils :
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-          MusynthTypes.musChanDupT * int -> unit
+          MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+          unit
+        val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+        val pLossFairness :
+          Format.formatter -> MusynthTypes.musLossFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -219,7 +223,6 @@ module Opts :
   sig
     val debugLevel : int ref
     val debugFileName : string ref
-    val fairnessType : MusynthTypes.ltlFairnessT ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
     val inputFileName : string ref
@@ -231,9 +234,6 @@ module Opts :
 val constructEnabledProp :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
-val constructSchedFairnessSpecs :
-  'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
-  MusynthTypes.fairnessSpecT list
 val createTablueaxVars :
   MusynthTypes.PropMap.key ->
   MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
@@ -250,7 +250,7 @@ val substForVars :
   MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ->
   MusynthTypes.llPropT -> MusynthTypes.llPropT
 val constructTableau :
-  MusynthTypes.PropMap.key ->
+  MusynthTypes.llPropT ->
   MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
   MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
   MusynthTypes.PropMap.key MusynthTypes.PropMap.t * MusynthTypes.llPropT *

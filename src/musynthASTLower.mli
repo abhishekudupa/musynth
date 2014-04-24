@@ -193,6 +193,9 @@ module CK :
       MusynthTypes.musDesignatorT MusynthTypes.musDeclType list *
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
       MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
+    val checkLLProg :
+      MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list *
+      'a * 'b -> unit
   end
 module Utils :
   sig
@@ -272,7 +275,11 @@ module Utils :
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-          MusynthTypes.musChanDupT * int -> unit
+          MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+          unit
+        val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+        val pLossFairness :
+          Format.formatter -> MusynthTypes.musLossFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -370,6 +377,46 @@ module Utils :
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+    val getMsgsForAut :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
+    val getNameForAut : MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT
+    val getTransitionsForAut :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llTransT list
+    val getStatesForAut :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT list
+    val getAutomatonByName :
+      MusynthTypes.llAutomatonT list ->
+      MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+    val getSender :
+      MusynthTypes.llIdentT ->
+      MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
+    val getReceivers :
+      MusynthTypes.llIdentT ->
+      MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT list
+    val getStateNameForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+    val getStateNamePForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+    val getCSPredsForMsg :
+      MusynthTypes.llIdentT ->
+      MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
+    val getCSPredsForMsgAll :
+      MusynthTypes.llIdentT ->
+      MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
+    val getMsgsToSyncOnFromState :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val getStatesFromWhichMsgSync :
+      MusynthTypes.llAutomatonT ->
+      MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+    val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
+    val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
+    val makeFormatterOfName : string -> out_channel * Format.formatter
+    val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
   end
 module AST :
   sig
@@ -442,7 +489,11 @@ module AST :
     val pChanProp :
       Format.formatter ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-      MusynthTypes.musChanDupT * int -> unit
+      MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+      unit
+    val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+    val pLossFairness :
+      Format.formatter -> MusynthTypes.musLossFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -547,7 +598,11 @@ module Chan :
         val pChanProp :
           Format.formatter ->
           MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-          MusynthTypes.musChanDupT * int -> unit
+          MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> 
+          unit
+        val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+        val pLossFairness :
+          Format.formatter -> MusynthTypes.musLossFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -657,7 +712,12 @@ module Chan :
             val pChanProp :
               Format.formatter ->
               MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-              MusynthTypes.musChanDupT * int -> unit
+              MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * 
+              int -> unit
+            val pFairness :
+              Format.formatter -> MusynthTypes.musFairnessT -> unit
+            val pLossFairness :
+              Format.formatter -> MusynthTypes.musLossFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -758,6 +818,49 @@ module Chan :
           MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
           MusynthTypes.musPropT option ->
           MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+        val getMsgsForAut :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
+        val getNameForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT
+        val getTransitionsForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llTransT list
+        val getStatesForAut :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llIdentT list
+        val getAutomatonByName :
+          MusynthTypes.llAutomatonT list ->
+          MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+        val getSender :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
+        val getReceivers :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT list
+        val getStateNameForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+        val getStateNamePForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llDesignatorT
+        val getCSPredsForMsg :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
+        val getCSPredsForMsgAll :
+          MusynthTypes.llIdentT ->
+          MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
+        val getMsgsToSyncOnFromState :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val getStatesFromWhichMsgSync :
+          MusynthTypes.llAutomatonT ->
+          MusynthTypes.llIdentT -> MusynthTypes.LLDesigSet.elt list
+        val canonicalizeProp : MusynthTypes.llPropT -> MusynthTypes.llPropT
+        val canonicalizePropFP : MusynthTypes.llPropT -> MusynthTypes.llPropT
+        val makeFormatterOfName : string -> out_channel * Format.formatter
+        val makeConjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
+        val makeDisjunction :
+          MusynthTypes.llPropT list -> MusynthTypes.llPropT
+        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
       end
     val getSimpleDesigForMS :
       int MusynthTypes.LLDesigMap.t -> MusynthTypes.llDesignatorT
@@ -782,7 +885,8 @@ module Chan :
       (MusynthTypes.LLDesigMap.key -> 'a -> bool) ->
       ('a -> int) ->
       ('a -> MusynthTypes.llIdentT) ->
-      'b * MusynthTypes.musChanLossT * MusynthTypes.musChanDupT * int ->
+      'b * MusynthTypes.musChanLossT * MusynthTypes.musChanDupT *
+      MusynthTypes.musChanBlockT * int ->
       'c ->
       MusynthTypes.LLDesigMap.key list ->
       MusynthTypes.llIdentT list -> 'a list -> MusynthTypes.llTransT list
@@ -790,7 +894,7 @@ module Chan :
       MusynthTypes.LLDesigMap.key list ->
       MusynthTypes.llIdentT list ->
       MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-      MusynthTypes.musChanDupT * int ->
+      MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llTransT list
   end
 val lowerQMap :
@@ -871,6 +975,11 @@ val stateAnnotationInstantiator :
   MusynthTypes.musPropT option ->
   MusynthTypes.llIdentT list ->
   MusynthTypes.musStateAnnotationT -> MusynthTypes.llAnnotT
+val lowerFairness : MusynthTypes.musFairnessT -> MusynthTypes.llFairnessT
+val lowerLossFairness :
+  MusynthTypes.musLossFairnessT -> MusynthTypes.llLossFairnessT
+val lowerDupFairness :
+  MusynthTypes.musDupFairnessT -> MusynthTypes.llDupFairnessT
 val stateAnnotSubstitutor :
   MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
   MusynthTypes.musStateAnnotationT -> MusynthTypes.musStateAnnotationT
@@ -884,7 +993,8 @@ val instantiateCompleteAutomaton :
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
    MusynthTypes.musDesignatorT)
-  MusynthTypes.musDeclType list -> MusynthTypes.llAutomatonT list
+  MusynthTypes.musDeclType list ->
+  MusynthTypes.musFairnessT -> MusynthTypes.llAutomatonT list
 val convertLLDesigToPrimed :
   MusynthTypes.llDesignatorT -> MusynthTypes.llDesignatorT
 val instantiateChannelAutomaton :
@@ -893,9 +1003,11 @@ val instantiateChannelAutomaton :
   MusynthTypes.musPropT option ->
   MusynthTypes.musDesignatorT ->
   MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-  MusynthTypes.musChanDupT * int ->
+  MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int ->
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
-  MusynthTypes.llAutomatonT list
+  MusynthTypes.musFairnessT ->
+  MusynthTypes.musLossFairnessT ->
+  MusynthTypes.musDupFairnessT -> MusynthTypes.llAutomatonT list
 val checkParamCompatibility :
   MusynthTypes.llDesignatorT -> string list -> bool
 val getParamsFromLLIdent : MusynthTypes.llDesignatorT -> string * string list
@@ -916,7 +1028,8 @@ val instantiateIncompleteAutomaton :
   MusynthTypes.musDesignatorT MusynthTypes.musDeclType list ->
   (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
    MusynthTypes.musDesignatorT)
-  MusynthTypes.musDeclType list -> MusynthTypes.llAutomatonT list
+  MusynthTypes.musDeclType list ->
+  MusynthTypes.musFairnessT -> MusynthTypes.llAutomatonT list
 val autDeclInstantiator :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
@@ -926,6 +1039,9 @@ val substInLProp :
   MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
   MusynthTypes.llPropT -> MusynthTypes.llPropT
 val lowerProp :
+  MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
+  MusynthTypes.musPropT -> MusynthTypes.llPropT
+val lowerAndCanonicalizeProp :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
   MusynthTypes.musPropT -> MusynthTypes.llPropT
 val lowerSpec :

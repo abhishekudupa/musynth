@@ -12,7 +12,25 @@ let constructEnabledProp autlist automaton =
     (fun prop msg ->
      LLPropOr (Utils.getCSPredsForMsgAll msg autlist, prop)) LLPropFalse outmsgs
 
-let constructSchedFairnessSpecs prog = 
+(* works with any kind of automaton *)
+let constructSchedFairnessSpecs aut =
+  let autname = Utils.getNameForAut aut in
+  let enprop = constructEnabledProp automata aut in
+  let chooseprop = LLPropEquals (choose, autname) in
+  match !Opts.fairnessType with
+  | FairnessTypeWeak ->
+     Justice (LLPropOr (LLPropNot enprop, chooseprop))
+  | FairnessTypeStrong ->
+     Compassion (enprop, LLPropAnd (enprop, chooseprop))
+
+let constructChannelFairnessSpecs aut =
+  let ftype = Utils.getFairnessForAutomaton aut in
+  let lftype = Utils.getLFairnessForAutomaton aut in
+  let dftype = Utils.getDFairnessForAutomaton aut in
+  
+  
+
+let constructFairnessSpecs prog = 
   let _, automata, _, _ = prog in
   let choose = LLSimpleDesignator "choose" in
   List.fold_left 
@@ -26,6 +44,9 @@ let constructSchedFairnessSpecs prog =
      | FairnessTypeStrong ->
         Compassion (enprop, LLPropAnd (enprop, chooseprop)) :: flist)
     [] automata
+
+  
+
 
 let createTablueaxVars prop =
   let rec createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop =

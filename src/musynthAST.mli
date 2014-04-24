@@ -65,7 +65,9 @@ val pInitStateDeclBlock :
 val pChanProp :
   Format.formatter ->
   MusynthTypes.musChanOrdT * MusynthTypes.musChanLossT *
-  MusynthTypes.musChanDupT * int -> unit
+  MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int -> unit
+val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
+val pLossFairness : Format.formatter -> MusynthTypes.musLossFairnessT -> unit
 val pAutomatonDecl :
   Format.formatter ->
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit

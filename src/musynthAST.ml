@@ -236,13 +236,18 @@ let pChanProp fmt chanprop =
 let pFairness fmt f =
   match f with
   | FairnessTypeNone -> ()
-  | FairnessTypeJustice _ -> fprintf fmt " justice"
-  | FairnessTypeCompassion _ -> fprintf fmt " compassion"
+  | FairnessTypeJustice _ -> fprintf fmt " with justice"
+  | FairnessTypeCompassion _ -> fprintf fmt " with compassion"
 
 let pLossFairness fmt f =
   match f with
   | LossFairnessNone -> ()
   | LossFairnessFinite _ -> fprintf fmt " finiteloss"
+
+let pDupFairness fmt f =
+  match f with
+  | DupFairnessNone -> ()
+  | DupFairnessFinite _ -> fprintf fmt " finitedup"
 
 let pAutomatonDecl fmt autdecl =
   let pBlockCond ?br:(b = true) pfun fmt block =
@@ -256,24 +261,25 @@ let pAutomatonDecl fmt autdecl =
   in
   let prefixPrinter fmt automaton =
     match automaton with
-    | CompleteAutomaton (d, _, _, _, _, _, _) ->
-       fprintf fmt "@[<v 0>automaton %a" pDesignator d
-    | IncompleteAutomaton (d, _, _, _, _, _, _) ->
-       fprintf fmt "@[<v 0>partialautomaton %a" pDesignator d
-    | ChannelAutomaton (d, _, _, _, _, _) ->
-       fprintf fmt "@[<v 0>channelautomaton %a" pDesignator d
+    | CompleteAutomaton (d, _, _, _, _, ftype, _) ->
+       fprintf fmt "@[<v 0>automaton %a%a " pFairness ftype pDesignator d
+    | IncompleteAutomaton (d, _, _, _, _, ftype, _) ->
+       fprintf fmt "@[<v 0>partialautomaton %a%a " pFairness ftype pDesignator d
+    | ChannelAutomaton (d, _, _, ftype, lftype, dftype, _) ->
+       fprintf fmt "@[<v 0>channelautomaton %a%a%a%a " pFairness ftype 
+               pLossFairness lftype pDesignator d pDupFairness dftype
   in
   let suffixPrinter fmt automaton =
     match automaton with
     | CompleteAutomaton (_, states, inblock, outblock, transblock, _, _)
-    | IncompleteAutomaton (_, states, inblock, outblock, transblock, _) ->
+    | IncompleteAutomaton (_, states, inblock, outblock, transblock, _, _) ->
        fprintf fmt "@,@[<v 4>{@,";
        pBlockCond (pStateDeclBlock "states") fmt states;
        pBlockCond (pMsgDeclBlock "inputs") fmt inblock;
        pBlockCond (pMsgDeclBlock "outputs") fmt outblock;
        pBlockCond ~br:false pTransDeclBlock fmt transblock;
        fprintf fmt "@]@,}@,@]@,"
-    | ChannelAutomaton (_, chanprop, msgblock, _) ->
+    | ChannelAutomaton (_, chanprop, msgblock, _, _, _, _) ->
        fprintf fmt "@,@[<v 4>{@,";
        pChanProp fmt chanprop;
        fprintf fmt "@,@,";
@@ -352,6 +358,22 @@ let pLLAnnot fmt annot =
                                                   (pList ", " false false pLLIdent) msglist
   | LLAnnotNone -> ()
 
+let pLLFairness fmt f =
+  match f with
+  | LLFairnessNone -> ()
+  | LLFairnessJustice -> fprintf fmt " with justice"
+  | LLFairnessCompassion -> fprintf fmt " with compassion"
+
+let pLLDupFairness fmt f =
+  match f with
+  | LLDupFairnessNone -> ()
+  | LLDupFairnessFinite -> fprintf fmt " finitedup"
+
+let pLLLossFairness fmt f =
+  match f with
+  | LLLossFairnessNone -> ()
+  | LLLossFairnessFinite -> fprintf fmt " finiteloss"
+
 let pLLTrans fmt trans =
   match trans with
   | TComplete (start, msg, final) ->
@@ -411,19 +433,24 @@ let pLLSpec fmt spec =
 
 let pLLAutomaton fmt aut =
   match aut with
-  | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions, _)
-  | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions) ->
-     fprintf fmt "@[<v 0>@[<v 4>%s %a {@," 
-             (match aut with 
-              | LLCompleteAutomaton _ -> "completeautomaton" 
-              | _ -> "partialautomaton")
+  | LLCompleteAutomaton (name, states, inmsgs, outmsgs, transitions, _, _, _, _)
+  | LLIncompleteAutomaton (name, states, inmsgs, outmsgs, transitions, _) ->
+     fprintf fmt "@[<v 0>@[<v 4>%a %a {@," 
+             (fun fmt aut ->
+              match aut with 
+              | LLCompleteAutomaton (_, _, _, _, _, ftype, lftype, dftype, _)
+                -> fprintf fmt "completeautomaton%a%a%a"
+                           pLLFairness ftype pLLLossFairness lftype
+                           pLLDupFairness dftype
+              | LLIncompleteAutomaton (_, _, _, _, _, ftype) -> 
+                 fprintf fmt "partialautomaton%a" pLLFairness ftype) aut
              pLLDesignator name;
      fprintf fmt "@[<v 4>states {@,%a@]@,}@," (pList "," true false pLLDesignator) states;
      fprintf fmt "@[<v 4>inputs {@,%a@]@,}@," (pList "," true false pLLDesignator) inmsgs;
      fprintf fmt "@[<v 4>outputs {@,%a@]@,}@," (pList "," true false pLLDesignator) outmsgs;
      fprintf fmt "@[<v 4>transitions {@,%a@]@,}@," (pList "," true false pLLTrans) transitions;
      fprintf fmt "@]@,}@,@]"
-
+             
 let pLLProg fmt prog = 
   let mdecls, auts, initstateconstraints, specs = prog in
   fprintf fmt "@[<v 0>@[<v 4>messages {@,%a@]@,}@,@]" (pList "," true false pLLDesignator) mdecls;
