@@ -495,6 +495,7 @@ module Opts :
     val numSolsRequested : int ref
     val reorderEnabled : bool ref
     val reorderMethod : Cudd.Man.reorder ref
+    val tracePrintMode : string ref
     val reorderMethods : string list
   end
 module Debug :
@@ -544,6 +545,7 @@ class bddManager :
     val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
     val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
     val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
+    val mutable internalStateVars : MusynthTypes.LLDesigSet.t
     val mutable manager : Cudd.Man.d Cudd.Man.t
     val mutable numParamBits : int
     val mutable numStateBits : int
@@ -643,6 +645,8 @@ class bddManager :
       int -> MusynthTypes.IntSet.elt * MusynthTypes.StringMap.key list
     method private registerBitsForVar :
       MusynthTypes.IntSet.elt -> int -> MusynthTypes.IntSet.t
+    method registerInternalStateVariable :
+      MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigSet.elt list -> unit
     method registerParamVariable :
       MusynthTypes.LLDesigMap.key -> MusynthTypes.LLDesigSet.elt list -> unit
     method registerStateVariable :

@@ -34,7 +34,6 @@ let encodeParamVariables mgr automaton =
            paramreg :: acc
         | _ -> assert false) [] transitions
 
-
 let getNextStatePropForTrans primedstate transition =
   match transition with
   | TComplete (_, _, fstate) -> LLPropEquals (primedstate, fstate)
@@ -224,7 +223,7 @@ let encodeProg mgr prog =
       (fun (p2vmap, v2pmap, chimap, t, myjlist, myclist) ->
        LLDesigMap.iter 
          (fun v p -> 
-          mgr#registerStateVariable v boolValDomain) 
+          mgr#registerInternalStateVariable v boolValDomain) 
          v2pmap;
        let enct = mgr#prop2BDD t in
        let encjlist = List.map mgr#prop2BDD myjlist in
@@ -235,11 +234,6 @@ let encodeProg mgr prog =
         
   let badstates = LLPropNot invariants in
   let dlfProp = Safety.constructDLFProps msgdecls automata in
-  (* Debug.dprintf 2 "Deadlock Freedom Property:@,"; *)
-  (* Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP dlfProp); *)
-  (* Debug.dprintf 2 "Bad State Property:@,"; *)
-  (* Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP badstates); *)
-          
   let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
     LLDesigMap.fold 
@@ -248,7 +242,6 @@ let encodeProg mgr prog =
       tranrelations LLDesigMap.empty
   in
   let badStateBDD = mgr#prop2BDD badstates in
-  (* Debug.dprintf 2 "InitProp:@,%a@," AST.pLLProp (Utils.canonicalizePropFP initconstraints); *)
   let initBDD = mgr#prop2BDD initconstraints in
   (transBDDs, initBDD, badStateBDD, dlfBDD, encodedTableauList)
     

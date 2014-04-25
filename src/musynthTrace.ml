@@ -80,3 +80,6 @@ let printTraceSafety trace =
     | _ -> assert false
   else
     ()
+
+let printTraceLiveness prefix loop =
+  ()

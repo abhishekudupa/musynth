@@ -468,4 +468,6 @@ type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
 type 'a synthExitStatT = SynthSafe | SynthCEX of 'a
+type 'a execExitStatT = ExecNonConverged of 'a | ExecFixpoint of 'a
 type fairnessSpecT = Justice of llPropT | Compassion of llPropT * llPropT
+type musynthTraceT = llDesignatorT LLDesigMap.t

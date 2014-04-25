@@ -1070,10 +1070,12 @@ val encodeTransitionRelation :
   MusynthTypes.llPropT MusynthTypes.LLDesigMap.t
 val encodeProg :
   < prop2BDD : MusynthTypes.llPropT -> 'a;
+    registerInternalStateVariable : MusynthTypes.LLDesigMap.key ->
+                                    MusynthTypes.llDesignatorT list -> unit;
     registerParamVariable : MusynthTypes.llDesignatorT ->
                             MusynthTypes.LLDesigSet.elt list -> 'b;
-    registerStateVariable : MusynthTypes.LLDesigMap.key ->
-                            MusynthTypes.llIdentT list -> unit;
+    registerStateVariable : MusynthTypes.llDesignatorT ->
+                            MusynthTypes.llIdentT list -> 'c;
     .. > ->
   MusynthTypes.llIdentT list * MusynthTypes.llAutomatonT list *
   MusynthTypes.llPropT * MusynthTypes.llSpecT list ->

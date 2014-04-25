@@ -364,6 +364,11 @@ type 'a synthExitStatT =
   | SynthSafe
   | SynthCEX of 'a
 
+(* type for signalling fixpoints *)
+type 'a execExitStatT =
+  | ExecNonConverged of 'a
+  | ExecFixpoint of 'a
+
 (* type for constructing fairness specs *)
 (* Paramterized. We use the same type for bdds as well as props *)
 type fairnessSpecT =

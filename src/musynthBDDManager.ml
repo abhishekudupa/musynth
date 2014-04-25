@@ -22,6 +22,7 @@ class bddManager =
     val mutable paramBitSet = IntSet.empty
     val mutable stateVars = LLDesigMap.empty
     val mutable paramVars = LLDesigSet.empty
+    val mutable internalStateVars = LLDesigSet.empty
                               
     (* caches *)
     val mutable cachedPrimedVarCube = None
@@ -62,6 +63,7 @@ class bddManager =
       paramBitSet <- IntSet.empty;
       stateVars <- LLDesigMap.empty;
       paramVars <- LLDesigSet.empty;
+      internalStateVars <- LLDesigSet.empty;
 
       self#invalidateCaches ()
       
@@ -322,6 +324,11 @@ class bddManager =
       let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameP varMap in
       pStateBitSet <- IntSet.union pStateBitSet (self#registerBitsForVar low size)
 
+    method registerInternalStateVariable  varName varDomain =
+      let r = self#registerStateVariable varName varDomain in
+      internalStateVars <- LLDesigSet.add varName internalStateVars;
+      r
+
     method registerParamVariable varName varDomain = 
       self#registerVar varName varDomain;
       paramVars <- LLDesigSet.add varName paramVars;
@@ -502,9 +509,12 @@ class bddManager =
            (fun fmt cube ->
             LLDesigMap.iter 
               (fun name pname ->
-               let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
-               fprintf fmt "%a |--> %a@," AST.pLLDesignator name 
-                       AST.pLLDesignator (cubeToDomValFun cube)) stateVars)
+               if LLDesigSet.mem name internalStateVars then
+                 ()
+               else
+                 let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+                 fprintf fmt "%a |--> %a@," AST.pLLDesignator name 
+                         AST.pLLDesignator (cubeToDomValFun cube)) stateVars)
          in
          cachedStateVarPrinter <- Some r;
          r
@@ -588,8 +598,11 @@ class bddManager =
       let minTerm = self#pickMinTermOnStates bdd in
       LLDesigMap.fold
         (fun name pname map ->
-         let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
-         LLDesigMap.add name (cubeToDomValFun minTerm) map)
+         if LLDesigSet.mem name internalStateVars then
+           map
+         else
+           let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+           LLDesigMap.add name (cubeToDomValFun minTerm) map)
         stateVars LLDesigMap.empty
 
     method getNStateVars n bdd =
@@ -607,8 +620,11 @@ class bddManager =
              retval := 
                (LLDesigMap.fold
                   (fun name pname map ->
-                   let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
-                   LLDesigMap.add name (cubeToDomValFun cube) map)
+                   if LLDesigSet.mem name internalStateVars then
+                     map
+                   else
+                     let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+                     LLDesigMap.add name (cubeToDomValFun cube) map)
                   stateVars LLDesigMap.empty) :: !retval;
            end) bdd;
       !retval

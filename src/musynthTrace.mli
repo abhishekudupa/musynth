@@ -150,3 +150,4 @@ val printTraceDiffSafety :
   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
 val printTraceSafety :
   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+val printTraceLiveness : 'a -> 'b -> unit
