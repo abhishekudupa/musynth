@@ -369,3 +369,7 @@ type 'a synthExitStatT =
 type fairnessSpecT =
   | Justice of llPropT
   | Compassion of llPropT * llPropT
+
+(* type for traces *)
+type musynthTraceT = llDesignatorT LLDesigMap.t
+

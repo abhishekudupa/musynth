@@ -1,8 +1,9 @@
 open MusynthTypes
 
 (* options for musynth *)
+let debugDisabled = ref false
 
-let debugLevel = ref (- 1)
+let debugOptions = ref StringSet.empty
 
 let debugFileName = ref ""
 
@@ -17,6 +18,8 @@ let numSolsRequested = ref 1
 let reorderEnabled = ref false
 
 let reorderMethod = ref Cudd.Man.REORDER_NONE
+
+let tracePrintMode = ref "diff"
 
 let reorderMethods = [ "random"; "randompivot"; "sift"; "siftconverge"; 
                        "symmsift"; "symmsiftconverge"; "window2"; "window3";

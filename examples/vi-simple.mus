@@ -56,7 +56,7 @@ Automaton Oracle
 
 ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
 {
-    unordered, lossless, nonduplicating;
+    unordered, lossless, nonduplicating, blocking;
     capacity = 1;
 
     messages {
@@ -69,7 +69,7 @@ ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
 
 ChannelAutomaton RspChannel[c] foreach c in CacheIDType
 {
-    unordered, lossless, nonduplicating;
+    unordered, lossless, nonduplicating, blocking;
     capacity = 1;
 
     messages {
@@ -205,8 +205,6 @@ invariant "One Valid Invariant" {
         (-> (!= c1 c2) (-> (= Cache[c1].state CV[d1]) 
                            (!= Cache[c2].state CV[d2])))))))
 }
-
-
 
 ltlspec "I-V liveness on Get" {
     (forall c in CacheIDType

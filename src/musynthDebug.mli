@@ -1,6 +1,7 @@
 module Opts :
   sig
-    val debugLevel : int ref
+    val debugDisabled : bool ref
+    val debugOptions : MusynthTypes.StringSet.t ref
     val debugFileName : string ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
@@ -12,8 +13,11 @@ module Opts :
   end
 val debugOC : out_channel option ref
 val debugFmt : Format.formatter option ref
+val debugEnabled : unit -> bool
+val debugOptEnabled : MusynthTypes.StringSet.elt -> bool
 val getDebugFmt : unit -> Format.formatter
 val initDebugSubsys : string -> unit
 val shutDownDebugSubsys : unit -> unit
-val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+val dprintf :
+  MusynthTypes.StringSet.elt -> ('a, Format.formatter, unit) format -> 'a
 val dflush : unit -> unit

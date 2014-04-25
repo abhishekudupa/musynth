@@ -115,7 +115,7 @@ class bddManager =
       in
       let rv = (low, registerBitsRec numBits) in
       Man.group manager low numBits Man.MTR_FIXED;
-      Debug.dprintf 1 "Registered %d bits for group %a, total bits so far = %d\n" 
+      Debug.dprintf "bdd" "Registered %d bits for group %a, total bits so far = %d\n" 
                     numBits AST.pLLDesignator name (numTotalBits + numBits);
       numTotalBits <- numTotalBits + numBits;
       rv
@@ -154,51 +154,23 @@ class bddManager =
       mkBDDforReprRec size
 
     method registerVar name valDomain =
-      Debug.dprintf 3 "Registering variable %a@,@," AST.pLLDesignator name;
       let sortedValDomain = self#checkVarReregister name valDomain in
       match sortedValDomain with
       | None -> ()
       | Some s ->
          begin
            let sortedValDomain = s in
-           
-           Debug.dprintf 3 "Sorted Domain Values: [ %a ]@,@," 
-                         (AST.pList ", " false false AST.pLLDesignator) sortedValDomain;
-
            let domainSize = List.length sortedValDomain in
            let numBits = self#lg domainSize in
-           
-           let low, bitNameList = self#registerBits name numBits in
-           
-           Debug.dprintf 3 "Registered %d bits [%d - %d] for %a@," 
-                         numBits low (low + numBits - 1) AST.pLLDesignator name;
-           
-           Debug.dprintf 3 "Bit names: [ %a ]@,@," 
-                         (AST.pList ", " false false pp_print_string) 
-                         bitNameList;
-           
+           let low, bitNameList = self#registerBits name numBits in           
            let _, valreppairs = 
              List.fold_left 
                (fun (cnt, acclst) v -> (cnt + 1, (v, cnt) :: acclst)) (0, []) sortedValDomain
            in
-           
-           Debug.dprintf 3 "Val-Rep Pairs: [ @[<v 0>%a@] ]@,@," 
-                         (AST.pList ", " true false 
-                                    (fun fmt valrep -> 
-                                     let name, rep = valrep in 
-                                     fprintf fmt "(%a, %d)" AST.pLLDesignator name
-                                             rep)) 
-                         valreppairs;
-           
            let domValToBDDMap, cubeToDomValMap, varConstraints = 
              List.fold_left
                (fun (map1, map2, constr) (domval, repr) ->
                 let bddForRepr = self#makeBDDForRepr low numBits repr in
-                
-                Debug.dprintf 3 "BDD Representation of domval %a (%d):@,%a@," 
-                              AST.pLLDesignator domval repr 
-                              (Bdd.print (self#getBitPrinter ())) bddForRepr;
-                
                 (LLDesigMap.add domval bddForRepr map1,
                  IntMap.add repr domval map2,
                  Bdd.dor constr bddForRepr))
@@ -207,10 +179,6 @@ class bddManager =
            in
            
            let cubeToDomValFun cube =
-             Debug.dprintf 4 "Getting domain value for variable %a@," AST.pLLDesignator name;
-             Debug.dprintf 4 "Variable %a has %d bits [%d - %d]@," 
-                           AST.pLLDesignator name numBits low (low + numBits - 1);
-             
              let curidx = ref 0 in
              let repr =
                Array.fold_left
@@ -228,7 +196,6 @@ class bddManager =
                         | Man.True -> 1
                         | Man.Top -> 0
                       in
-                      Debug.dprintf 4 "Bit at index %d is %d@," !curidx actval;
                       let shift = !curidx - low in
                       curidx := !curidx + 1;
                       if shift = 0 then
@@ -237,8 +204,6 @@ class bddManager =
                         repr lor (actval lsl shift)
                     end) 0 cube
              in
-             Debug.dprintf 4 "Trying to get %dth domain value for variable %a...@," 
-                           repr AST.pLLDesignator name;
              List.nth sortedValDomain repr
            in
            
@@ -618,6 +583,64 @@ class bddManager =
       let bdd = Bdd.dand bdd (self#makeTrue ()) in
       let minTerm = Bdd.pick_minterm bdd in
       self#determinizeOnSet paramBitSet minTerm
+
+    method getStateVars bdd =
+      let minTerm = self#pickMinTermOnStates bdd in
+      LLDesigMap.fold
+        (fun name pname map ->
+         let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+         LLDesigMap.add name (cubeToDomValFun minTerm) map)
+        stateVars LLDesigMap.empty
+
+    method getNStateVars n bdd =
+      let n = if n = 0 then max_int else n in
+      let bdd = Bdd.dand bdd (self#makeTrue ()) in
+      let count = ref 0 in
+      let retval = ref [] in
+
+      Bdd.iter_cube
+        (fun cube ->
+         if !count >= n then
+           ()
+         else
+           begin
+             retval := 
+               (LLDesigMap.fold
+                  (fun name pname map ->
+                   let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+                   LLDesigMap.add name (cubeToDomValFun cube) map)
+                  stateVars LLDesigMap.empty) :: !retval;
+           end) bdd;
+      !retval
+       
+    method getParamVars bdd = 
+      let minTerm = self#pickMinTermOnStates bdd in
+      LLDesigSet.fold
+        (fun name map ->
+         let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+         LLDesigMap.add name (cubeToDomValFun minTerm) map)
+        paramVars LLDesigMap.empty
+
+    method getNParamVars n bdd = 
+      let n = if n = 0 then max_int else n in
+      let bdd = Bdd.dand bdd (self#makeTrue ()) in
+      let count = ref 0 in
+      let retval = ref [] in
+
+      Bdd.iter_cube
+        (fun cube ->
+         if !count >= n then
+           ()
+         else
+           begin
+             retval := 
+               (LLDesigSet.fold
+                  (fun name map ->
+                   let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
+                   LLDesigMap.add name (cubeToDomValFun cube) map)
+                  paramVars LLDesigMap.empty) :: !retval;
+           end) bdd;
+      !retval
 
     method getConstraintsOnAllVars () =
       match cachedConstraintsOnAllVars with

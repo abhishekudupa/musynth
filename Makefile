@@ -32,6 +32,7 @@ MODULES= \
 	musynthDebug \
 	musynthAST \
 	musynthUtils \
+	musynthTrace \
 	musynthParser \
 	musynthLexer \
 	musynthSymTab \

@@ -88,7 +88,7 @@ partialautomaton with compassion ABPReceiver {
 }
 
 channelautomaton with compassion finiteloss finitedup ForwardChannel {
-    ordered, lossy, duplicating, blocking;
+    ordered, lossy, duplicating, nonblocking;
     capacity = 1;
 
     messages {
@@ -97,7 +97,7 @@ channelautomaton with compassion finiteloss finitedup ForwardChannel {
 }
 
 channelautomaton with compassion finiteloss finitedup BackwardChannel {
-    ordered, lossy, duplicating, blocking;
+    ordered, lossy, duplicating, nonblocking;
     capacity = 1;
     messages {
         Ack[d] foreach d in DataType

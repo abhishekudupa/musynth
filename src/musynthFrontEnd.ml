@@ -31,7 +31,7 @@ let musynthProcess filename =
     printf "Performing Semantic Checks... "; flush stdout;
     CK.checkProg symtab prog; 
     printf "Done!\n"; flush stdout;
-    Debug.dprintf 1 "Program:@,@,%a@," AST.pProg prog;
+    Debug.dprintf "prog" "Program:@,@,%a@," AST.pProg prog;
     printf "Lowering Program... "; flush stdout;
     let lprog = Lower.lowerProg symtab prog in
     printf "Done!\n"; flush stdout;
@@ -40,7 +40,7 @@ let musynthProcess filename =
     CK.checkLLProg lprog;
     printf "Done!\n"; flush stdout;
 
-    Debug.dprintf 1 "%a" AST.pLLProg lprog;
+    Debug.dprintf "lprog" "Lowered Program:@,@,%a@,@," AST.pLLProg lprog;
 
     let mgr = new Mgr.bddManager in
     printf "Encoding Program to BDDs and LTL to BDDs via Tableau... "; flush stdout;

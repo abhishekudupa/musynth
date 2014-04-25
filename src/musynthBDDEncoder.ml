@@ -172,11 +172,18 @@ let encodeProg mgr prog =
   (* encode the parameters of the automata *)
   List.iter (fun aut -> ignore (encodeParamVariables mgr aut)) automata;
   let tranrelations = encodeTransitionRelation automata choose choosep lastchosen lastchosenp in
-  (* Debug.dprintf 2 "Transition Relations:\n"; *)
-  (* LLDesigMap.iter *)
-  (*   (fun name rel -> *)
-  (*    Debug.dprintf 2 "%a:@," AST.pLLDesignator name; *)
-  (*    Debug.dprintf 2 "%a@,@," AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations; *)
+
+  if Debug.debugEnabled () then
+    begin
+      Debug.dprintf "trans" "Transition Relations:\n";
+      LLDesigMap.iter
+        (fun name rel ->
+         Debug.dprintf "trans" "%a:@," AST.pLLDesignator name;
+         Debug.dprintf "trans" "%a@,@," AST.pLLProp (Utils.canonicalizePropFP rel)) tranrelations;
+    end
+  else
+    ();
+
   let invariants =
     List.fold_left
       (fun propacc spec ->

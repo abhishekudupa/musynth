@@ -9,9 +9,19 @@ let printUsage arg0 =
   fprintf stderr "Usage:\n";
   fprintf stderr "%s [options] filename\n" arg0;
   fprintf stderr "Permitted options:\n";
-  fprintf stderr ("-v <num >= 0>    : Control verbosity. Output will be in \"<filename>.debug\" by default. " ^^ 
-                    "Use the -df option to specify a different filename.\n");
   fprintf stderr "-df <filename>   : Record debugging information into <filename>.\n";
+  fprintf stderr "                   (defaults to <filename>.debug if not specified and debugging enabled)\n";
+  fprintf stderr "-debug <option>+ : Options to enable logging specific debugging info.\n";
+  fprintf stderr "                   Where option is one or more of the following:\n";
+  fprintf stderr "                     prog   - Print the program.\n";
+  fprintf stderr "                     lprog  - Print the lowered program.\n";
+  fprintf stderr "                     trace  - Print counterexamples.\n";
+  fprintf stderr "                     trans  - Print computed transition relations.\n";
+  fprintf stderr "                     all    - Enable logging ALL debugging info.\n";
+  fprintf stderr "                     bdd    - Enable logging info from the BDD manager.\n";
+  fprintf stderr "                     none   - Disable logging ANY debugging info.\n";
+  fprintf stderr "                     mc     - Enable logging from the model checker/synthesizer.\n";
+  fprintf stderr "-tp <full|diff>  : Mode to print traces (full or delta from previous).\n";
   fprintf stderr "-s               : Only synthesize for safety properties.\n";
   fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
   fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
@@ -51,6 +61,19 @@ let reorderMethOptionToMethod opt =
   in
   meth
 
+let rec processDebugOptions optlist = 
+  match optlist with
+  | "prog" :: rest -> Opts.debugOptions := StringSet.add "prog" !Opts.debugOptions; processDebugOptions rest
+  | "lprog" :: rest -> Opts.debugOptions := StringSet.add "lprog" !Opts.debugOptions; processDebugOptions rest
+  | "trace" :: rest -> Opts.debugOptions := StringSet.add "trace" !Opts.debugOptions; processDebugOptions rest
+  | "trans" :: rest -> Opts.debugOptions := StringSet.add "trans" !Opts.debugOptions; processDebugOptions rest
+  | "all" :: rest -> Opts.debugOptions := StringSet.add "all" !Opts.debugOptions; processDebugOptions rest
+  | "bdd" :: rest -> Opts.debugOptions := StringSet.add "bdd" !Opts.debugOptions; processDebugOptions rest
+  | "mc" :: rest -> Opts.debugOptions := StringSet.add "mc" !Opts.debugOptions; processDebugOptions rest
+  | "none" :: rest -> Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
+                      Opts.debugDisabled := true; processDebugOptions rest
+  | _ -> optlist
+
 let processOptions arglist =
   let arg0 = List.hd arglist in
   let arglist = List.tl arglist in
@@ -64,18 +87,8 @@ let processOptions arglist =
           begin
             match arglist with
             | [] -> []
-            | "-v" :: num :: rest ->
-               begin
-                 try
-                   let dlevel = int_of_string num in
-                   Opts.debugLevel := dlevel
-                 with Failure "int_of_string" ->
-                 begin
-                   fprintf stderr "Expected an integer argument after -v\n";
-                   printUsage arg0
-                 end
-               end;
-               rest
+            | "-debug" :: rest ->
+               processDebugOptions rest
             | "-s" :: rest ->
                Opts.onlySafety := true; rest
             | "-c" :: rest ->
@@ -94,7 +107,12 @@ let processOptions arglist =
                  | Invalid_argument "Not a valid reordering method" ->
                     Opts.reorderMethod := Cudd.Man.REORDER_LINEAR;
                     (dropt :: rest))
-                 
+            | "-tp" :: "diff" :: rest ->
+               Opts.tracePrintMode := "diff"; rest
+            | "-tp" :: "full" :: rest -> 
+               Opts.tracePrintMode := "full"; rest
+            | "-tp" :: rest ->
+               raise (Invalid_argument "Unknown trace printing mode!")
             | str :: rest ->
                if !Opts.inputFileName <> "" then
                  begin

@@ -6,13 +6,22 @@ module Opts = MusynthOptions
 let debugOC = ref None
 let debugFmt = ref None
 
+let debugEnabled () =
+  (((StringSet.cardinal !Opts.debugOptions) > 0) && 
+     (not !Opts.debugDisabled))
+
+let debugOptEnabled name =
+  ((not !Opts.debugDisabled) &&
+     ((StringSet.mem name !Opts.debugOptions) ||
+        (StringSet.mem "all" !Opts.debugOptions)))
+
 let getDebugFmt () =
   match !debugFmt with
   | Some fmt -> fmt
   | None -> assert false
 
 let initDebugSubsys debugFileName =
-  if (!Opts.debugLevel >= 0) then
+  if (debugEnabled ()) then
     let oc = open_out debugFileName in
     debugOC := Some oc;
     let fmt = formatter_of_out_channel oc in
@@ -39,16 +48,11 @@ let shutDownDebugSubsys () =
   
 
 (* functions for debug printing, etc. *)
-let dprintf debugLevel =
-  if debugLevel < 0 then
-    ifprintf std_formatter
-  else if debugLevel > !Opts.debugLevel then
-    ifprintf std_formatter
+let dprintf debugOpt =
+  if debugOptEnabled debugOpt then
+    fprintf (getDebugFmt ())
   else
-    begin
-      let fmt = getDebugFmt () in
-      fprintf fmt
-    end
+    ifprintf std_formatter
 
 let dflush () =
   match !debugFmt with

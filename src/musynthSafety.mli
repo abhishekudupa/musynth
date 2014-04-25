@@ -189,6 +189,12 @@ module Utils :
     val getAutomatonByName :
       MusynthTypes.llAutomatonT list ->
       MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+    val getFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+    val getLFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+    val getDFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
     val getSender :
       MusynthTypes.llIdentT ->
       MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
@@ -221,7 +227,8 @@ module Utils :
   end
 module Opts :
   sig
-    val debugLevel : int ref
+    val debugDisabled : bool ref
+    val debugOptions : MusynthTypes.StringSet.t ref
     val debugFileName : string ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref
@@ -337,7 +344,8 @@ module Debug :
   sig
     module Opts :
       sig
-        val debugLevel : int ref
+        val debugDisabled : bool ref
+        val debugOptions : MusynthTypes.StringSet.t ref
         val debugFileName : string ref
         val onlySafety : bool ref
         val conjunctivePart : bool ref
@@ -349,10 +357,13 @@ module Debug :
       end
     val debugOC : out_channel option ref
     val debugFmt : Format.formatter option ref
+    val debugEnabled : unit -> bool
+    val debugOptEnabled : MusynthTypes.StringSet.elt -> bool
     val getDebugFmt : unit -> Format.formatter
     val initDebugSubsys : string -> unit
     val shutDownDebugSubsys : unit -> unit
-    val dprintf : int -> ('a, Format.formatter, unit) format -> 'a
+    val dprintf :
+      MusynthTypes.StringSet.elt -> ('a, Format.formatter, unit) format -> 'a
     val dflush : unit -> unit
   end
 val constructDLFProps :

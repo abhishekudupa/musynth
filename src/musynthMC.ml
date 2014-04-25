@@ -7,6 +7,7 @@ open Format
 module AST = MusynthAST
 module Debug = MusynthDebug
 module Opts = MusynthOptions
+module Trace = MusynthTrace
 
 type bddType = (Man.d Bdd.t)
 
@@ -48,52 +49,23 @@ let explain mgr initstates transRel errstate =
   
   let stateList = forwardStates [] (mgr#makeFalse ()) initstates in
   (* now extract a sequence of pres for the error state in the list *)
-  (* Not tail recursive, but WTF? we're already fucked anyway with  *)
-  (* a fucking counterexample. Fuck efficiency at this point!       *)
-  let k = ref 0 in
-  let printer = mgr#getStateVarPrinter () in
   let rec foldStateList myState stateK =
     match stateK with
-    | [] -> ()
+    | [] -> []
     | head :: rest ->
-       assert (not (Bdd.is_false myState));
        let preMyState = pre mgr transRel myState in
-       assert (not (Bdd.is_false preMyState));
        let preMyState = Bdd.dand preMyState head in
-       assert (not (Bdd.is_false preMyState));
        let minTerm = mgr#pickMinTermOnStates preMyState in
-       foldStateList (mgr#cubeOfMinTerm minTerm) rest;
-       Debug.dprintf 3 "Cube %d:@," !k;
-       Debug.dprintf 3 "----------------------------------------------------------------------@,";
-       Debug.dprintf 3 "%a" (mgr#getCubePrinter ()) minTerm;
-       Debug.dprintf 3 "----------------------------------------------------------------------@,@,";
-       Debug.dprintf 2 "State %d:@," !k;
-       k := !k + 1;
-       Debug.dprintf 2 "----------------------------------------------------------------------@,";
-       Debug.dprintf 2 "%a" printer minTerm;
-       Debug.dprintf 2 "----------------------------------------------------------------------@,@,";
+       let cube = mgr#cubeOfMinTerm minTerm in
+       let lst = foldStateList cube rest in
+       lst @ [ (mgr#getStateVars cube) ]
   in
-  foldStateList errstate stateList;
-  Debug.dprintf 2 "Ending with erroneous state:@,";
-  Debug.dprintf 2 "----------------------------------------------------------------------@,";
+  let lst = foldStateList errstate stateList in
   let minTerm = mgr#pickMinTermOnStates errstate in
-  Debug.dprintf 2 "%a" printer minTerm;
-  Debug.dprintf 2 "----------------------------------------------------------------------@,@,"
+  let cube = mgr#cubeOfMinTerm minTerm in
+  lst @ [ (mgr#getStateVars cube) ]
 
-let countCycles mgr states transRel =
-  let rec countCyclesRec mgr states transRel =
-    let next = post mgr transRel states in
-    let refinedStates = (Bdd.dand next states) in
-    if (Bdd.is_equal refinedStates states) then
-      mgr#getNumMinTermsState states
-    else if (Bdd.is_false refinedStates) then
-      0.0
-    else
-      countCyclesRec mgr refinedStates transRel
-  in
-  countCyclesRec mgr states transRel
-
-let getParamsForFeasible mgr transRel tableau reachStates =
+let getParamsForFeasible mgr transRel tableau initstates k =
   ()
 
 let rec synthForwardSafety mgr transrel initStates badstates =
@@ -104,35 +76,48 @@ let rec synthForwardSafety mgr transrel initStates badstates =
       begin
         let badReachStates = Bdd.dand frontier badstates in
         let errstate = mgr#pickMinTermOnStates badReachStates in
-        Debug.dprintf 1 "@,@,Found counter example:@,@,";
-        Debug.dprintf 1 "%a@,@," (mgr#getStateVarPrinter ()) errstate;
-        Debug.dprintf 1 "With parameter values:@,@,";
-        Debug.dprintf 1 "%a@,@," (mgr#getParamVarPrinter ()) errstate;
-        Debug.dprintf 2 "Trail to counterexample from initial state:@,@,";
-        if (!Opts.debugLevel >= 2) then
-          explain mgr initStates transrel (mgr#cubeOfMinTerm errstate)
+
+        if (Debug.debugEnabled ()) then
+          begin
+            Debug.dprintf "mc" "@,@,Found counter example:@,@,";
+            Debug.dprintf "mc" "%a@,@," (mgr#getStateVarPrinter ()) errstate;
+            Debug.dprintf "mc" "With parameter values:@,@,";
+            Debug.dprintf "mc" "%a@,@," (mgr#getParamVarPrinter ()) errstate;
+            Debug.dprintf "trace" "Trail to counterexample from initial state:@,@,";
+            if (Debug.debugOptEnabled "trace") then
+              let trace = explain mgr initStates transrel (mgr#cubeOfMinTerm errstate) in
+              Trace.printTraceSafety trace
+            else
+              ();
+          end
         else
           ();
+
         SynthCEX badReachStates
       end
     else
       begin
         let newReach = Bdd.dor reach frontier in
         
-        Debug.dprintf 1 "@,@,Iteration %d:@," !itercount;
-        Debug.dprintf 1 "Reach has %e states@," 
-                      (mgr#getNumMinTermsState reach);
-        Debug.dprintf 1 "Frontier has %e states@,"
-                      (mgr#getNumMinTermsState frontier);
-        Debug.dprintf 1 "newReach has %e states@," 
-                      (mgr#getNumMinTermsState newReach);
-        Debug.dprintf 1 "BDD size for newReach = %d nodes@," (Bdd.size newReach);
-        Debug.dprintf 1 "BDD size for newReach abstracted on params = %d nodes@," 
-                      (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach));
+        if (Debug.debugEnabled ()) then
+          begin
+            Debug.dprintf "mc" "@,@,Iteration %d:@," !itercount;
+            Debug.dprintf "mc" "Reach has %e states@," 
+                          (mgr#getNumMinTermsState reach);
+            Debug.dprintf "mc" "Frontier has %e states@,"
+                          (mgr#getNumMinTermsState frontier);
+            Debug.dprintf "mc" "newReach has %e states@," 
+                          (mgr#getNumMinTermsState newReach);
+            Debug.dprintf "mc" "BDD size for newReach = %d nodes@," (Bdd.size newReach);
+            Debug.dprintf "mc" "BDD size for newReach abstracted on params = %d nodes@," 
+                          (Bdd.size (Bdd.exist (mgr#getCubeForParamVars ()) newReach))
 
-        (* let ncycles = countCycles mgr newReach transrel in *)
-        (* Debug.dprintf 1 "%e states form cycles in newReach@," ncycles; *)
-        (* Debug.dflush (); *)
+            (* let ncycles = countCycles mgr newReach transrel in *)
+            (* Debug.dprintf 1 "%e states form cycles in newReach@," ncycles; *)
+            (* Debug.dflush (); *)
+          end
+        else
+          ();
 
         itercount := !itercount + 1;
         
@@ -140,10 +125,7 @@ let rec synthForwardSafety mgr transrel initStates badstates =
           SynthSafe
         else
           let newStates = Bdd.dand frontier (Bdd.dnot reach) in
-          Debug.dprintf 1 "Computing post with %e states@," (mgr#getNumMinTermsState newStates);
           let postNew = post mgr transrel newStates in
-          Debug.dprintf 1 "Post has %e states@," (mgr#getNumMinTermsState postNew);
-          Debug.dflush ();
           computeNextOrCEX newReach postNew
       end
   in
@@ -155,22 +137,29 @@ let synthesize mgr transrel initstates badstates tableaulist =
   let iteration = ref 0 in
   
   let rec synthesizeRec refinedInit =
-    Debug.dprintf 1 "CEGIS iteration %d...@," !iteration;
+
+    if (Debug.debugEnabled ()) then
+      begin
+        Debug.dprintf "mc" "CEGIS iteration %d...@," !iteration;
+        Debug.dprintf "mc" "Attempting synthesis with %e candidates@,"
+                      (mgr#getNumMinTermsParam refinedInit)
+      end
+    else
+      ();
+
     iteration := !iteration + 1;
-    Debug.dprintf 1 "Attempting synthesis with %e candidates@,"
-                  (mgr#getNumMinTermsParam refinedInit);
     let synthStat = synthForwardSafety mgr transrel refinedInit badstates in
     match synthStat with
     | SynthSafe ->
-       Debug.dprintf 1 "Successfully synthesized %e solutions!@," 
+       Debug.dprintf "mc" "Successfully synthesized %e solutions!@," 
                      (mgr#getNumMinTermsParam refinedInit);
        let r = Bdd.exist (mgr#getAllButParamCube ()) refinedInit in
        assert (not (Bdd.is_false r));
-       Debug.dprintf 1 "Returning Solutions!@,";
+       Debug.dprintf "mc" "Returning Solutions!@,";
        r
     | SynthCEX cex ->
        let badParamValues = Bdd.exist (mgr#getAllButParamCube ()) cex in
-       Debug.dprintf 1 "%e param values eliminated@," (mgr#getNumMinTermsParam badParamValues);
+       Debug.dprintf "mc" "%e param values eliminated@," (mgr#getNumMinTermsParam badParamValues);
        let newInit = 
          Bdd.dand refinedInit 
                   (Bdd.dnot (Bdd.existand 
@@ -178,19 +167,19 @@ let synthesize mgr transrel initstates badstates tableaulist =
                                cex badstates))
        in
        assert (not (Bdd.is_false newInit));
-       Debug.dprintf 1 "newInit has %e states@," (mgr#getNumMinTermsState newInit);
+       Debug.dprintf "mc" "newInit has %e states@," (mgr#getNumMinTermsState newInit);
        if (not (Bdd.is_leq (Bdd.exist (mgr#getCubeForParamVars ()) newInit) 
                            (Bdd.exist (Bdd.dand (mgr#getCubeForPrimedVars ())
                                                 (mgr#getCubeForParamVars ())) initstates))) then
          begin
-           Debug.dprintf 1 "Synthesis eliminated one or more initial states!@,";
-           Debug.dprintf 1 "No solution possible.@,";
+           Debug.dprintf "mc" "Synthesis eliminated one or more initial states!@,";
+           Debug.dprintf "mc" "No solution possible.@,";
            mgr#makeFalse ()
          end
        else
          synthesizeRec newInit
   in
-  Debug.dprintf 1 "initStates has %e states@," (mgr#getNumMinTermsState initstates);
+  Debug.dprintf "mc" "initStates has %e states@," (mgr#getNumMinTermsState initstates);
   synthesizeRec initstates
 
 (* TODO: Currently hardwired to use monolithic transition *)

@@ -227,7 +227,8 @@ module Utils :
   end
 module Opts :
   sig
-    val debugLevel : int ref
+    val debugDisabled : bool ref
+    val debugOptions : MusynthTypes.StringSet.t ref
     val debugFileName : string ref
     val onlySafety : bool ref
     val conjunctivePart : bool ref

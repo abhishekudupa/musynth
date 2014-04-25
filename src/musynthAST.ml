@@ -262,12 +262,12 @@ let pAutomatonDecl fmt autdecl =
   let prefixPrinter fmt automaton =
     match automaton with
     | CompleteAutomaton (d, _, _, _, _, ftype, _) ->
-       fprintf fmt "@[<v 0>automaton %a%a " pFairness ftype pDesignator d
+       fprintf fmt "@[<v 0>automaton%a %a " pFairness ftype pDesignator d
     | IncompleteAutomaton (d, _, _, _, _, ftype, _) ->
-       fprintf fmt "@[<v 0>partialautomaton %a%a " pFairness ftype pDesignator d
+       fprintf fmt "@[<v 0>partialautomaton%a %a " pFairness ftype pDesignator d
     | ChannelAutomaton (d, _, _, ftype, lftype, dftype, _) ->
-       fprintf fmt "@[<v 0>channelautomaton %a%a%a%a " pFairness ftype 
-               pLossFairness lftype pDesignator d pDupFairness dftype
+       fprintf fmt "@[<v 0>channelautomaton%a%a%a %a " pFairness ftype 
+               pLossFairness lftype pDupFairness dftype pDesignator d 
   in
   let suffixPrinter fmt automaton =
     match automaton with
