@@ -30,6 +30,7 @@ automaton with compassion Environment {
 
     transitions {
         (EInit, Send[d], Pending[d] foreach d in DataType),
+        (EInit, Timeout, EInit),
         (Pending[d], Deliver[d], EInit foreach d in DataType),
         (Pending[d], Timeout, Pending[d] foreach d in DataType),
         (Pending[d1], Deliver[d2], EError foreach d1, d2 in DataType (!= d1 d2))
