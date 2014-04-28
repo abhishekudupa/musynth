@@ -23,7 +23,7 @@ messages {
     Inv2Cache'[c] foreach c in CacheIDType
 }
 
-Automaton Environment[c] foreach c in CacheIDType
+Automaton with compassion Environment[c] foreach c in CacheIDType
 {
     states : { InitState };
     
@@ -40,7 +40,7 @@ Automaton Environment[c] foreach c in CacheIDType
     };
 }
 
-Automaton Oracle
+Automaton with compassion Oracle
 {
     states : { Data[d] foreach d in DataType };
 
@@ -54,9 +54,9 @@ Automaton Oracle
     };
 }
 
-ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
+ChannelAutomaton with compassion ReqChannel[c] foreach c in CacheIDType
 {
-    unordered, lossless, nonduplicating;
+    unordered, lossless, nonduplicating, blocking;
     capacity = 1;
 
     messages {
@@ -67,9 +67,9 @@ ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
     };
 }
 
-ChannelAutomaton RspChannel[c] foreach c in CacheIDType
+ChannelAutomaton with compassion RspChannel[c] foreach c in CacheIDType
 {
-    unordered, lossless, nonduplicating;
+    unordered, lossless, nonduplicating, blocking;
     capacity = 1;
 
     messages {
@@ -79,7 +79,7 @@ ChannelAutomaton RspChannel[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton Cache[c] foreach c in CacheIDType
+PartialAutomaton with compassion Cache[c] foreach c in CacheIDType
 {
     states : { CI : complete, 
 
@@ -129,7 +129,7 @@ PartialAutomaton Cache[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton Directory
+PartialAutomaton with compassion Directory
 {
     states : { DI[d] foreach d in DataType : complete,
                DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
@@ -185,7 +185,7 @@ init {
      (= Cache[c].state CI))
 }
 
-/*
+
 invariant "Coherence Invariant" {
     (forall d in DataType 
      (forall c in CacheIDType
@@ -200,23 +200,16 @@ invariant "One Valid Invariant" {
         (-> (!= c1 c2) (-> (= Cache[c1].state CV[d1]) 
                            (!= Cache[c2].state CV[d2])))))))
 }
-*/
-/*
+
 ltlspec "I-V liveness on Get" {
     (forall c in CacheIDType
      (exists d in DataType
-      (G (-> (= Environment[c].state IssuedGet) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
+      (G (-> (= Cache[c].state CIV1) (F (= Cache[c].state CV[d]))))))
 }
-
-ltlspec "I-V liveness on Havoc" {
-    (forall c in CacheIDType
-     (forall d in DataType
-      (G (-> (= Environment[c].state IssuedHavoc[d]) (F (and (= Environment[c].state InitState[d]) (= Oracle.state Data[d])))))))
-}
-
+/*
 ltlspec "V-I liveness" {
     (forall c in CacheIDType
-     (exists d in DataType
-      (G (-> (= Environment[c].state IssuedPut) (F (= Environment[c].state InitState[d]))))))
+     (forall d in DataType
+      (G (-> (= Cache[c].state CVI1[d]) (F (= Cache[c].state CI))))))
 }
 */

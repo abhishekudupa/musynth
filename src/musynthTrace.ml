@@ -14,20 +14,20 @@ let printState state =
 let printTraceFullSafety trace =
   let count = ref 0 in
   let rec printTraceFullRec trace =
-    count := !count + 1;
     match trace with
     | [] -> ()
     | [ head ] ->
-       Debug.dprintf "trace" "Step %d (End of trace):@," (!count - 1);
-       Debug.dprintf "trace" "----------------------------------------------------------------------@,";
-       printState head;
-       Debug.dprintf "trace" "----------------------------------------------------------------------@,@,"
-
-    | head :: rest ->
-       Debug.dprintf "trace" "Step %d:@," (!count - 1);
+       Debug.dprintf "trace" "Step %d (End of trace):@," !count;
        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
        printState head;
        Debug.dprintf "trace" "----------------------------------------------------------------------@,@,";
+       count := !count + 1;
+    | head :: rest ->
+       Debug.dprintf "trace" "Step %d:@," !count;
+       Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+       printState head;
+       Debug.dprintf "trace" "----------------------------------------------------------------------@,@,";
+       count := !count + 1;
        printTraceFullRec rest
   in
   printTraceFullRec trace 
@@ -72,6 +72,104 @@ let printTraceDiffSafety trace =
   in
   printTraceDiffRec None trace
 
+let printTraceDiffLiveness prefix loop =
+  let count = ref 0 in
+  let loopStartStep = ref 0 in
+  let rec printPrefix prevOpt prefix = 
+    match prefix with
+    | [] -> ()
+    | [ head ] ->
+      begin
+        Debug.dprintf "trace" "Step %d (Beginning of loop, in full):@," !count;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        printState head;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        count := !count + 1;
+        loopStartStep := !count
+      end
+    | head :: rest ->
+      begin
+        Debug.dprintf "trace" "Step %d:@," !count;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        (match prevOpt with
+        | Some prev -> 
+          printState (computeDiff prev head);
+        | None ->
+          printState head);
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        count := !count + 1;
+        printPrefix (Some head) rest
+      end
+  in
+  let rec printLoop prevOpt loop =
+    match loop with
+    | [] -> ()
+    | [ head ] -> 
+      begin
+        Debug.dprintf "trace" "Step %d (Loopback, same as step %d above, in full):@," !count !loopStartStep;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        printState head;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        count := !count + 1
+      end
+    | head :: rest ->
+      begin
+        Debug.dprintf "trace" "Step %d:@," !count;
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        (match prevOpt with
+        | Some prev -> 
+          printState (computeDiff prev head);
+        | None ->
+          printState head);
+        Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+        count := !count + 1;
+        printLoop (Some head) rest
+      end
+  in
+  printPrefix None prefix;
+  printLoop (Some (List.nth prefix ((List.length prefix) - 1))) loop
+
+let printTraceFullLiveness prefix loop = 
+  let count = ref 0 in
+  let loopStartStep = ref 0 in
+  let rec printPrefix prefix = 
+    match prefix with
+    | [] -> ()
+    | [ head ] ->
+      Debug.dprintf "trace" "Step %d (Beginning of loop):@," !count;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      printState head;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      count := !count + 1;
+      loopStartStep := !count
+    | head :: rest ->
+      Debug.dprintf "trace" "Step %d:@," !count;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      printState head;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      count := !count + 1;
+      printPrefix rest
+  in
+  let rec printLoop loop =
+    match loop with
+    | [] -> ()
+    | [ head ] -> 
+      Debug.dprintf "trace" "Step %d (Loopback, same as step %d above):@," !count !loopStartStep;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      printState head;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      count := !count + 1;
+    | head :: rest ->
+      Debug.dprintf "trace" "Step %d:@," !count;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      printState head;
+      Debug.dprintf "trace" "----------------------------------------------------------------------@,";
+      count := !count + 1;
+      printLoop rest
+  in
+  printPrefix prefix;
+  printLoop loop  
+
 let printTraceSafety trace =
   if (Debug.debugEnabled ()) then
     match !Opts.tracePrintMode with
@@ -82,4 +180,10 @@ let printTraceSafety trace =
     ()
 
 let printTraceLiveness prefix loop =
-  ()
+  if (Debug.debugEnabled ()) then
+    match !Opts.tracePrintMode with
+    | "full" -> printTraceFullLiveness prefix loop
+    | "diff" -> printTraceDiffLiveness prefix loop
+    | _ -> assert false
+  else
+    ()

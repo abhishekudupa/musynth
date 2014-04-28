@@ -148,6 +148,14 @@ val computeDiff :
   'a MusynthTypes.LLDesigMap.t -> 'a MusynthTypes.LLDesigMap.t
 val printTraceDiffSafety :
   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+val printTraceDiffLiveness :
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+val printTraceFullLiveness :
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
 val printTraceSafety :
   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
-val printTraceLiveness : 'a -> 'b -> unit
+val printTraceLiveness :
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit

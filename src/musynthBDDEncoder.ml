@@ -213,7 +213,7 @@ let encodeProg mgr prog =
           let p2vmap, v2pmap, chimap, t, tjlist = tableaudesc in
           let myjlist = universaljlist @ justicelist @ tjlist in
           let myclist = universalclist @ compassionlist in
-          (* Debug.dprintf 1 "Tableau:@,%a@,@," AST.pLLProp transrel; *)
+          Debug.dprintf "trans" "Tableau:@,%a@,@," AST.pLLProp t;
           (p2vmap, v2pmap, chimap, t, myjlist, myclist) :: lst
        | _ -> lst) [] specs in
 

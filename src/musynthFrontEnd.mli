@@ -2950,9 +2950,17 @@ module MC :
           'a MusynthTypes.LLDesigMap.t -> 'a MusynthTypes.LLDesigMap.t
         val printTraceDiffSafety :
           MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+        val printTraceDiffLiveness :
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+        val printTraceFullLiveness :
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
         val printTraceSafety :
           MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
-        val printTraceLiveness : 'a -> 'b -> unit
+        val printTraceLiveness :
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
+          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
       end
     module MGR :
       sig
@@ -3713,73 +3721,124 @@ module MC :
       'a Cudd.Bdd.t -> 'a Cudd.Bdd.t MusynthTypes.execExitStatT
     val computeFixPoint : ('a -> 'a) -> ('a -> 'a -> bool) -> 'a -> 'a
     val findPathCube :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t list
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t list
     val findPath :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t list
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getStateVars : 'b Cudd.Bdd.t -> 'c;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'c list
     val findLoopCube :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t list ->
-      (Cudd.Man.d Cudd.Bdd.t * Cudd.Man.d Cudd.Bdd.t) list ->
-      Cudd.Man.d Cudd.Bdd.t list * Cudd.Man.d Cudd.Bdd.t list
+      < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+        pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t list ->
+      ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list ->
+      'a Cudd.Bdd.t list * 'a Cudd.Bdd.t list
     val findLoop :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t list ->
-      (Cudd.Man.d Cudd.Bdd.t * Cudd.Man.d Cudd.Bdd.t) list ->
-      MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t list *
-      MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t list
+      < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getStateVars : 'a Cudd.Bdd.t -> 'b;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+        pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t list ->
+      ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list -> 'b list * 'b list
     val getSafetyParams :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.d Cudd.Bdd.t
+      < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'b Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'b Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'b Cudd.Bdd.t;
+        getNumMinTermsState : 'b Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit -> Format.formatter -> 'a -> unit;
+        getStateVars : 'b Cudd.Bdd.t ->
+                       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
+        getSubstTableP2U : unit -> 'b Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'b Cudd.Bdd.t array;
+        makeTrue : unit -> 'b Cudd.Bdd.t;
+        pickMinTermOnStates : 'b Cudd.Bdd.t -> 'a; .. > ->
+      'b Cudd.Bdd.t ->
+      'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t -> 'b Cudd.Bdd.t
     val getParamsForInfeasible :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t list ->
-      (Cudd.Man.d Cudd.Bdd.t * Cudd.Man.d Cudd.Bdd.t) list ->
-      Cudd.Man.d Cudd.Bdd.t
+      < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'a Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getStateVars : 'a Cudd.Bdd.t ->
+                       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+        makeTrue : unit -> 'a Cudd.Bdd.t;
+        pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t list ->
+      ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list -> 'a Cudd.Bdd.t
     val getParamsForKSteps :
       int ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      ('a * 'b * 'c * Cudd.Man.d Cudd.Bdd.t * Cudd.Man.d Cudd.Bdd.t list *
-       (Cudd.Man.d Cudd.Bdd.t * Cudd.Man.d Cudd.Bdd.t) list)
-      list -> Cudd.Man.d Cudd.Bdd.t MusynthTypes.execExitStatT
-    val synthForwardSafety :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t MusynthTypes.synthExitStatT
-    val synthesize :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t -> 'a -> Cudd.Man.d Cudd.Bdd.t
+      'a Cudd.Bdd.t ->
+      < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'a Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getNumMinTermsState : 'a Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit ->
+                             Format.formatter -> Cudd.Man.tbool array -> unit;
+        getStateVars : 'a Cudd.Bdd.t ->
+                       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+        makeTrue : unit -> 'a Cudd.Bdd.t;
+        pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      ('b * 'c * 'd * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
+       ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list)
+      list -> 'a Cudd.Bdd.t MusynthTypes.execExitStatT
     val synthFrontEnd :
-      MGR.bddManager ->
-      Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t ->
-      Cudd.Man.d Cudd.Bdd.t -> 'a -> Cudd.Man.d Cudd.Bdd.t
+      < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+        getAllButParamCube : unit -> 'a Cudd.Bdd.t;
+        getConstraintsOnAllVars : unit -> 'a Cudd.Bdd.t;
+        getConstraintsOnParams : unit -> 'a Cudd.Bdd.t;
+        getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getNumMinTermsState : 'a Cudd.Bdd.t -> float;
+        getStateVarPrinter : unit ->
+                             Format.formatter -> Cudd.Man.tbool array -> unit;
+        getStateVars : 'a Cudd.Bdd.t ->
+                       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
+        getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+        getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+        makeTrue : unit -> 'a Cudd.Bdd.t;
+        pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+      'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      'a Cudd.Bdd.t ->
+      ('b * 'c * 'd * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
+       ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list)
+      list -> 'a Cudd.Bdd.t
   end
 module Opts :
   sig

@@ -156,7 +156,7 @@ let stateAnnotationInstantiator symtab qMap propOpt allmsgs annot =
   | AnnotIncomplete _ ->
      LLAnnotEventList allmsgs
   | AnnotComplete _
-  | AnnotNone _ -> LLAnnotNone
+  | AnnotNone -> LLAnnotNone
 
 let lowerFairness f =
   match f with
@@ -176,7 +176,7 @@ let lowerDupFairness f =
 
 let rec stateAnnotSubstitutor substMap annot =
   match annot with
-  | AnnotNone _
+  | AnnotNone
   | AnnotComplete _ 
   | AnnotIncomplete _
   | AnnotIncompleteNum _ -> annot
@@ -227,7 +227,7 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype l
   let desigInstantiator = instantiateDesigBlock symtab IdentMap.empty None in
   let loweredftype = 
     match ftype with
-    | FairnessTypeNone _ -> LLFairnessNone
+    | FairnessTypeNone -> LLFairnessNone
     | _ -> LLFairnessJustice
   in
   let llftype = 
