@@ -12,17 +12,11 @@ let constructEnabledProp autlist automaton =
     (fun prop msg ->
      LLPropOr (Utils.getCSPredsForMsgAll msg autlist, prop)) LLPropFalse outmsgs
 
-let makeLastChooseDesig () =
-  LLSimpleDesignator ("lastchosen")
-                    
-let makeChooseDesig () =
-  LLSimpleDesignator ("choose")
-
 (* works with any kind of automaton *)
 let constructFairnessSpecsAut autlist aut =
   let autname = Utils.getNameForAut aut in
   let enprop = constructEnabledProp autlist aut in
-  let chooseprop = LLPropEquals (makeChooseDesig (), autname) in
+  let chooseprop = LLPropEquals (Utils.makeLCProcDesig (), autname) in
   let ftype = Utils.getFairnessForAutomaton aut in
   match ftype with
   | LLFairnessJustice ->
@@ -35,16 +29,16 @@ let constructFiniteLossFairness chan =
   let inmsgs, _ = Utils.getMsgsForAut chan in
   List.map
     (fun msg ->
-     Compassion (LLPropEquals (makeLastChooseDesig (), msg),
-                 LLPropEquals (makeLastChooseDesig (), getPrimedLLDesig msg)))
+     Compassion (LLPropEquals (Utils.makeLCMesgDesig (), msg),
+                 LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg)))
     inmsgs
 
 let constructFiniteDupFairness chan =
   let inmsgs, _ = Utils.getMsgsForAut chan in
   List.map
     (fun msg ->
-     Compassion (LLPropEquals (makeLastChooseDesig (), getPrimedLLDesig msg),
-                 LLPropEquals (makeLastChooseDesig (), msg)))
+     Compassion (LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg),
+                 LLPropEquals (Utils.makeLCMesgDesig (), msg)))
     inmsgs
 
 let constructFairnessSpecsChan autlist chan =
@@ -241,4 +235,6 @@ let constructTableau ltlprop =
           (LLPropOr (chiofq, LLPropNot chiofform))
        | _ -> assert false) uFormulaVarPairs
   in
-  (p2vmap, v2pmap, chimap, transrel, jlist)
+  (* also return the chi of the formula *)
+  let chiofform = PropMap.find ltlprop chimap in
+  (p2vmap, v2pmap, chimap, chiofform, transrel, jlist)

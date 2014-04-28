@@ -692,5 +692,8 @@ class bddManager =
 
     method isFalse bdd =
       Bdd.is_false (Bdd.dand bdd (self#makeTrue ()))
+
+    method getNumParamVars () =
+      LLDesigSet.cardinal paramVars
         
   end (* class bddEncoder *)

@@ -390,3 +390,18 @@ let makeTrueDesig () =
 
 let makeFalseDesig () = 
   LLSimpleDesignator "false"
+
+let makeLCMesgDesig () =
+  LLSimpleDesignator "musynth_last_chosen_mesg"
+
+let makeLCProcDesig () =
+  LLSimpleDesignator "musynth_last_chosen_proc"
+
+let makeLCMesgDesigPrime () = 
+  LLSimpleDesignator "musynth_last_chosen_mesg'"
+
+let makeLCProcDesigPrime () =
+  LLSimpleDesignator "musynth_last_chosen_proc'"
+
+let makeDeadlockDesig () =
+  LLSimpleDesignator "deadlock"

@@ -16,6 +16,7 @@ module Opts = MusynthOptions
 module Utils = MusynthUtils
 module Mgr = MusynthBDDManager
 module Debug = MusynthDebug
+module Trace = MusynthTrace
 
 let musynthProcess filename =
   let inchan = 
@@ -48,17 +49,42 @@ let musynthProcess filename =
       Enc.encodeProg mgr lprog
     in
     printf "Done!\n"; flush stdout;
-    printf "Attempting to Synthesize... "; flush stdout;
-    let solbdd = 
-      MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist 
-    in
-    printf "Done!\n"; flush stdout;
-    if (mgr#isFalse solbdd) then
-      printf "\n\nNo Solutions Found!\n\n"
-    else 
+    if ((mgr#getNumParamVars ()) <> 0) then
       begin
-        printf "\n\nSolutions:\n"; flush stdout;
-        Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd
+        printf "Attempting to Synthesize... "; flush stdout;
+        let solbdd = 
+          MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist 
+        in
+        printf "Done!\n"; flush stdout;
+        if (mgr#isFalse solbdd) then
+          printf "\n\nNo Solutions Found!\n\n"
+        else 
+          begin
+            printf "\n\nSolutions:\n"; flush stdout;
+            Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd
+          end
+      end
+    else
+      begin
+        printf "Nothing to synthesize, switching to model checking mode.\nModel checking... ";
+        flush stdout;
+        let status = MC.check mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist in
+        printf "Done!\n";
+        match status with
+        | MCSuccess _ ->
+           printf "All properties hold\n"
+        | MCFailureSafety trace ->
+           printf "Safety violation found. Trace:\n\n"; flush stdout;
+           Format.fprintf Format.std_formatter "@[<v 0>";
+           Trace.printTraceSafety Format.std_formatter trace;
+           Format.fprintf Format.std_formatter "@,@,@]";
+           Format.pp_print_flush Format.std_formatter ();
+        | MCFailureLiveness (name, prefix, loop) ->
+           printf "Liveness violation of property \"%s\" found. Trace:\n\n" name; flush stdout;
+           Format.fprintf Format.std_formatter "@[<v 0>";
+           Trace.printTraceLiveness Format.std_formatter prefix loop;
+           Format.fprintf Format.std_formatter "@,@,@]";
+           Format.pp_print_flush Format.std_formatter ();
       end;
     Format.pp_print_flush Format.std_formatter ();
     printf "Peak BDD node count = %d nodes\n\n" (mgr#getPeakBDDSize ()); flush stdout

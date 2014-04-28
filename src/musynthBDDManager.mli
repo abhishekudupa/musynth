@@ -483,6 +483,11 @@ module Utils :
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
     val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Opts :
   sig
@@ -596,6 +601,7 @@ class bddManager :
     method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumMinTermsParam : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumMinTermsState : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumParamVars : unit -> int
     method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
     method getParamVarPrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit

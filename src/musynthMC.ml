@@ -74,14 +74,15 @@ let rec computeFixPoint pTransFormer fpCondition pred =
 let findPathCube mgr initStates transRel errstate = 
   (* construct the set of states reachable in 1, 2, ... k steps *)
   (* stop when we hit the error state *)
+  (* evaluates to a list that DOES NOT contain the error state *)
   let rec forwardStates reachable frontier =
     if (not (Bdd.is_inter_empty frontier errstate)) then
-      [ frontier ]
+      []
     else
       begin
         let newReach = Bdd.dor reachable (post mgr transRel frontier) in
         let newFrontier = Bdd.dand newReach (Bdd.dnot reachable) in
-        frontier :: (forwardStates newReach newFrontier)
+        (forwardStates newReach newFrontier) @ [ reachable ]
       end
   in
   (* now extract a sequence of pres for the error state in the list *)
@@ -99,7 +100,6 @@ let findPathCube mgr initStates transRel errstate =
        lst @ [ cube ]
   in
   let stateList = forwardStates initStates initStates in
-  Debug.dprintf "mc" "StateList has %d states@," (List.length stateList);
   let lst = foldStateList errstate stateList in
   let minTerm = mgr#pickMinTermOnStates errstate in
   let cube = mgr#cubeOfMinTerm minTerm in
@@ -175,21 +175,21 @@ let findLoop mgr initStates transRel finalStates jlist clist =
 
 let getSafetyParams mgr initStates reachStates transRel badStates =
   let reachableBadStates = Bdd.dand reachStates badStates in
-  assert (Bdd.is_false reachableBadStates);
   if (Bdd.is_false reachableBadStates) then
     mgr#makeTrue ()
   else
     begin
       if (Debug.debugEnabled ()) then
+        let fmt = Debug.getDebugFmt () in
         begin
-          fprintf std_formatter "%e bad states are reachable\n" (mgr#getNumMinTermsState reachableBadStates);
-          pp_print_flush std_formatter ();
-          fprintf std_formatter "Found bad state:@,%a@," (mgr#getStateVarPrinter ()) 
-            (mgr#pickMinTermOnStates reachableBadStates);
+          Debug.dprintf "mc" "Found a safety violation:@,";
           let trace = findPath mgr initStates transRel 
-            (mgr#cubeOfMinTerm (mgr#pickMinTermOnStates reachableBadStates))
+                               (mgr#cubeOfMinTerm (mgr#pickMinTermOnStates reachableBadStates))
           in
-          Trace.printTraceSafety trace
+          if (Debug.debugOptEnabled "trace") then
+            Trace.printTraceSafety fmt trace
+          else
+            ()
         end
       else
         ();
@@ -197,8 +197,7 @@ let getSafetyParams mgr initStates reachStates transRel badStates =
       Bdd.dnot badParams
     end
 
-let getParamsForInfeasible mgr initStates reach origTransRel jlist clist =
-  (* restrict transrel to only reachable states *)
+let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
   let transRel = Bdd.dand reach origTransRel in
   
   let rec elimCycles transRel states = 
@@ -249,9 +248,14 @@ let getParamsForInfeasible mgr initStates reach origTransRel jlist clist =
       newStates
     else
       elimCycles transRel newStates
-
   in
+
   let feasibleStates = elimCycles transRel reach in
+  Bdd.dand feasibleStates chioftester
+
+let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist clist =
+  (* restrict transrel to only reachable states *)
+  let feasibleStates = getFeasible mgr initStates reach chioftester origTransRel jlist clist in
   (* we should not have any feasible cycles! *)
   (* eliminate params which are responsible for a feasible cycle *)
   if (Bdd.is_false feasibleStates) then
@@ -259,8 +263,15 @@ let getParamsForInfeasible mgr initStates reach origTransRel jlist clist =
   else
     begin
       if (Debug.debugEnabled ()) then
-        let prefix, period = findLoop mgr initStates origTransRel feasibleStates jlist clist in
-        Trace.printTraceLiveness prefix period
+        begin
+          let fmt = Debug.getDebugFmt () in
+          Debug.dprintf "mc" "Found a liveness violation:@,"; Debug.dflush ();
+          let prefix, period = findLoop mgr initStates origTransRel feasibleStates jlist clist in
+          if (Debug.debugOptEnabled "trace") then
+            Trace.printTraceLiveness fmt prefix period
+          else
+            ()
+        end
       else
         ();
       let badParams = Bdd.exist (mgr#getAllButParamCube ()) feasibleStates in
@@ -280,7 +291,6 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
      | ExecNonConverged s -> s
      | ExecFixpoint s -> s) 
   in
-  assert (Bdd.is_inter_empty kReach badstates);
   (* get params for safety *)
   let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
   let newParamConstraints = Bdd.dand paramConstraints sparams in
@@ -290,10 +300,10 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
   (* and check subsequent tableau with the refined parameters                       *)
   
   let sparams = 
-    List.fold_left 
-      (fun pconstraints tableau ->
+    StringMap.fold
+      (fun propname tableau pconstraints ->
        let actInitStates = Bdd.dand pconstraints initstates in
-       let _, _, _, tableautrans, jlist, clist = tableau in
+       let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
        let transRel = Bdd.dand transRel tableautrans in
        let kReachStat = postK k mgr transRel actInitStates in
        let kReach =
@@ -301,25 +311,28 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
           | ExecNonConverged s -> s
           | ExecFixpoint s -> s) 
        in
-       let sparams = getParamsForInfeasible mgr actInitStates kReach transRel jlist clist in
-       Bdd.dand pconstraints sparams) newParamConstraints tableau
+       let sparams = getParamsForInfeasible mgr actInitStates kReach chioftester 
+                                            transRel jlist clist 
+       in
+       Bdd.dand pconstraints sparams) tableau newParamConstraints
   in
   match kReachStat with
   | ExecNonConverged _ -> ExecNonConverged sparams
   | ExecFixpoint _ -> ExecFixpoint sparams
 
+let conjoinTransitionRels mgr transBDDs =
+  LLDesigMap.fold 
+    (fun name bdd accbdd ->
+     Bdd.dand bdd accbdd) transBDDs (mgr#makeTrue ())
+
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
 let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
-  let transrel = 
-    LLDesigMap.fold 
-      (fun name bdd accbdd ->
-       Bdd.dand bdd accbdd)
-      transBDDs (mgr#makeTrue ()) in
+  let transrel = conjoinTransitionRels mgr transBDDs in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
   (* iteratively synthesize for greater and greater k until we hit fixpoint *)
   let rec synthesize k paramConstraints =
-    Debug.dprintf "mc" "Synthesizing upto %d steps...@," k;
+    Debug.dprintf "mc" "Synthesizing upto %d steps...@," k; Debug.dflush ();
     let result = 
       getParamsForKSteps k paramConstraints mgr transrel 
         initBDD badstates ltltableaulist 
@@ -329,4 +342,57 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
     | ExecNonConverged params ->
       synthesize (k + 1) params
   in
-  synthesize 0 (mgr#getConstraintsOnParams ())
+  let solbdd = synthesize 0 (mgr#getConstraintsOnParams ()) in
+  if (Debug.debugEnabled ()) then
+    Debug.dprintf "mc" "Found %e solutions@," (mgr#getNumMinTermsParam solbdd)
+  else
+    ();
+  solbdd
+
+let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
+  let transrel = conjoinTransitionRels mgr transBDDs in
+  let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfbdd) in
+
+  let rec computeReachable states frontier =
+    let newStates = Bdd.dor states (post mgr transrel states) in
+    if (Bdd.is_leq newStates states) then
+      MCSuccess newStates
+    else
+      (* check if we have a violation *)
+      if (not (Bdd.is_inter_empty newStates badstates)) then
+        let reachableBadStates = Bdd.dand newStates badstates in
+        let trace = findPath mgr initBDD transrel
+                             (mgr#cubeOfMinTerm (mgr#pickMinTermOnStates reachableBadStates))
+        in
+        MCFailureSafety trace
+      else
+        let newFrontier = Bdd.dand newStates (Bdd.dnot states) in
+        computeReachable newStates newFrontier
+  in
+  Debug.dprintf "mc" "No safety violation found. Proceeding to liveness checks.@,@,";
+  Debug.dflush ();
+
+  let reachStat = computeReachable initBDD initBDD in
+  match reachStat with 
+  | MCFailureSafety trace -> reachStat
+  | MCSuccess reachStates ->
+     StringMap.fold
+       (fun propname tableau acc ->
+        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
+        match acc with
+        | MCSuccess _ ->
+           let ltransrel = Bdd.dand transrel tableautrans in
+           let feasible = getFeasible mgr initBDD reachStates chioftester ltransrel jlist clist in
+           if (not (Bdd.is_false feasible)) then
+             begin
+               Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
+               Debug.dflush ();
+               let prefix, loop = findLoop mgr initBDD ltransrel feasible jlist clist in
+               MCFailureLiveness (propname, prefix, loop)
+             end
+           else
+             MCSuccess feasible
+        | MCFailureLiveness _ -> 
+           acc
+        | _ -> assert false) ltltableaulist reachStat
+  | _ -> assert false

@@ -376,5 +376,10 @@ type fairnessSpecT =
   | Compassion of llPropT * llPropT
 
 (* type for traces *)
-type musynthTraceT = llDesignatorT LLDesigMap.t
+type musynthTraceT = (llDesignatorT LLDesigMap.t) list
+
+type 'a modelCheckingStatusT =
+  | MCSuccess of 'a
+  | MCFailureSafety of musynthTraceT
+  | MCFailureLiveness of string * musynthTraceT * musynthTraceT
 

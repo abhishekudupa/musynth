@@ -326,6 +326,11 @@ module Utils :
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
     val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Safety :
   sig
@@ -983,6 +988,11 @@ module LTL :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
         val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
         val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
       end
     module Opts :
       sig
@@ -995,13 +1005,12 @@ module LTL :
         val numSolsRequested : int ref
         val reorderEnabled : bool ref
         val reorderMethod : Cudd.Man.reorder ref
+        val tracePrintMode : string ref
         val reorderMethods : string list
       end
     val constructEnabledProp :
       MusynthTypes.llAutomatonT list ->
       MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
-    val makeLastChooseDesig : unit -> MusynthTypes.llDesignatorT
-    val makeChooseDesig : unit -> MusynthTypes.llDesignatorT
     val constructFairnessSpecsAut :
       MusynthTypes.llAutomatonT list ->
       MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT
@@ -1035,7 +1044,8 @@ module LTL :
       MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
       MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
       MusynthTypes.PropMap.key MusynthTypes.PropMap.t *
-      MusynthTypes.llPropT * MusynthTypes.llPropT list
+      MusynthTypes.PropMap.key * MusynthTypes.llPropT *
+      MusynthTypes.llPropT list
   end
 val encodeStateVariables :
   < registerStateVariable : MusynthTypes.llDesignatorT ->
@@ -1053,23 +1063,13 @@ val getNextStatePropOnAllForMsg :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llIdentT -> MusynthTypes.llPropT
 val getTransitionRelationForAut :
-  MusynthTypes.llDesignatorT ->
-  MusynthTypes.llAutomatonT ->
-  MusynthTypes.llAutomatonT list ->
-  MusynthTypes.llPropT * (MusynthTypes.llPropT * MusynthTypes.llPropT) list
-val encodeChooseTransitions :
-  'a ->
-  MusynthTypes.llDesignatorT ->
-  MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
+  MusynthTypes.llAutomatonT -> 'a -> MusynthTypes.llPropT
 val encodeTransitionRelation :
+  MusynthTypes.llIdentT list ->
   MusynthTypes.llAutomatonT list ->
-  MusynthTypes.LLDesigMap.key ->
-  MusynthTypes.llDesignatorT ->
-  MusynthTypes.LLDesigMap.key ->
-  MusynthTypes.llDesignatorT ->
   MusynthTypes.llPropT MusynthTypes.LLDesigMap.t
 val encodeProg :
-  < prop2BDD : MusynthTypes.llPropT -> 'a;
+  < prop2BDD : MusynthTypes.PropMap.key -> 'a;
     registerInternalStateVariable : MusynthTypes.LLDesigMap.key ->
                                     MusynthTypes.llDesignatorT list -> unit;
     registerParamVariable : MusynthTypes.llDesignatorT ->
@@ -1082,6 +1082,6 @@ val encodeProg :
   'a MusynthTypes.LLDesigMap.t * 'a * 'a * 'a *
   (MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
    MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
-   MusynthTypes.PropMap.key MusynthTypes.PropMap.t * 'a * 'a list *
+   MusynthTypes.PropMap.key MusynthTypes.PropMap.t * 'a * 'a * 'a list *
    ('a * 'a) list)
-  list
+  MusynthTypes.StringMap.t

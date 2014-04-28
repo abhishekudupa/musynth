@@ -224,6 +224,11 @@ module Utils :
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
     val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Opts :
   sig
@@ -236,13 +241,12 @@ module Opts :
     val numSolsRequested : int ref
     val reorderEnabled : bool ref
     val reorderMethod : Cudd.Man.reorder ref
+    val tracePrintMode : string ref
     val reorderMethods : string list
   end
 val constructEnabledProp :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.llPropT
-val makeLastChooseDesig : unit -> MusynthTypes.llDesignatorT
-val makeChooseDesig : unit -> MusynthTypes.llDesignatorT
 val constructFairnessSpecsAut :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT
@@ -275,5 +279,5 @@ val constructTableau :
   MusynthTypes.llPropT ->
   MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
   MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
-  MusynthTypes.PropMap.key MusynthTypes.PropMap.t * MusynthTypes.llPropT *
-  MusynthTypes.llPropT list
+  MusynthTypes.PropMap.key MusynthTypes.PropMap.t *
+  MusynthTypes.PropMap.key * MusynthTypes.llPropT * MusynthTypes.llPropT list

@@ -470,4 +470,8 @@ val getPrimedLLDesig : llDesignatorT -> llDesignatorT
 type 'a synthExitStatT = SynthSafe | SynthCEX of 'a
 type 'a execExitStatT = ExecNonConverged of 'a | ExecFixpoint of 'a
 type fairnessSpecT = Justice of llPropT | Compassion of llPropT * llPropT
-type musynthTraceT = llDesignatorT LLDesigMap.t
+type musynthTraceT = llDesignatorT LLDesigMap.t list
+type 'a modelCheckingStatusT =
+    MCSuccess of 'a
+  | MCFailureSafety of musynthTraceT
+  | MCFailureLiveness of string * musynthTraceT * musynthTraceT
