@@ -207,10 +207,8 @@ ltlspec "I-V liveness on Get" {
       (G (-> (= Cache[c].state CIV1) (F (= Cache[c].state CV[d]))))))
 }
 
-/*
 ltlspec "V-I liveness" {
     (forall c in CacheIDType
      (forall d in DataType
       (G (-> (= Cache[c].state CVI1[d]) (F (= Cache[c].state CI))))))
 }
-*/

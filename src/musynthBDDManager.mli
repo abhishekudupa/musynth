@@ -501,6 +501,7 @@ module Opts :
     val reorderEnabled : bool ref
     val reorderMethod : Cudd.Man.reorder ref
     val tracePrintMode : string ref
+    val jumpStep : int ref
     val reorderMethods : string list
   end
 module Debug :
@@ -633,6 +634,7 @@ class bddManager :
       int -> MusynthTypes.IntMap.key -> Cudd.Man.d Cudd.Bdd.t
     method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
     method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
+    method minimize : unit -> unit
     method pickMinTermOnPStates :
       Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
     method pickMinTermOnParams :

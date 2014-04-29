@@ -695,5 +695,9 @@ class bddManager =
 
     method getNumParamVars () =
       LLDesigSet.cardinal paramVars
+
+    method minimize () =
+      Man.reduce_heap manager Man.REORDER_GENETIC 100000;
+      ignore (Man.garbage_collect manager)
         
   end (* class bddEncoder *)

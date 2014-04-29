@@ -142,7 +142,6 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
       let lastInPrefix = List.hd (List.rev prefix) in
       let postOfLastInPrefix = post mgr newTrans lastInPrefix in
       let period = [ mgr#cubeOfMinTerm (Bdd.pick_minterm postOfLastInPrefix) ] in
-      Debug.dprintf "mc" "Satisfying Justice Requirements..."; Debug.dflush ();
       let period = 
         List.fold_left
           (fun period justiceSpec ->
@@ -155,47 +154,24 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
              period @ (List.tl newPath))
           period jlist
       in
-      Debug.dprintf "mc" "Done!@,Satisfying Compassion Requirements..."; Debug.dflush ();
-      Debug.dprintf "mc" "Path so far:@,";
-      Trace.printTraceLiveness (Debug.getDebugFmt ()) (List.map mgr#getStateVars prefix)
-                               (List.map mgr#getStateVars period);
-      Debug.dflush ();
       let period = 
         List.fold_left
           (fun period compassionSpec ->
-           Debug.dprintf "mc" "Trying to satisfy compassion spec@,"; Debug.dflush ();
            let p, q = compassionSpec in
            let satCompassionSpec prop = (not (Bdd.is_inter_empty prop q)) in
-           if List.exists satCompassionSpec period then
-             Debug.dprintf "mc" "Found!@,"
-           else
-             Debug.dprintf "mc" "Not Found!@,";
-           Debug.dflush ();
            if ((not (List.exists satCompassionSpec period)) && 
                  (not (Bdd.is_inter_empty final p))) then
              begin
                let lastInPeriod = List.nth period ((List.length period) - 1) in
-               let fmt = Debug.getDebugFmt () in
-               Debug.dprintf "mc" "Finding path@,Start:@,";
-               let state = mgr#getStateVars lastInPeriod in
-               Trace.printState fmt state;
-               Debug.dprintf "mc" "@,End:@,";
-               let f = mgr#getStateVars q in
-               Trace.printState fmt f;
-               assert (not (Bdd.is_false (Bdd.dand final q)));
-               Bdd.print (mgr#getBitPrinter ()) fmt q;
-               Debug.dflush ();
                let newPath = findPathCube mgr lastInPeriod newTrans (Bdd.dand final q) in
                period @ (List.tl newPath)
              end
            else
              period) period clist
       in
-      Debug.dprintf "mc" "Done!@,Closing path..."; Debug.dflush ();
       let lastInPeriod = List.nth period ((List.length period) - 1) in
       let newPath = findPathCube mgr lastInPeriod newTrans lastInPrefix in
       let period = period @ (List.tl newPath) in
-      Debug.dprintf "mc" "Done!@,"; Debug.dflush ();
       (prefix, period)
     end
 
@@ -230,8 +206,13 @@ let getSafetyParams mgr initStates reachStates transRel badStates =
 
 let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
   let transRel = Bdd.dand reach origTransRel in
+  let iteration = ref 0 in
   
   let rec elimCycles transRel states = 
+    Debug.dprintf "mc" "Elim Cycles: iteration %d@," !iteration;
+    iteration := !iteration + 1;
+    Debug.dprintf "mc" "Elim Cycles: Finding Cycles@,";
+    Debug.dflush (); 
     let newStates = computeFixPoint
                       (fun states ->
                        Bdd.dand states (pre mgr transRel states))
@@ -239,6 +220,10 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
                       states
     in
     (* Filter based on justices *)
+    Debug.dprintf "mc" "Elim Cycles: Filtering on %d justice requirements. newStates : %d nodes@," 
+      (List.length jlist) (Bdd.size newStates);
+    Debug.dflush ();
+
     let newStates = 
       List.fold_left
         (fun states justiceSpec ->
@@ -251,6 +236,10 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
              justStates) newStates jlist
     in
     (* filter based on compassion *)
+    Debug.dprintf "mc" "Elim Cycles: Filtering on %d compassion requirements. newStates : %d nodes@," 
+      (List.length clist) (Bdd.size newStates);
+    Debug.dflush ();
+
     let newStates = 
       List.fold_left
         (fun states compassionSpec ->
@@ -274,16 +263,21 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
   in
   let newStates = elimCycles transRel reach in
   (* compute backward fixpoint of newStates *)
+  Debug.dprintf "mc" "Computing backward fixpoint on newStates: %d nodes@," (Bdd.size newStates);
+  Debug.dflush ();
   computeFixPoint
     (fun states ->
      Bdd.dor states (pre mgr transRel states))
     Bdd.is_equal
     newStates
 
-let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist clist =
-  (* restrict transrel to only reachable states *)
+let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist clist propName =
   let feasibleStates = getFeasible mgr initStates reach chioftester origTransRel jlist clist in
+  Debug.dprintf "mc" "Feasible states (liveness) BDD has %d nodes@," (Bdd.size feasibleStates);
+  Debug.dflush ();
   let feasibleBadStates = Bdd.dand (Bdd.dand feasibleStates chioftester) initStates in
+  Debug.dprintf "mc" "Feasible BAD states (liveness) BDD has %d nodes@," (Bdd.size feasibleStates);
+  Debug.dflush ();
   (* we should not have any feasible cycles! *)
   (* eliminate params which are responsible for a feasible cycle *)
   if (Bdd.is_false feasibleBadStates) then
@@ -293,7 +287,7 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
       if (Debug.debugEnabled ()) then
         begin
           let fmt = Debug.getDebugFmt () in
-          Debug.dprintf "mc" "Found a liveness violation:@,"; Debug.dflush ();
+          Debug.dprintf "mc" "Found a liveness violation of property \"%s\":@," propName; Debug.dflush ();
           let prefix, period = findLoop mgr initStates origTransRel feasibleStates jlist clist in
           if (Debug.debugOptEnabled "trace") then
             Trace.printTraceLiveness fmt prefix period
@@ -313,12 +307,17 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
 let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tableau =
   let actInitStates = Bdd.dand initstates paramConstraints in
   assert (Bdd.is_inter_empty actInitStates badstates);
+  Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
+    k (mgr#getNumMinTermsParam actInitStates); 
+  Debug.dflush ();
   let kReachStat = postK k mgr transRel actInitStates in
   let kReach = 
     (match kReachStat with
      | ExecNonConverged s -> s
      | ExecFixpoint s -> s) 
   in
+  Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
+  Debug.dflush ();
   (* get params for safety *)
   let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
   let newParamConstraints = Bdd.dand paramConstraints sparams in
@@ -331,16 +330,21 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
     StringMap.fold
       (fun propname tableau pconstraints ->
        let actInitStates = Bdd.dand pconstraints initstates in
+       Debug.dprintf "mc" ("Synthesizing completions with no liveness violation on property \"%s\"" ^^ 
+         " upto %d steps with %e candidates@,") propname k (mgr#getNumMinTermsParam actInitStates);
+       Debug.dflush ();
        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
-       let transRel = Bdd.dand transRel tableautrans in
+       let ltransRel = Bdd.dand transRel tableautrans in
        let kReachStat = postK k mgr transRel actInitStates in
        let kReach =
          (match kReachStat with
           | ExecNonConverged s -> s
           | ExecFixpoint s -> s) 
        in
+       Debug.dprintf "mc" "Reachable (liveness) BDD has %d nodes@," (Bdd.size kReach);
+       Debug.dflush ();
        let sparams = getParamsForInfeasible mgr actInitStates kReach chioftester 
-                                            transRel jlist clist 
+                                            ltransRel jlist clist propname
        in
        Bdd.dand pconstraints sparams) tableau newParamConstraints
   in
@@ -360,6 +364,7 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
   (* iteratively synthesize for greater and greater k until we hit fixpoint *)
   let rec synthesize k paramConstraints =
+    mgr#minimize ();
     Debug.dprintf "mc" "Synthesizing upto %d steps...@," k; Debug.dflush ();
     let result = 
       getParamsForKSteps k paramConstraints mgr transrel 
@@ -368,7 +373,7 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
     match result with
     | ExecFixpoint params -> params
     | ExecNonConverged params ->
-      synthesize (k + 1) params
+      synthesize (k + !Opts.jumpStep) params
   in
   let solbdd = synthesize 0 (mgr#getConstraintsOnParams ()) in
   if (Debug.debugEnabled ()) then

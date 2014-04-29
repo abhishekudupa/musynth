@@ -79,58 +79,65 @@ let constructFairnessSpecs prog =
 
 let createTablueaxVars prop =
   let rec createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop =
-    match prop with
-    | LLPropTrue
-    | LLPropFalse
-    | LLPropEquals _ -> (ptf2varmap, var2ptfmap,
-                         PropMap.add prop prop chimap)
-    | LLPropNot prop1 ->
-       let p2vmap, v2pmap, chimap = 
-         createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
-       (p2vmap, v2pmap, 
-        PropMap.add prop 
-                    (LLPropNot (PropMap.find prop1 chimap))
-                    chimap)
-    | LLPropAnd (prop1, prop2)
-    | LLPropOr (prop1, prop2) ->
-       let p2vmap, v2pmap, chimap =
-         createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
-       let p2vmap, v2pmap, chimap =
-         createTablueaxVarsRec p2vmap v2pmap chimap prop2 in
-       (p2vmap, v2pmap,
-        PropMap.add prop
-                    (match prop with
-                     | LLPropAnd _ ->
-                        (LLPropAnd (PropMap.find prop1 chimap,
-                                    PropMap.find prop2 chimap))
-                     | LLPropOr _ ->
-                        (LLPropAnd (PropMap.find prop1 chimap,
-                                    PropMap.find prop2 chimap))
-                     | _ -> assert false)
-                    chimap)
-    | LLPropTLX prop1 ->
-       let p2vmap, v2pmap, chimap = 
-         createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
-       let varuid = Utils.getuid () in
+    try
+      let _ = PropMap.find prop ptf2varmap in
+      (ptf2varmap, var2ptfmap, chimap)
+    with
+    | Not_found ->
+      begin
+        match prop with
+        | LLPropTrue
+        | LLPropFalse
+        | LLPropEquals _ -> (ptf2varmap, var2ptfmap,
+                             PropMap.add prop prop chimap)
+        | LLPropNot prop1 ->
+          let p2vmap, v2pmap, chimap = 
+            createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
+          (p2vmap, v2pmap, 
+           PropMap.add prop 
+             (LLPropNot (PropMap.find prop1 chimap))
+             chimap)
+        | LLPropAnd (prop1, prop2)
+        | LLPropOr (prop1, prop2) ->
+          let p2vmap, v2pmap, chimap =
+            createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
+          let p2vmap, v2pmap, chimap =
+            createTablueaxVarsRec p2vmap v2pmap chimap prop2 in
+          (p2vmap, v2pmap,
+           PropMap.add prop
+             (match prop with
+             | LLPropAnd _ ->
+               (LLPropAnd (PropMap.find prop1 chimap,
+                           PropMap.find prop2 chimap))
+             | LLPropOr _ ->
+               (LLPropOr (PropMap.find prop1 chimap,
+                          PropMap.find prop2 chimap))
+             | _ -> assert false)
+             chimap)
+        | LLPropTLX prop1 ->
+          let p2vmap, v2pmap, chimap = 
+            createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
+          let varuid = Utils.getuid () in
+          let varname = "ltltableauvar_" ^ (string_of_int varuid) in
+          let vardesig = LLSimpleDesignator varname in
+          (PropMap.add prop vardesig p2vmap,
+           LLDesigMap.add vardesig prop v2pmap,
+           PropMap.add prop (LLPropEquals (vardesig, Utils.makeTrueDesig ())) chimap)
+        | LLPropTLU (prop1, prop2) ->
+          let p2vmap, v2pmap, chimap =
+            createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
+          let p2vmap, v2pmap, chimap =
+            createTablueaxVarsRec p2vmap v2pmap chimap prop2 in
+          let varuid = Utils.getuid () in
        let varname = "ltltableauvar_" ^ (string_of_int varuid) in
        let vardesig = LLSimpleDesignator varname in
        (PropMap.add prop vardesig p2vmap,
         LLDesigMap.add vardesig prop v2pmap,
         PropMap.add prop (LLPropEquals (vardesig, Utils.makeTrueDesig ())) chimap)
-    | LLPropTLU (prop1, prop2) ->
-       let p2vmap, v2pmap, chimap =
-         createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop1 in
-       let p2vmap, v2pmap, chimap =
-          createTablueaxVarsRec p2vmap v2pmap chimap prop2 in
-       let varuid = Utils.getuid () in
-       let varname = "ltltableauvar_" ^ (string_of_int varuid) in
-       let vardesig = LLSimpleDesignator varname in
-       (PropMap.add prop vardesig p2vmap,
-        LLDesigMap.add vardesig prop v2pmap,
-        PropMap.add prop (LLPropEquals (vardesig, Utils.makeTrueDesig ())) chimap)
+      end
   in
   createTablueaxVarsRec PropMap.empty LLDesigMap.empty PropMap.empty prop
-
+        
 (* util functions to construct transition *)
 let getXFormulaVarPairs p2vmap = 
   PropMap.fold
@@ -243,5 +250,11 @@ let constructTableau ltlprop =
   in
   (* also return the chi of the formula *)
   let chiofform = PropMap.find ltlprop chimap in
+  Debug.dprintf "ltl" "Chimap:@,@,";
+  PropMap.iter 
+    (fun prop chiofprop ->
+      Debug.dprintf "ltl" "%a --> %a@,@," AST.pLLProp prop AST.pLLProp chiofprop)
+    chimap;
+
   Debug.dprintf "ltl" "Chi of tester = %a@," AST.pLLProp chiofform;
   (p2vmap, v2pmap, chimap, chiofform, transrel, jlist)
