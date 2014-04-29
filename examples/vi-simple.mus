@@ -206,12 +206,13 @@ invariant "One Valid Invariant" {
                            (!= Cache[c2].state CV[d2])))))))
 }
 
+/*
 ltlspec "I-V liveness on Get" {
     (forall c in CacheIDType
      (exists d in DataType
       (G (-> (= Cache[c].state CIV1) (F (= Cache[c].state CV[d]))))))
 }
-
+*/
 /*
 ltlspec "V-I liveness" {
     (forall c in CacheIDType

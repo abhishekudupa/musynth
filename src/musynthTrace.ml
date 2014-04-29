@@ -84,9 +84,9 @@ let printTraceDiffLiveness fmt prefix loop =
         fprintf fmt "Step %d (Beginning of loop, in full):@," !count;
         fprintf fmt "----------------------------------------------------------------------@,";
         printState fmt head;
-        fprintf fmt "----------------------------------------------------------------------@,";
-        count := !count + 1;
-        loopStartStep := !count
+        fprintf fmt "----------------------------------------------------------------------@,@,";
+        loopStartStep := !count;
+        count := !count + 1
       end
     | head :: rest ->
       begin
@@ -97,7 +97,7 @@ let printTraceDiffLiveness fmt prefix loop =
           printState fmt (computeDiff prev head);
         | None ->
           printState fmt head);
-        fprintf fmt "----------------------------------------------------------------------@,";
+        fprintf fmt "----------------------------------------------------------------------@,@,";
         count := !count + 1;
         printPrefix (Some head) rest
       end
@@ -110,7 +110,7 @@ let printTraceDiffLiveness fmt prefix loop =
         fprintf fmt "Step %d (Loopback, same as step %d above, in full):@," !count !loopStartStep;
         fprintf fmt "----------------------------------------------------------------------@,";
         printState fmt head;
-        fprintf fmt "----------------------------------------------------------------------@,";
+        fprintf fmt "----------------------------------------------------------------------@,@,";
         count := !count + 1
       end
     | head :: rest ->
@@ -122,7 +122,7 @@ let printTraceDiffLiveness fmt prefix loop =
           printState fmt (computeDiff prev head);
         | None ->
           printState fmt head);
-        fprintf fmt "----------------------------------------------------------------------@,";
+        fprintf fmt "----------------------------------------------------------------------@,@,";
         count := !count + 1;
         printLoop (Some head) rest
       end
@@ -140,14 +140,14 @@ let printTraceFullLiveness fmt prefix loop =
       fprintf fmt "Step %d (Beginning of loop):@," !count;
       fprintf fmt "----------------------------------------------------------------------@,";
       printState fmt head;
-      fprintf fmt "----------------------------------------------------------------------@,";
-      count := !count + 1;
-      loopStartStep := !count
+      fprintf fmt "----------------------------------------------------------------------@,@,";
+      loopStartStep := !count;
+      count := !count + 1
     | head :: rest ->
       fprintf fmt "Step %d:@," !count;
       fprintf fmt "----------------------------------------------------------------------@,";
       printState fmt head;
-      fprintf fmt "----------------------------------------------------------------------@,";
+      fprintf fmt "----------------------------------------------------------------------@,@,";
       count := !count + 1;
       printPrefix rest
   in
@@ -158,13 +158,13 @@ let printTraceFullLiveness fmt prefix loop =
       fprintf fmt "Step %d (Loopback, same as step %d above):@," !count !loopStartStep;
       fprintf fmt "----------------------------------------------------------------------@,";
       printState fmt head;
-      fprintf fmt "----------------------------------------------------------------------@,";
+      fprintf fmt "----------------------------------------------------------------------@,@,";
       count := !count + 1;
     | head :: rest ->
       fprintf fmt "Step %d:@," !count;
       fprintf fmt "----------------------------------------------------------------------@,";
       printState fmt head;
-      fprintf fmt "----------------------------------------------------------------------@,";
+      fprintf fmt "----------------------------------------------------------------------@,@,";
       count := !count + 1;
       printLoop rest
   in

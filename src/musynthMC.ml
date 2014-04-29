@@ -74,38 +74,39 @@ let rec computeFixPoint pTransFormer fpCondition pred =
 let findPathCube mgr initStates transRel errstate = 
   (* construct the set of states reachable in 1, 2, ... k steps *)
   (* stop when we hit the error state *)
-  (* evaluates to a list that DOES NOT contain the error state *)
+  (* evaluates to a list that terminates with the error state reachable *)
   let rec forwardStates reachable frontier =
-    if (not (Bdd.is_inter_empty frontier errstate)) then
-      []
+    if (not (Bdd.is_inter_empty reachable errstate)) then
+      [ reachable ]
     else
       begin
         let newReach = Bdd.dor reachable (post mgr transRel frontier) in
         let newFrontier = Bdd.dand newReach (Bdd.dnot reachable) in
-        (forwardStates newReach newFrontier) @ [ reachable ]
+        if (Bdd.is_false newFrontier) then
+          raise (Failure ("MusynthMC.findPathCube: Reached fixpoint before hitting target!"))
+        else
+          reachable :: (forwardStates newReach newFrontier)
       end
   in
   (* now extract a sequence of pres for the error state in the list *)
-  let rec foldStateList myState stateK =
+  let rec foldStateList stateK myState =
     match stateK with
     | [] -> assert false
     | [ head ] ->
-      [ mgr#cubeOfMinTerm (mgr#pickMinTermOnStates head) ]
+       let minTerm = mgr#pickMinTermOnStates (Bdd.dand myState head) in
+       [ mgr#cubeOfMinTerm minTerm ]
     | head :: rest ->
-       let preMyState = pre mgr transRel myState in
-       let preMyState = Bdd.dand preMyState head in
-       let minTerm = mgr#pickMinTermOnStates preMyState in
+       let traceSoFar = foldStateList rest myState in
+       let firstInTrace = List.hd traceSoFar in
+       let preImage = pre mgr transRel firstInTrace in
+       let preImageRestricted = Bdd.dand preImage head in
+       let minTerm = mgr#pickMinTermOnStates preImageRestricted in
        let cube = mgr#cubeOfMinTerm minTerm in
-       let lst = foldStateList cube rest in
-       lst @ [ cube ]
+       cube :: traceSoFar
   in
   let stateList = forwardStates initStates initStates in
-  let lst = foldStateList errstate stateList in
-  let minTerm = mgr#pickMinTermOnStates errstate in
-  let cube = mgr#cubeOfMinTerm minTerm in
-  lst @ [ cube ]
-  
-
+  foldStateList stateList errstate
+    
 let findPath mgr initStates transRel errstate =
   List.map 
     mgr#getStateVars 
@@ -129,7 +130,7 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
         if Bdd.is_false newS then
           s
         else
-          let s = mgr#cubeOfMinTerm (Bdd.pick_minterm s) in
+          let s = mgr#cubeOfMinTerm (Bdd.pick_minterm newS) in
           refineS s
       in
       
@@ -137,9 +138,11 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
       let final = computeFixPoint (fun s -> Bdd.dor s (post mgr newTrans s)) Bdd.is_equal s in
       let pfinal = Bdd.vectorcompose (mgr#getSubstTableU2P ()) final in
       let newTrans = Bdd.dand (Bdd.dand final pfinal) newTrans in
-      let prefix = findPathCube mgr initStates transRel finalStates in
-      let lastInPrefix = List.nth prefix ((List.length prefix) - 1) in
-      let period = [ mgr#cubeOfMinTerm (Bdd.pick_minterm (post mgr newTrans lastInPrefix)) ] in
+      let prefix = findPathCube mgr initStates transRel final in
+      let lastInPrefix = List.hd (List.rev prefix) in
+      let postOfLastInPrefix = post mgr newTrans lastInPrefix in
+      let period = [ mgr#cubeOfMinTerm (Bdd.pick_minterm postOfLastInPrefix) ] in
+      Debug.dprintf "mc" "Satisfying Justice Requirements..."; Debug.dflush ();
       let period = 
         List.fold_left
           (fun period justiceSpec ->
@@ -148,23 +151,51 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
              period
            else
              let lastInPeriod = List.nth period ((List.length period) - 1) in
-             period @ (findPathCube mgr lastInPeriod newTrans (Bdd.dand final justiceSpec)))
+             let newPath = findPathCube mgr lastInPeriod newTrans (Bdd.dand final justiceSpec) in
+             period @ (List.tl newPath))
           period jlist
       in
+      Debug.dprintf "mc" "Done!@,Satisfying Compassion Requirements..."; Debug.dflush ();
+      Debug.dprintf "mc" "Path so far:@,";
+      Trace.printTraceLiveness (Debug.getDebugFmt ()) (List.map mgr#getStateVars prefix)
+                               (List.map mgr#getStateVars period);
+      Debug.dflush ();
       let period = 
         List.fold_left
           (fun period compassionSpec ->
+           Debug.dprintf "mc" "Trying to satisfy compassion spec@,"; Debug.dflush ();
            let p, q = compassionSpec in
            let satCompassionSpec prop = (not (Bdd.is_inter_empty prop q)) in
+           if List.exists satCompassionSpec period then
+             Debug.dprintf "mc" "Found!@,"
+           else
+             Debug.dprintf "mc" "Not Found!@,";
+           Debug.dflush ();
            if ((not (List.exists satCompassionSpec period)) && 
                  (not (Bdd.is_inter_empty final p))) then
-             let lastInPeriod = List.nth period ((List.length period) - 1) in
-             period @ (findPathCube mgr lastInPeriod newTrans (Bdd.dand final q))
+             begin
+               let lastInPeriod = List.nth period ((List.length period) - 1) in
+               let fmt = Debug.getDebugFmt () in
+               Debug.dprintf "mc" "Finding path@,Start:@,";
+               let state = mgr#getStateVars lastInPeriod in
+               Trace.printState fmt state;
+               Debug.dprintf "mc" "@,End:@,";
+               let f = mgr#getStateVars q in
+               Trace.printState fmt f;
+               assert (not (Bdd.is_false (Bdd.dand final q)));
+               Bdd.print (mgr#getBitPrinter ()) fmt q;
+               Debug.dflush ();
+               let newPath = findPathCube mgr lastInPeriod newTrans (Bdd.dand final q) in
+               period @ (List.tl newPath)
+             end
            else
              period) period clist
       in
+      Debug.dprintf "mc" "Done!@,Closing path..."; Debug.dflush ();
       let lastInPeriod = List.nth period ((List.length period) - 1) in
-      let period = period @ (findPathCube mgr lastInPeriod newTrans lastInPrefix) in
+      let newPath = findPathCube mgr lastInPeriod newTrans lastInPrefix in
+      let period = period @ (List.tl newPath) in
+      Debug.dprintf "mc" "Done!@,"; Debug.dflush ();
       (prefix, period)
     end
 
@@ -236,29 +267,26 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
          in
          Bdd.dor cStates1 cStates2) newStates clist
     in
-    (* compute backward fixpoint of newStates *)
-    let newStates = 
-      computeFixPoint
-        (fun states ->
-         Bdd.dor states (pre mgr transRel states))
-        Bdd.is_equal
-        newStates
-    in
     if (Bdd.is_equal newStates states) then
       newStates
     else
       elimCycles transRel newStates
   in
-
-  let feasibleStates = elimCycles transRel reach in
-  Bdd.dand feasibleStates chioftester
+  let newStates = elimCycles transRel reach in
+  (* compute backward fixpoint of newStates *)
+  computeFixPoint
+    (fun states ->
+     Bdd.dor states (pre mgr transRel states))
+    Bdd.is_equal
+    newStates
 
 let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist clist =
   (* restrict transrel to only reachable states *)
   let feasibleStates = getFeasible mgr initStates reach chioftester origTransRel jlist clist in
+  let feasibleBadStates = Bdd.dand (Bdd.dand feasibleStates chioftester) initStates in
   (* we should not have any feasible cycles! *)
   (* eliminate params which are responsible for a feasible cycle *)
-  if (Bdd.is_false feasibleStates) then
+  if (Bdd.is_false feasibleBadStates) then
     mgr#makeTrue ()
   else
     begin
@@ -274,7 +302,7 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
         end
       else
         ();
-      let badParams = Bdd.exist (mgr#getAllButParamCube ()) feasibleStates in
+      let badParams = Bdd.exist (mgr#getAllButParamCube ()) feasibleBadStates in
       Bdd.dnot badParams
     end
       
@@ -382,10 +410,18 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
         match acc with
         | MCSuccess _ ->
            let ltransrel = Bdd.dand transrel tableautrans in
-           let feasible = getFeasible mgr initBDD reachStates chioftester ltransrel jlist clist in
-           if (not (Bdd.is_false feasible)) then
+           let lreachStates = computeFixPoint
+                                (fun states -> Bdd.dor states (post mgr ltransrel states))
+                                Bdd.is_equal
+                                initBDD
+           in
+           let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
+           if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
              begin
+               let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
                Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
+               Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
+                             Trace.printState (mgr#getStateVars badReachableStates);
                Debug.dflush ();
                let prefix, loop = findLoop mgr initBDD ltransrel feasible jlist clist in
                MCFailureLiveness (propname, prefix, loop)

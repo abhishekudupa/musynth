@@ -63,15 +63,34 @@ let reorderMethOptionToMethod opt =
 
 let rec processDebugOptions optlist = 
   match optlist with
-  | "prog" :: rest -> Opts.debugOptions := StringSet.add "prog" !Opts.debugOptions; processDebugOptions rest
-  | "lprog" :: rest -> Opts.debugOptions := StringSet.add "lprog" !Opts.debugOptions; processDebugOptions rest
-  | "trace" :: rest -> Opts.debugOptions := StringSet.add "trace" !Opts.debugOptions; processDebugOptions rest
-  | "trans" :: rest -> Opts.debugOptions := StringSet.add "trans" !Opts.debugOptions; processDebugOptions rest
-  | "all" :: rest -> Opts.debugOptions := StringSet.add "all" !Opts.debugOptions; processDebugOptions rest
-  | "bdd" :: rest -> Opts.debugOptions := StringSet.add "bdd" !Opts.debugOptions; processDebugOptions rest
-  | "mc" :: rest -> Opts.debugOptions := StringSet.add "mc" !Opts.debugOptions; processDebugOptions rest
-  | "none" :: rest -> Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
-                      Opts.debugDisabled := true; processDebugOptions rest
+  | "prog" :: rest -> 
+     Opts.debugOptions := StringSet.add "prog" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "lprog" :: rest -> 
+     Opts.debugOptions := StringSet.add "lprog" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "trace" :: rest -> 
+     Opts.debugOptions := StringSet.add "trace" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "trans" :: rest -> 
+     Opts.debugOptions := StringSet.add "trans" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "all" :: rest -> 
+     Opts.debugOptions := StringSet.add "all" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "bdd" :: rest -> 
+     Opts.debugOptions := StringSet.add "bdd" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "mc" :: rest -> 
+     Opts.debugOptions := StringSet.add "mc" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "ltl" :: rest -> 
+     Opts.debugOptions := StringSet.add "ltl" !Opts.debugOptions; 
+     processDebugOptions rest
+  | "none" :: rest -> 
+     Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
+     Opts.debugDisabled := true; 
+     processDebugOptions rest
   | _ -> optlist
 
 let processOptions arglist =

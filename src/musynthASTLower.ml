@@ -228,7 +228,8 @@ let instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype l
   let loweredftype = 
     match ftype with
     | FairnessTypeNone -> LLFairnessNone
-    | _ -> LLFairnessJustice
+    | FairnessTypeJustice _ -> LLFairnessJustice
+    | FairnessTypeCompassion _ -> LLFairnessCompassion
   in
   let llftype = 
     match chanprops with

@@ -5,6 +5,8 @@ open Format
 
 module Utils = MusynthUtils
 module Opts = MusynthOptions
+module Debug = MusynthDebug
+module AST = MusynthAST
 
 let constructEnabledProp autlist automaton = 
   let _, outmsgs = Utils.getMsgsForAut automaton in
@@ -20,10 +22,14 @@ let constructFairnessSpecsAut autlist aut =
   let ftype = Utils.getFairnessForAutomaton aut in
   match ftype with
   | LLFairnessJustice ->
+     Debug.dprintf "ltl" "Aut %a: Justice@," AST.pLLIdent autname;
      Justice (LLPropOr (LLPropNot enprop, chooseprop))
   | LLFairnessCompassion ->
-     Compassion (enprop, LLPropAnd (enprop, chooseprop))
-  | LLFairnessNone -> Justice (LLPropTrue)
+     Debug.dprintf "ltl" "Aut %a: Compassion@," AST.pLLIdent autname;
+     Compassion (enprop, chooseprop)
+  | LLFairnessNone -> 
+     Debug.dprintf "ltl" "Aut %a: None@," AST.pLLIdent autname;
+     Justice (LLPropTrue)
 
 let constructFiniteLossFairness chan =
   let inmsgs, _ = Utils.getMsgsForAut chan in
@@ -237,4 +243,5 @@ let constructTableau ltlprop =
   in
   (* also return the chi of the formula *)
   let chiofform = PropMap.find ltlprop chimap in
+  Debug.dprintf "ltl" "Chi of tester = %a@," AST.pLLProp chiofform;
   (p2vmap, v2pmap, chimap, chiofform, transrel, jlist)

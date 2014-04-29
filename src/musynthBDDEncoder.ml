@@ -214,6 +214,16 @@ let encodeProg mgr prog =
           let myjlist = universaljlist @ justicelist @ tjlist in
           let myclist = universalclist @ compassionlist in
           Debug.dprintf "trans" "Tableau:@,%a@,@," AST.pLLProp t;
+          Debug.dprintf "ltl" "Justices for prop %a:@,@,"
+                        AST.pLLProp prop;
+          List.iter (fun j -> Debug.dprintf "ltl" "%a@," AST.pLLProp j) myjlist;
+          Debug.dprintf "ltl" "Compassions for prop %a:@,@,"
+                        AST.pLLProp prop;
+          List.iter 
+            (fun (p, q) -> 
+             Debug.dprintf "ltl" "%a -->@,%a@," AST.pLLProp p AST.pLLProp q) 
+            myclist;
+          Debug.dflush ();
           StringMap.add name (p2vmap, v2pmap, chimap, chioftester, t, myjlist, myclist) m
        | _ -> m) StringMap.empty specs in
 
