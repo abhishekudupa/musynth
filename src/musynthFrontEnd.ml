@@ -60,6 +60,7 @@ let musynthProcess filename =
           printf "\n\nNo Solutions Found!\n\n"
         else 
           begin
+            printf "\n\n%e solutions found.\n" (mgr#getNumMinTermsParam solbdd);
             printf "\n\nSolutions:\n"; flush stdout;
             Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd
           end

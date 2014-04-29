@@ -14,7 +14,7 @@ OCAMLOPTFLAGS=
 
 INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
 OCAMLCFLAGS+=$(INCDIRS)
-OCAMLOPTFLAGS+=$(INCDIRS)
+OCAMLOPTFLAGS+=$(INCDIRS) -inline 16
 
 BINDIR=$(PROJECTROOT)/bin
 .PHONY:				clean opt all default byte

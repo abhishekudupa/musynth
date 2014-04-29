@@ -272,7 +272,7 @@ let getCSPredsForMsg msg aut =
         else
           acc
      | TParametrizedDest (start, m, (paramname, dset)) ->
-        if m = msg then
+        if (m = msg) then
           LLPropOr (LLPropAnd (LLPropEquals (statename, start),
                                (LLPropNot (LLPropEquals (paramname, LLSimpleDesignator "defer")))),
                     acc)

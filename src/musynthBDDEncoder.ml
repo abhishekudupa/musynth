@@ -72,7 +72,6 @@ let getNextStatePropOnAllForMsg autlist msg =
      in
      LLPropAnd (myprop, autprop)) LLPropTrue relaut
 
-
 (* builds the transition relation. Also includes part of the *)
 (* transition relation for lastchosen that is determined by  *)
 (* this automaton                                            *)
