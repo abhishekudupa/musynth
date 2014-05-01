@@ -39,6 +39,7 @@ class bddManager =
     val mutable cachedParamVarPrinter = None
     val mutable cachedCubePrinter = None
     val mutable cachedAllVarPrinter = None
+    val mutable cachedVarCubes = LLDesigMap.empty
 
     initializer
       if !Opts.reorderEnabled then
@@ -79,7 +80,8 @@ class bddManager =
       cachedCubePrinter <- None;
       cachedAllVarPrinter <- None;
       cachedConstraintsOnAllVars <- None;
-      cachedConstraintsOnParams <- None
+      cachedConstraintsOnParams <- None;
+      cachedVarCubes <- LLDesigMap.empty
 
     method makeTrue () = 
       Bdd.dtrue manager
@@ -343,6 +345,15 @@ class bddManager =
         (fun acc bitname ->
          let bdd = StringMap.find bitname bitNameToBddMap in
          Bdd.dand bdd acc) (self#makeTrue ()) bitNameList
+
+    method getCubeForVar varname =
+      try 
+        LLDesigMap.find varname cachedVarCubes
+      with
+      | Not_found ->
+         let r = self#getCubeForOneVar varname in
+         cachedVarCubes <- LLDesigMap.add varname r cachedVarCubes;
+         r
 
     method getCubeForUnprimedVars () =
       match cachedUnprimedVarCube with

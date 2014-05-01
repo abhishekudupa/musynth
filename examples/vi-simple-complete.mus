@@ -23,7 +23,7 @@ messages {
     Inv2Cache'[c] foreach c in CacheIDType
 }
 
-Automaton with compassion Environment[c] foreach c in CacheIDType
+Automaton Environment[c] foreach c in CacheIDType
 {
     states : { InitState };
     
@@ -40,7 +40,7 @@ Automaton with compassion Environment[c] foreach c in CacheIDType
     };
 }
 
-Automaton with compassion Oracle
+Automaton Oracle
 {
     states : { Data[d] foreach d in DataType };
 
@@ -54,7 +54,7 @@ Automaton with compassion Oracle
     };
 }
 
-ChannelAutomaton with compassion ReqChannel[c] foreach c in CacheIDType
+ChannelAutomaton ReqChannel[c] foreach c in CacheIDType
 {
     unordered, lossless, nonduplicating, blocking;
     capacity = 1;
@@ -67,7 +67,7 @@ ChannelAutomaton with compassion ReqChannel[c] foreach c in CacheIDType
     };
 }
 
-ChannelAutomaton with compassion RspChannel[c] foreach c in CacheIDType
+ChannelAutomaton RspChannel[c] foreach c in CacheIDType
 {
     unordered, lossless, nonduplicating, blocking;
     capacity = 1;
@@ -79,7 +79,7 @@ ChannelAutomaton with compassion RspChannel[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton with compassion Cache[c] foreach c in CacheIDType
+PartialAutomaton Cache[c] foreach c in CacheIDType
 {
     states : { CI : complete, 
 
@@ -129,7 +129,7 @@ PartialAutomaton with compassion Cache[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton with compassion Directory
+PartialAutomaton Directory
 {
     states : { DI[d] foreach d in DataType : complete,
                DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,

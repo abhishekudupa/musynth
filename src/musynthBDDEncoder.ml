@@ -6,9 +6,12 @@ open Format
 
 module AST = MusynthAST
 module Utils = MusynthUtils
-module Safety = MusynthSafety
 module Debug = MusynthDebug
 module LTL = MusynthLtl
+
+let constructDLFProps msglist automata =
+  LLPropNot (LLPropEquals (Utils.makeLCMesgDesig (), 
+                           Utils.makeDeadlockDesig ()))
 
 let encodeStateVariables mgr automaton =
   let name, states = 
@@ -243,7 +246,7 @@ let encodeProg mgr prog =
   in
         
   let badstates = LLPropNot invariants in
-  let dlfProp = Safety.constructDLFProps msgdecls automata in
+  let dlfProp = constructDLFProps msgdecls automata in
   let dlfBDD = mgr#prop2BDD dlfProp in
   let transBDDs = 
     LLDesigMap.fold 
