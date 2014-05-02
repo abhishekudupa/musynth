@@ -555,6 +555,7 @@ class bddManager :
     val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
     val mutable internalStateVars : MusynthTypes.LLDesigSet.t
     val mutable manager : Cudd.Man.d Cudd.Man.t
+    val mutable numInternalStateBits : int
     val mutable numParamBits : int
     val mutable numStateBits : int
     val mutable numTotalBits : MusynthTypes.IntSet.elt
@@ -603,10 +604,14 @@ class bddManager :
       int ->
       Cudd.Man.d Cudd.Bdd.t ->
       MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t list
+    method getNumInternalStateBits : unit -> int
     method getNumMinTerms : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumMinTermsParam : Cudd.Man.d Cudd.Bdd.t -> float
     method getNumMinTermsState : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumMinTermsStateNI : Cudd.Man.d Cudd.Bdd.t -> float
+    method getNumParamBits : unit -> int
     method getNumParamVars : unit -> int
+    method getNumStateBits : unit -> int
     method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
     method getParamVarPrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit

@@ -237,6 +237,10 @@ let constructTableau ltlprop =
       (fun acc prop ->
        LLPropAnd (prop, acc)) LLPropTrue (xprops @ uprops)
   in
+
+  Debug.dprintf "ltl" "Transition relation for prop %a:@,@," AST.pLLProp ltlprop;
+  Debug.dprintf "ltl" "%a@,@," AST.pLLProp transrel;
+
   (* construct the fairness props for the tableau *)
   let jlist = 
     List.map

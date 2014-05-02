@@ -10,6 +10,7 @@ module Opts = MusynthOptions
 module Trace = MusynthTrace
 module MGR = MusynthBDDManager
 module MCU = MusynthMCUtils
+module Utils = MusynthUtils
 
 let getSafetyParams mgr initStates reachStates transRel badStates =
   let reachableBadStates = Bdd.dand reachStates badStates in
@@ -99,6 +100,12 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
   Debug.dprintf "mc" "Feasible states (liveness) BDD has %d nodes@," 
                 (Bdd.size feasibleStates);
   Debug.dflush ();
+  
+  if (not (Bdd.is_false (Bdd.dand feasibleStates chioftester))) then
+    Debug.dprintf "mc" "Feasible and chi of tester is not empty"
+  else
+    Debug.dprintf "mc" "Feasible and chi of tester is empty";
+  
   let feasibleBadStates = Bdd.dand (Bdd.dand feasibleStates chioftester) initStates in
   Debug.dprintf "mc" "Feasible BAD states (liveness) BDD has %d nodes@," 
                 (Bdd.size feasibleStates);
@@ -214,8 +221,10 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
 let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
   let transrel = conjoinTransitionRels mgr transBDDs in
   let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfbdd) in
+  let reachIter = ref 0 in
 
   let rec computeReachable states frontier =
+    reachIter := !reachIter + 1;
     let newStates = Bdd.dor states (MCU.post mgr transrel states) in
     if (Bdd.is_leq newStates states) then
       MCSuccess newStates
@@ -231,36 +240,37 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
         let newFrontier = Bdd.dand newStates (Bdd.dnot states) in
         computeReachable newStates newFrontier
   in
-  Debug.dprintf "mc" "No safety violation found. Proceeding to liveness checks.@,@,";
-  Debug.dflush ();
 
   let reachStat = computeReachable initBDD initBDD in
   match reachStat with
   | MCFailureSafety trace -> reachStat
   | MCSuccess reachStates ->
-     StringMap.fold
-       (fun propname tableau acc ->
+    Debug.dprintf "mc" ("No safety violation found. Fixpoint in %d iterations. " ^^
+                           "Proceeding to liveness checks.@,@,") !reachIter;
+    StringMap.fold
+      (fun propname tableau acc ->
         let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
         match acc with
         | MCSuccess _ ->
-           let ltransrel = Bdd.dand transrel tableautrans in
-           let lreachStates = MCU.computeFixPoint (MCU.preOrTransformer mgr ltransrel)
-                                                  MCU.inclusionFixPointTester initBDD
-           in
-           let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
-           if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
-             begin
-               let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
-               Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
-               Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
-                             Trace.printState (mgr#getStateVars badReachableStates);
-               Debug.dflush ();
-               let prefix, loop = MCU.findLoop mgr initBDD ltransrel feasible jlist clist in
-               MCFailureLiveness (propname, prefix, loop)
-             end
-           else
-             MCSuccess feasible
+          let ltransrel = Bdd.dand transrel tableautrans in
+          let lreachStates = 
+            MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
+              MCU.inclusionFixPointTester initBDD
+          in
+          let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
+          if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
+            begin
+              let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
+              Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
+              Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
+                Trace.printState (mgr#getStateVars badReachableStates);
+              Debug.dflush ();
+              let prefix, loop = MCU.findLoop mgr initBDD ltransrel feasible jlist clist in
+              MCFailureLiveness (propname, prefix, loop)
+            end
+          else
+            MCSuccess feasible
         | MCFailureLiveness _ -> 
-           acc
+          acc
         | _ -> assert false) ltltableaulist reachStat
   | _ -> assert false

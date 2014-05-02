@@ -13,6 +13,7 @@ class bddManager =
     val mutable manager = Man.make_d ()
     val mutable numTotalBits = 0
     val mutable numStateBits = 0
+    val mutable numInternalStateBits = 0
     val mutable numParamBits = 0
     val mutable bitNameToBddMap = StringMap.empty
     val mutable indexToBitNameMap = IntMap.empty
@@ -55,6 +56,7 @@ class bddManager =
         Man.disable_autodyn manager;
       numTotalBits <- 0;
       numStateBits <- 0;
+      numInternalStateBits <- 0;
       numParamBits <- 0;
       bitNameToBddMap <- StringMap.empty;
       indexToBitNameMap <- IntMap.empty;
@@ -327,9 +329,10 @@ class bddManager =
       pStateBitSet <- IntSet.union pStateBitSet (self#registerBitsForVar low size)
 
     method registerInternalStateVariable  varName varDomain =
-      let r = self#registerStateVariable varName varDomain in
-      internalStateVars <- LLDesigSet.add varName internalStateVars;
-      r
+      self#registerStateVariable varName varDomain;
+      let _, _, size, _, _, _, _, _ = LLDesigMap.find varName varMap in
+      numInternalStateBits <- numInternalStateBits + size;
+      internalStateVars <- LLDesigSet.add varName internalStateVars
 
     method registerParamVariable varName varDomain = 
       self#registerVar varName varDomain;
@@ -468,14 +471,30 @@ class bddManager =
     method getNumTotalBits () =
       numTotalBits
 
+    method getNumStateBits () =
+      numStateBits
+
+    method getNumInternalStateBits () = 
+      numInternalStateBits
+
+    method getNumParamBits () =
+      numParamBits
+
     method getNumMinTerms bdd =
       Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
 
     method getNumMinTermsState bdd =
       Bdd.nbminterms numStateBits (Bdd.exist 
                                      (Bdd.dand (self#getCubeForPrimedVars ())
-                                               (self#getCubeForParamVars ()))
+                                        (self#getCubeForParamVars ()))
                                      bdd)
+
+    method getNumMinTermsStateNI bdd =
+      Bdd.nbminterms (numStateBits - numInternalStateBits) 
+        (Bdd.exist 
+           (Bdd.dand (self#getCubeForPrimedVars ())
+              (self#getCubeForParamVars ()))
+           bdd)
 
     method getNumMinTermsParam bdd =
       Bdd.nbminterms numParamBits (Bdd.exist

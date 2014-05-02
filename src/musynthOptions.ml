@@ -1,7 +1,7 @@
 open MusynthTypes
 
 (* options for musynth *)
-let debugDisabled = ref false
+let debugDisabled = ref true
 
 let debugOptions = ref StringSet.empty
 
