@@ -79,7 +79,7 @@ ChannelAutomaton with compassion RspChannel[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton with compassion Cache[c] foreach c in CacheIDType
+Automaton with compassion Cache[c] foreach c in CacheIDType
 {
     states : { CI : complete, 
 
@@ -129,7 +129,7 @@ PartialAutomaton with compassion Cache[c] foreach c in CacheIDType
     };
 }
 
-PartialAutomaton with compassion Directory
+Automaton with compassion Directory
 {
     states : { DI[d] foreach d in DataType : complete,
                DIV1[c][d] foreach c in CacheIDType foreach d in DataType : complete,
