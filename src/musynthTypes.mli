@@ -59,7 +59,6 @@ module StringSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
-    val find : elt -> t -> elt
   end
 type identifierT = string * sourcelocation option
 module IdentMap :
@@ -120,7 +119,6 @@ module IdentSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
-    val find : elt -> t -> elt
   end
 type musSymTypeT =
     SymTypeNamed of identifierT * sourcelocation option
@@ -280,7 +278,6 @@ module LLDesigSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
-    val find : elt -> t -> elt
   end
 module LLDesigMap :
   sig
@@ -430,7 +427,6 @@ module IntSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
-    val find : elt -> t -> elt
   end
 type llIdentT = llDesignatorT
 type llTypeT = LLDesigSet.t

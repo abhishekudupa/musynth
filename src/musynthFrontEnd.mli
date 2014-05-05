@@ -392,6 +392,14 @@ module Lower :
           MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
           MusynthTypes.musPropT option ->
           MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+        val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
         val getMsgsForAut :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -404,6 +412,12 @@ module Lower :
         val getAutomatonByName :
           MusynthTypes.llAutomatonT list ->
           MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+        val getFairnessForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+        val getLFairnessForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+        val getDFairnessForAutomaton :
+          MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
         val getSender :
           MusynthTypes.llIdentT ->
           MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
@@ -433,8 +447,6 @@ module Lower :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
         val makeDisjunction :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
-        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
       end
     module AST :
       sig
@@ -1778,6 +1790,14 @@ module Enc :
           MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
           MusynthTypes.musPropT option ->
           MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+        val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
         val getMsgsForAut :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -1825,13 +1845,6 @@ module Enc :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
         val makeDisjunction :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
-        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
       end
     module Debug :
       sig
@@ -2173,7 +2186,9 @@ module Enc :
           MusynthTypes.PropMap.key * MusynthTypes.llPropT *
           MusynthTypes.llPropT list
       end
-    val constructDLFProps : 'a -> 'b -> MusynthTypes.llPropT
+    val constructDLFProps :
+      MusynthTypes.llIdentT list ->
+      MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
     val encodeStateVariables :
       < registerStateVariable : MusynthTypes.llDesignatorT ->
                                 MusynthTypes.llIdentT list -> 'a;
@@ -4886,6 +4901,14 @@ module Utils :
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+    val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
     val getMsgsForAut :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -4930,13 +4953,6 @@ module Utils :
     val makeFormatterOfName : string -> out_channel * Format.formatter
     val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
-    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
   end
 module Mgr :
   sig
