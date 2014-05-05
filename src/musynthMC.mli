@@ -900,7 +900,7 @@ module MGR :
         val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
         val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
         val mutable cachedVarCubes :
-          Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t
+          Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigSetMap.t
         val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
         val mutable internalStateVars : MusynthTypes.LLDesigSet.t
         val mutable manager : Cudd.Man.d Cudd.Man.t
@@ -943,7 +943,9 @@ module MGR :
         method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForVar :
-          MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+          MusynthTypes.LLDesigSet.elt -> Cudd.Man.d Cudd.Bdd.t
+        method getCubeForVars :
+          MusynthTypes.LLDesigSet.elt list -> Cudd.Man.d Cudd.Bdd.t
         method getCubePrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getNParamVars :
@@ -1803,7 +1805,7 @@ module MCU :
               Cudd.Man.d Cudd.Bdd.t array option
             val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
             val mutable cachedVarCubes :
-              Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t
+              Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigSetMap.t
             val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
             val mutable internalStateVars : MusynthTypes.LLDesigSet.t
             val mutable manager : Cudd.Man.d Cudd.Man.t
@@ -1847,7 +1849,9 @@ module MCU :
             method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
             method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
             method getCubeForVar :
-              MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+              MusynthTypes.LLDesigSet.elt -> Cudd.Man.d Cudd.Bdd.t
+            method getCubeForVars :
+              MusynthTypes.LLDesigSet.elt list -> Cudd.Man.d Cudd.Bdd.t
             method getCubePrinter :
               unit -> Format.formatter -> Cudd.Man.tbool array -> unit
             method getNParamVars :
@@ -2336,22 +2340,16 @@ val check :
   < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
     getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
     getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-    getCubeForVar : MusynthTypes.llDesignatorT -> 'a Cudd.Bdd.t;
-    getNumInternalStateBits : unit -> int;
-    getNumMinTermsStateNI : 'a Cudd.Bdd.t -> float;
-    getNumStateBits : unit -> int;
     getStateVars : 'a Cudd.Bdd.t ->
                    MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
     getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
     getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
-    lookupVar : MusynthTypes.llDesignatorT ->
-                ('b * 'c * int * 'd * 'e * 'f * 'g * 'h) option;
     makeTrue : unit -> 'a Cudd.Bdd.t;
     pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
   'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
   'a Cudd.Bdd.t ->
   'a Cudd.Bdd.t ->
   'a Cudd.Bdd.t ->
-  ('i * 'j * 'k * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
+  ('b * 'c * 'd * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
    ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list)
   MusynthTypes.StringMap.t -> 'a Cudd.Bdd.t MusynthTypes.modelCheckingStatusT

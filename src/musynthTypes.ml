@@ -270,6 +270,13 @@ module LLDesigLLDesigMap = Map.Make
                                let compare = Pervasives.compare
                              end)
 
+module LLDesigSetMap = 
+  Map.Make
+    (struct 
+      type t = LLDesigSet.t
+      let compare = LLDesigSet.compare
+     end)
+
 module IntMap = Map.Make
                   (struct 
                     type t = int

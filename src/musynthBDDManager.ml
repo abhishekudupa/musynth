@@ -40,7 +40,7 @@ class bddManager =
     val mutable cachedParamVarPrinter = None
     val mutable cachedCubePrinter = None
     val mutable cachedAllVarPrinter = None
-    val mutable cachedVarCubes = LLDesigMap.empty
+    val mutable cachedVarCubes = LLDesigSetMap.empty
 
     initializer
       if !Opts.reorderEnabled then
@@ -83,7 +83,7 @@ class bddManager =
       cachedAllVarPrinter <- None;
       cachedConstraintsOnAllVars <- None;
       cachedConstraintsOnParams <- None;
-      cachedVarCubes <- LLDesigMap.empty
+      cachedVarCubes <- LLDesigSetMap.empty
 
     method makeTrue () = 
       Bdd.dtrue manager
@@ -328,7 +328,7 @@ class bddManager =
       let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameP varMap in
       pStateBitSet <- IntSet.union pStateBitSet (self#registerBitsForVar low size)
 
-    method registerInternalStateVariable  varName varDomain =
+    method registerInternalStateVariable varName varDomain =
       self#registerStateVariable varName varDomain;
       let _, _, size, _, _, _, _, _ = LLDesigMap.find varName varMap in
       numInternalStateBits <- numInternalStateBits + size;
@@ -349,14 +349,26 @@ class bddManager =
          let bdd = StringMap.find bitname bitNameToBddMap in
          Bdd.dand bdd acc) (self#makeTrue ()) bitNameList
 
-    method getCubeForVar varname =
+    method getCubeForVars varNameList =
+      let varNameSet = 
+        List.fold_left 
+          (fun s v -> LLDesigSet.add v s) 
+          LLDesigSet.empty varNameList 
+      in
       try 
-        LLDesigMap.find varname cachedVarCubes
+        LLDesigSetMap.find varNameSet cachedVarCubes
       with
       | Not_found ->
-         let r = self#getCubeForOneVar varname in
-         cachedVarCubes <- LLDesigMap.add varname r cachedVarCubes;
-         r
+        let r = 
+          LLDesigSet.fold
+            (fun v cube ->
+              Bdd.dand cube (self#getCubeForOneVar v)) varNameSet (self#makeTrue ())
+        in
+        cachedVarCubes <- LLDesigSetMap.add varNameSet r cachedVarCubes;
+        r
+          
+    method getCubeForVar varname =
+      self#getCubeForVars [ varname ]
 
     method getCubeForUnprimedVars () =
       match cachedUnprimedVarCube with

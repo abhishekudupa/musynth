@@ -551,7 +551,7 @@ class bddManager :
     val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
     val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
     val mutable cachedVarCubes :
-      Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigMap.t
+      Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigSetMap.t
     val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
     val mutable internalStateVars : MusynthTypes.LLDesigSet.t
     val mutable manager : Cudd.Man.d Cudd.Man.t
@@ -593,7 +593,9 @@ class bddManager :
     method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
     method getCubeForVar :
-      MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
+      MusynthTypes.LLDesigSet.elt -> Cudd.Man.d Cudd.Bdd.t
+    method getCubeForVars :
+      MusynthTypes.LLDesigSet.elt list -> Cudd.Man.d Cudd.Bdd.t
     method getCubePrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit
     method getNParamVars :
