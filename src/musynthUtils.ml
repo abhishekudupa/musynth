@@ -197,6 +197,33 @@ let getMapsForProp paramlist qMap propOpt =
      List.map identConstPairList2Map validcp
 
 
+(* Util functions to standardized fixed identifiers *)
+let makeTrueDesig () =
+  LLSimpleDesignator "true"
+
+let makeFalseDesig () = 
+  LLSimpleDesignator "false"
+
+let makeLCMesgDesig () =
+  LLSimpleDesignator "musynth_last_chosen_mesg"
+
+let makeLCProcDesig () =
+  LLSimpleDesignator "musynth_last_chosen_proc"
+
+let makeLCMesgDesigPrime () = 
+  LLSimpleDesignator "musynth_last_chosen_mesg'"
+
+let makeLCProcDesigPrime () =
+  LLSimpleDesignator "musynth_last_chosen_proc'"
+
+let makeDeadlockDesig () =
+  LLSimpleDesignator "deadlock"
+
+(* The defer identifier is prefixed with @ to ensure that it *)
+(* is always the first thing in the set *)
+let makeDeferDesig () =
+  LLSimpleDesignator "@@defer@@"
+
 (* utils for dealing with LL automata *)              
 let getMsgsForAut aut =
   match aut with
@@ -274,7 +301,7 @@ let getCSPredsForMsg msg aut =
      | TParametrizedDest (start, m, (paramname, dset)) ->
         if (m = msg) then
           LLPropOr (LLPropAnd (LLPropEquals (statename, start),
-                               (LLPropNot (LLPropEquals (paramname, LLSimpleDesignator "defer")))),
+                               (LLPropNot (LLPropEquals (paramname, (makeDeferDesig ()))))),
                     acc)
         else
           acc
@@ -385,23 +412,3 @@ let makeDisjunction propList =
        (fun acc prop ->
         LLPropOr (acc, prop)) seed rest
      
-let makeTrueDesig () =
-  LLSimpleDesignator "true"
-
-let makeFalseDesig () = 
-  LLSimpleDesignator "false"
-
-let makeLCMesgDesig () =
-  LLSimpleDesignator "musynth_last_chosen_mesg"
-
-let makeLCProcDesig () =
-  LLSimpleDesignator "musynth_last_chosen_proc"
-
-let makeLCMesgDesigPrime () = 
-  LLSimpleDesignator "musynth_last_chosen_mesg'"
-
-let makeLCProcDesigPrime () =
-  LLSimpleDesignator "musynth_last_chosen_proc'"
-
-let makeDeadlockDesig () =
-  LLSimpleDesignator "deadlock"

@@ -9,9 +9,14 @@ module Utils = MusynthUtils
 module Debug = MusynthDebug
 module LTL = MusynthLtl
 
+(* deadlock freedom prop. constructed in terms of available transitions *)
+(* This COULD be constructed in terms of the LCMesg, but this way makes *)
+(* analysis of counterexamples easier, so we stick with it              *)
 let constructDLFProps msglist automata =
-  LLPropNot (LLPropEquals (Utils.makeLCMesgDesig (), 
-                           Utils.makeDeadlockDesig ()))
+  List.fold_left 
+    (fun prop msg ->
+      let sprop = Utils.getCSPredsForMsgAll msg automata in
+      LLPropAnd (LLPropNot sprop, prop)) LLPropTrue msglist
 
 let encodeStateVariables mgr automaton =
   let name, states = 
@@ -43,7 +48,7 @@ let getNextStatePropForTrans primedstate transition =
   | TParametrizedDest (_, _, (paramname, valset)) ->
      LLDesigSet.fold
        (fun valu acc ->
-        if (valu = (LLSimpleDesignator "defer")) then
+        if (valu = (Utils.makeDeferDesig ())) then
           acc
         else
           LLPropOr

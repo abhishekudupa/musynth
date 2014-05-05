@@ -330,7 +330,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
                     (fun cand -> checkParamCompatibility cand availparams)
                     lstates
                 in
-                let goodcands = (LLSimpleDesignator "defer") :: goodcands in
+                let goodcands = (Utils.makeDeferDesig ()) :: goodcands in
                 let newvarname = "synth_t_" ^ (string_of_int (Utils.getuid ())) in
                 (TParametrizedDest (lstate, levent, (LLSimpleDesignator newvarname, 
                                                      (mkLLDesigSet goodcands)))) ::acc2)
