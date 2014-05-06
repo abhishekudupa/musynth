@@ -29,6 +29,7 @@ class bddManager =
     val mutable cachedPrimedVarCube = None
     val mutable cachedUnprimedVarCube = None
     val mutable cachedParamVarCube = None
+    val mutable cachedAllVarCube = None
     val mutable cachedP2USubstTable = None
     val mutable cachedU2PSubstTable = None
     val mutable cachedAllButParamCube = None
@@ -74,6 +75,7 @@ class bddManager =
       cachedPrimedVarCube <- None;
       cachedUnprimedVarCube <- None;
       cachedParamVarCube <- None;
+      cachedAllVarCube <- None;
       cachedP2USubstTable <- None;
       cachedU2PSubstTable <- None;
       cachedAllButParamCube <- None;
@@ -408,6 +410,17 @@ class bddManager =
          in
          cachedParamVarCube <- Some c;
          c
+
+    method getCubeForAllVars () =
+      match cachedAllVarCube with
+      | Some c -> c
+      | None ->
+         let c = 
+           Bdd.dand (self#getCubeForUnprimedVars ()) 
+                    (self#getCubeForParamVars ())
+         in
+         cachedAllVarCube <- Some c;
+         c
            
     method private substOneVarInTable table varName sVarName =
       let _, lowsrc, size1, _, _, _, _, _ = LLDesigMap.find varName varMap in
@@ -512,22 +525,18 @@ class bddManager =
       Bdd.nbminterms numParamBits (Bdd.exist
                                      (self#getAllButParamCube ())
                                      bdd)
-                               
 
     method printCubes n fmt bdd =
       let n = if n = 0 then max_int else n in
       let bdd = Bdd.dand bdd (self#makeTrue ()) in
       let printer = self#getCubePrinter () in
-      let count = ref 0 in
-      Bdd.iter_cube 
-        (fun cube ->
-         if !count >= n then 
-           ()
-         else
-           begin
-             fprintf fmt "Cube %d:@,%a@," !count printer cube;
-             count := !count + 1
-           end) bdd
+      let cubes = Bdd.pick_cubes_on_support 
+                    bdd (self#getCubeForAllVars ()) n
+      in
+      Array.iteri
+        (fun i cube ->
+         let minTerm = Bdd.pick_minterm cube in
+         fprintf fmt "Cube %d:@,%a@," i printer minTerm) cubes
 
     method getAllVarPrinter () =
       match cachedAllVarPrinter with
@@ -580,27 +589,25 @@ class bddManager =
       let n = if n = 0 then max_int else n in
       let bdd = Bdd.dand bdd (self#makeTrue ()) in
       let printer = self#getStateVarPrinter () in
-      let count = ref 0 in
-
-      Bdd.iter_cube
-        (fun cube ->
-         if !count >= n then
-           ()
-         else
-           begin
-             fprintf fmt "State %d:@,%a@," !count printer cube;
-             count := !count + 1
-           end) bdd
+      let ebdd = Bdd.exist (Bdd.dand (self#getCubeForParamVars ())
+                                     (self#getCubeForPrimedVars ())) bdd in
+      
+      let cubes = Bdd.pick_cubes_on_support ebdd (self#getCubeForUnprimedVars ()) n in
+      
+      Array.iteri
+        (fun i cube ->
+         let minTerm = self#pickMinTermOnStates cube in
+         fprintf fmt "Param Values %d:@,%a@,@," i printer minTerm) cubes
 
     method printParamVars n fmt bdd =
       if ((LLDesigSet.cardinal paramVars) = 0) then
         fprintf fmt "No parameters to synthesize!@,"
       else
         let n = if n = 0 then max_int else n in
-        let bdd = Bdd.dand bdd (self#makeTrue ()) in
+        let ebdd = Bdd.exist (self#getAllButParamCube ()) bdd in
         let printer = self#getParamVarPrinter () in
         
-        let cubes = Bdd.pick_cubes_on_support bdd (self#getCubeForParamVars ()) n in
+        let cubes = Bdd.pick_cubes_on_support ebdd (self#getCubeForParamVars ()) n in
         
         Array.iteri
           (fun i cube ->
@@ -622,18 +629,20 @@ class bddManager =
            | _ -> Man.False) cube
 
     method pickMinTermOnPStates bdd =
-      let bdd = Bdd.dand bdd (self#makeTrue ()) in
-      let minTerm = Bdd.pick_minterm bdd in
+      let ebdd = Bdd.exist (Bdd.dand (self#getCubeForUnprimedVars ())
+                                     (self#getCubeForParamVars ())) bdd in
+      let minTerm = Bdd.pick_minterm ebdd in
       self#determinizeOnSet pStateBitSet minTerm
 
     method pickMinTermOnStates bdd =
-      let bdd = Bdd.dand bdd (self#makeTrue ()) in
-      let minTerm = Bdd.pick_minterm bdd in
+      let ebdd = Bdd.exist (Bdd.dand (self#getCubeForParamVars ())
+                                     (self#getCubeForPrimedVars ())) bdd in
+      let minTerm = Bdd.pick_minterm ebdd in
       self#determinizeOnSet stateBitSet minTerm
 
     method pickMinTermOnParams bdd =
-      let bdd = Bdd.dand bdd (self#makeTrue ()) in
-      let minTerm = Bdd.pick_minterm bdd in
+      let ebdd = Bdd.exist (self#getAllButParamCube ()) bdd in
+      let minTerm = Bdd.pick_minterm ebdd in
       self#determinizeOnSet paramBitSet minTerm
 
     method getStateVars bdd =
@@ -649,27 +658,13 @@ class bddManager =
 
     method getNStateVars n bdd =
       let n = if n = 0 then max_int else n in
-      let bdd = Bdd.dand bdd (self#makeTrue ()) in
-      let count = ref 0 in
-      let retval = ref [] in
+      let ebdd = Bdd.exist (Bdd.dand (self#getCubeForPrimedVars ())
+                                     (self#getCubeForParamVars ())) bdd in
+      let cubes = Bdd.pick_cubes_on_support (self#getCubeForUnprimedVars ()) ebdd n in
 
-      Bdd.iter_cube
-        (fun cube ->
-         if !count >= n then
-           ()
-         else
-           begin
-             retval := 
-               (LLDesigMap.fold
-                  (fun name pname map ->
-                   if LLDesigSet.mem name internalStateVars then
-                     map
-                   else
-                     let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
-                     LLDesigMap.add name (cubeToDomValFun cube) map)
-                  stateVars LLDesigMap.empty) :: !retval;
-           end) bdd;
-      !retval
+      Array.fold_left 
+        (fun lst cube ->
+         (self#getStateVars cube) :: lst) [] cubes
        
     method getParamVars bdd = 
       let minTerm = self#pickMinTermOnStates bdd in
@@ -681,24 +676,12 @@ class bddManager =
 
     method getNParamVars n bdd = 
       let n = if n = 0 then max_int else n in
-      let bdd = Bdd.dand bdd (self#makeTrue ()) in
-      let count = ref 0 in
-      let retval = ref [] in
+      let ebdd = Bdd.exist (self#getAllButParamCube ()) bdd in
+      let cubes = Bdd.pick_cubes_on_support (self#getCubeForParamVars ()) ebdd n in
 
-      Bdd.iter_cube
-        (fun cube ->
-         if !count >= n then
-           ()
-         else
-           begin
-             retval := 
-               (LLDesigSet.fold
-                  (fun name map ->
-                   let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
-                   LLDesigMap.add name (cubeToDomValFun cube) map)
-                  paramVars LLDesigMap.empty) :: !retval;
-           end) bdd;
-      !retval
+      Array.fold_left
+        (fun lst cube ->
+         (self#getStateVars cube) :: lst) [] cubes
 
     method getConstraintsOnAllVars () =
       match cachedConstraintsOnAllVars with

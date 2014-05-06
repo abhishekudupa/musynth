@@ -782,6 +782,14 @@ module MGR :
           MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
           MusynthTypes.musPropT option ->
           MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+        val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
         val getMsgsForAut :
           MusynthTypes.llAutomatonT ->
           MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -829,13 +837,6 @@ module MGR :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
         val makeDisjunction :
           MusynthTypes.llPropT list -> MusynthTypes.llPropT
-        val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-        val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-        val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-        val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-        val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
       end
     module Opts :
       sig
@@ -884,6 +885,7 @@ module MGR :
         val mutable bitNameToBddMap :
           Cudd.Man.d Cudd.Bdd.t MusynthTypes.StringMap.t
         val mutable cachedAllButParamCube : Cudd.Man.d Cudd.Bdd.t option
+        val mutable cachedAllVarCube : Cudd.Man.d Cudd.Bdd.t option
         val mutable cachedAllVarPrinter :
           (Format.formatter -> Cudd.Man.tbool array -> unit) option
         val mutable cachedConstraintsOnAllVars : Cudd.Man.d Cudd.Bdd.t option
@@ -937,6 +939,7 @@ module MGR :
           unit -> Format.formatter -> MusynthTypes.IntMap.key -> unit
         method getConstraintsOnAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method getConstraintsOnParams : unit -> Cudd.Man.d Cudd.Bdd.t
+        method getCubeForAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
         method private getCubeForOneVar :
           MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
         method getCubeForParamVars : unit -> Cudd.Man.d Cudd.Bdd.t
@@ -1679,6 +1682,14 @@ module MCU :
               MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
               MusynthTypes.musPropT option ->
               MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+            val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+            val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+            val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+            val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+            val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
             val getMsgsForAut :
               MusynthTypes.llAutomatonT ->
               MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -1730,13 +1741,6 @@ module MCU :
               MusynthTypes.llPropT list -> MusynthTypes.llPropT
             val makeDisjunction :
               MusynthTypes.llPropT list -> MusynthTypes.llPropT
-            val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-            val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-            val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-            val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-            val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-            val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-            val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
           end
         module Opts :
           sig
@@ -1785,6 +1789,7 @@ module MCU :
             val mutable bitNameToBddMap :
               Cudd.Man.d Cudd.Bdd.t MusynthTypes.StringMap.t
             val mutable cachedAllButParamCube : Cudd.Man.d Cudd.Bdd.t option
+            val mutable cachedAllVarCube : Cudd.Man.d Cudd.Bdd.t option
             val mutable cachedAllVarPrinter :
               (Format.formatter -> Cudd.Man.tbool array -> unit) option
             val mutable cachedConstraintsOnAllVars :
@@ -1843,6 +1848,7 @@ module MCU :
               unit -> Format.formatter -> MusynthTypes.IntMap.key -> unit
             method getConstraintsOnAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
             method getConstraintsOnParams : unit -> Cudd.Man.d Cudd.Bdd.t
+            method getCubeForAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
             method private getCubeForOneVar :
               MusynthTypes.LLDesigMap.key -> Cudd.Man.d Cudd.Bdd.t
             method getCubeForParamVars : unit -> Cudd.Man.d Cudd.Bdd.t
@@ -2203,6 +2209,14 @@ module Utils :
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+    val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
     val getMsgsForAut :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -2247,13 +2261,6 @@ module Utils :
     val makeFormatterOfName : string -> out_channel * Format.formatter
     val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
-    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
   end
 val getSafetyParams :
   < cubeOfMinTerm : 'a -> 'b Cudd.Bdd.t;
