@@ -301,12 +301,13 @@ let encodeProg mgr prog =
   in
   let badStateBDD = mgr#prop2BDD badstates in
   (* add the deadlock freedom to the init constraints *)
-  let initconstraints = LLPropAnd (LLPropAnd 
-                                     (LLPropNot (LLPropEquals (Utils.makeLCMesgDesig (),
-                                                               Utils.makeDeadlockDesig ())),
-                                      LLPropNot (LLPropEquals (Utils.makeLCProcDesig (),
-                                                               Utils.makeDeadlockDesig ()))),
-                                   initconstraints)
+  let initconstraints = LLPropAnd 
+                          (LLPropAnd 
+                             (LLPropNot (LLPropEquals (Utils.makeLCMesgDesig (),
+                                                       Utils.makeDeadlockDesig ())),
+                              LLPropNot (LLPropEquals (Utils.makeLCProcDesig (),
+                                                       Utils.makeDeadlockDesig ()))),
+                           initconstraints)
   in
   let initBDD = mgr#prop2BDD initconstraints in
   let symPropBDD = mgr#prop2BDD symProps in

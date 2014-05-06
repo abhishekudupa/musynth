@@ -8,6 +8,8 @@ module Utils = MusynthUtils
 module Opts = MusynthOptions
 module Debug = MusynthDebug
 
+type bddType = Cudd.Man.d Cudd.Bdd.t
+
 class bddManager =
 object (self)
   val mutable manager = Man.make_d ()

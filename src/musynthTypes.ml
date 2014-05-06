@@ -355,9 +355,6 @@ module PropMap = Map.Make
                      let compare = Pervasives.compare
                    end)
 
-(* init states, accepting states, transitions *)
-type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list)
-
 type llSpecT =
   | LLSpecInvar of string * llPropT
   | LLSpecLTL of string * llPropT * (llPropT * llPropT) list * (llPropT * llPropT) list
