@@ -12,11 +12,23 @@ module StringMap = Map.Make
                        let compare = Pervasives.compare 
                      end)
 
+module StringStringMap = Map.Make
+                           (struct 
+                             type t = string * string
+                             let compare = Pervasives.compare
+                           end)
+
 module StringSet = Set.Make
                      (struct
                        type t = string
                        let compare = Pervasives.compare
                      end)
+
+module StringStringSet = Set.Make
+                           (struct 
+                             type t = string * string
+                             let compare = Pervasives.compare 
+                           end)
 
                      
 type identifierT = string * sourcelocation option
@@ -350,8 +362,8 @@ type llSpecT =
   | LLSpecInvar of string * llPropT
   | LLSpecLTL of string * llPropT * (llPropT * llPropT) list * (llPropT * llPropT) list
 
-(* global messages, automata, initial state constraints, properties *)
-type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list)
+(* global messages, automata, initial state constraints, properties and symmetry props *)
+type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list * llPropT)
 
 (* helper to convert designators to strings *)
 let rec lldesigToString lldesig =
@@ -376,6 +388,7 @@ let rec countLLDesigParams lldesig =
   match lldesig with
   | LLSimpleDesignator _ -> 0
   | LLIndexDesignator (ndesig, name) -> 1 + (countLLDesigParams ndesig)
+  | _ -> assert false
 
 (* type for signalling synthesis status *)
 type 'a synthExitStatT =

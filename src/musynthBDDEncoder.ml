@@ -167,7 +167,7 @@ let encodeTransitionRelation allmsgs automata =
 
 let encodeProg mgr prog =
   (* encode the choose variable for scheduling first *)
-  let msgdecls, automata, initconstraints, specs = prog in
+  let msgdecls, automata, initconstraints, specs, symProps = prog in
   let automataname = List.map Utils.getNameForAut automata in
   let lcmesg = Utils.makeLCMesgDesig () in
   let lcproc = Utils.makeLCProcDesig () in
@@ -309,5 +309,6 @@ let encodeProg mgr prog =
                                    initconstraints)
   in
   let initBDD = mgr#prop2BDD initconstraints in
-  (transBDDs, initBDD, badStateBDD, dlBDD, encodedTableauMap)
+  let symPropBDD = mgr#prop2BDD symProps in
+  (transBDDs, initBDD, badStateBDD, dlBDD, encodedTableauMap, symPropBDD)
 

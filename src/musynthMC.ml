@@ -145,7 +145,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
   let actInitStates = Bdd.dand initstates paramConstraints in
   assert (Bdd.is_inter_empty actInitStates badstates);
   Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
-                k (mgr#getNumMinTermsParam actInitStates); 
+                k (Bdd.nbminterms (Bdd.supportsize paramConstraints) paramConstraints); 
   Debug.dflush ();
   let kReachStat = MCU.postK k mgr transRel actInitStates in
   let kReach = 
@@ -154,6 +154,10 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
      | ExecFixpoint s -> s) 
   in
   Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
+  Debug.dprintf "mc" "Reachable (safety) with choose vars existentially quantified has %d nodes@,"
+                (Bdd.size (Bdd.exist (Bdd.dand (mgr#getCubeForVar (Utils.makeLCMesgDesig ()))
+                                               (mgr#getCubeForVar (Utils.makeLCProcDesig ())))
+                                     kReach));
   Debug.dflush ();
   (* get params for safety *)
   let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
@@ -169,7 +173,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
        let actInitStates = Bdd.dand pconstraints initstates in
        Debug.dprintf "mc" ("Synthesizing completions with no liveness violation " ^^ 
                              "on property \"%s\"" ^^ " upto %d steps with %e candidates@,") 
-                     propname k (mgr#getNumMinTermsParam actInitStates);
+                     propname k (Bdd.nbminterms (Bdd.supportsize pconstraints) pconstraints);
        Debug.dflush ();
        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
        let ltransRel = Bdd.dand transRel tableautrans in
@@ -220,7 +224,7 @@ let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlB
     ();
   solbdd
 
-let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist =
+let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symPropBDD =
   let transRel = conjoinTransitionRels mgr transBDDs in
   (* set initial params to false *)
   let paramNames = mgr#getParamVarNames () in
@@ -243,9 +247,10 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist =
   else
     begin
       let rstates = Bdd.exist (mgr#getCubeForParamVars ()) reachableStates in
-      Debug.dprintf "mc" "%e Deadlocked states.@," (Bdd.nbminterms (mgr#getNumStateBits ())
-                                                                   (Bdd.existand (mgr#getCubeForParamVars ())
-                                                                                 rstates dlBDD));
+      Debug.dprintf "mc" "%e Deadlocked states.@," 
+                    (Bdd.nbminterms (mgr#getNumStateBits ())
+                                    (Bdd.existand (mgr#getCubeForParamVars ())
+                                                  rstates dlBDD));
 
       let dlParams = Bdd.existand (mgr#getCubeForUnprimedVars ()) rstates dlBDD in
       let dlsupport = Bdd.support dlParams in
@@ -256,8 +261,9 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist =
       let newConstraints = Bdd.exist dlsupport paramConstraints in
       let newConstraints = Bdd.dand newConstraints (Bdd.dnot dlParams) in
       let newConstraints = Bdd.dand newConstraints (mgr#getConstraintsOnParams ()) in
-      Debug.dprintf "mc" "New param constraints have %e cubes.@," 
-                    (Bdd.nbminterms (mgr#getNumParamBits ()) newConstraints);
+      let newConstraints = Bdd.dand newConstraints symPropBDD in
+      Debug.dprintf "mc" "New param constraints result in %e candidates.@," 
+                    (Bdd.nbminterms (Bdd.supportsize newConstraints) newConstraints);
       synthFrontEndInternal mgr newConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist
     end
 

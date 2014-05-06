@@ -7,6 +7,8 @@ module Utils = MusynthUtils
 module AST = MusynthAST
 module Chan = MusynthChannel
 
+let symProps = ref LLPropTrue
+
 let lowerQMap symtab qMap =
   IdentMap.fold 
     (fun ident typ acc ->
@@ -319,7 +321,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
       (fun trans ->
        let ostate, oevent = 
          match trans with
-         | TComplete (s, e) -> s, e
+         | TComplete (s, e, _) -> s, e
          | _ -> assert false
        in
        (ostate = state && oevent = event)) ltrans
@@ -363,23 +365,28 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
     let filterPred typ = 
       List.length (List.filter (fun t -> t = typ) typelist) = 1
     in
+    let idx = ref 0 in
     let idxlist1 = List.fold_left 
                      (fun lst typ -> 
+                      idx := !idx + 1;
                       if filterPred typ then 
-                        typ :: lst 
+                        !idx :: lst 
                       else 
                         lst) [] typelist1
     in
+    let idx = ref 0 in
     let idxlist2 = List.fold_left
                      (fun lst typ ->
+                      idx := !idx + 1;
                       if filterPred typ then 
-                        typ :: lst 
+                        !idx :: lst 
                       else
                         lst) [] typelist2
     in
     (idxlist1, idxlist2)
+  in
   
-  (* do the arguments match modulo the positions in the free type list? *)
+(* do the arguments match modulo the positions in the free type list? *)
   let matchArgs idxlist desig1 desig2 =
     let rec matchArgsRec desig1 desig2 position =
       match desig1, desig2 with
@@ -389,25 +396,77 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
            matchArgsRec ndesig1 ndesig2 (position - 1)
          else
            ((n1 = n2) && (matchArgsRec ndesig1 ndesig2 (position - 1)))
+      | _ -> assert false
     in
     let numParams = countLLDesigParams desig1 in
     if (numParams <> (countLLDesigParams desig2)) then
       raise (Invalid_argument "Mismatched designators in matchArgs")
     else
       matchArgsRec desig1 desig2 numParams
+  in
+
+  let filterMatchingOnTransition lstate levent idxListS idxListM =
+    let actS = getBaseLLDesig lstate in
+    let actM = getBaseLLDesig levent in
+    List.fold_left 
+      (fun candlist ptran ->
+       match ptran with
+       | TParametrizedDest (olstate, olevent, (paramName, cands)) ->
+          let oactS = getBaseLLDesig olstate in
+          let oactM = getBaseLLDesig olevent in
+          if ((oactS = actS && oactM = actM) &&
+                (matchArgs idxListS lstate olstate) &&
+                   (matchArgs idxListM levent olevent)) then
+            (paramName, cands) :: candlist
+          else
+            candlist
+       | _ -> assert false) [] ptrans
+  in
          
   (* exploit symmetry *)
-  let symProps = 
+  let _, symProps = 
     List.fold_left 
-      (fun prop trans ->
+      (fun (set, prop) trans ->
        match trans with
        | TParametrizedDest (lstate, levent, (paramName, cands)) ->
           let actS = getBaseLLDesig lstate in
           let actM = getBaseLLDesig levent in
-          let types1 = CK.getTypeObligationsForIdent symtab (actS, None) in
-          let types2 = CK.getTypeObligationsForIdent symtab (actM, None) in
-          let idxlistS, idxlistM = findFreeTypes types1 types2 in
-          
+          if (LLDesigSet.mem paramName set) then
+            (set, prop)
+          else
+            let types1 = CK.getTypeObligationsForIdent symtab (actS, None) in
+            let types2 = CK.getTypeObligationsForIdent symtab (actM, None) in
+            let idxlistS, idxlistM = findFreeTypes types1 types2 in
+            (* search the transition list for other transitions with the same *)
+            (* start state and event and add props if applicable              *)
+            let othertrans = filterMatchingOnTransition lstate levent idxlistS idxlistM in
+            List.fold_left 
+              (fun (set, prop) (oParamName, oCands) ->
+               if ((oParamName = paramName) && (oCands = cands)) then
+                 (set, prop)
+               else
+                 (LLDesigSet.add oParamName set,
+                  LLPropAnd (prop,
+                             List.fold_left2
+                               (fun prop cand1 cand2 ->
+                                LLPropAnd 
+                                  (LLPropAnd 
+                                     (LLPropOr 
+                                        (LLPropNot 
+                                           (LLPropEquals (paramName, cand1)),
+                                         LLPropEquals (oParamName, cand2)),
+                                      LLPropOr 
+                                        (LLPropNot 
+                                           (LLPropEquals (oParamName, cand2)),
+                                         LLPropEquals (paramName, cand1))),
+                                   prop))
+                               LLPropTrue 
+                               (LLDesigSet.elements cands)
+                               (LLDesigSet.elements oCands))))
+              (set, prop) othertrans
+       | _ -> assert false)
+      (LLDesigSet.empty, LLPropTrue) ptrans
+  in
 
   (* now instantiate the copies of this automaton *)
   let ident, paramlist = CK.destructDesigDecl desig in
@@ -415,20 +474,21 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
   let qMap = lowerQMap symtab qMap in
   let evalMaps = Utils.getMapsForProp paramlist qMap propOpt in
   if paramlist = [] then
-    [ (LLIncompleteAutomaton (LLSimpleDesignator name,
-                              lstates, linmsgs, loutmsgs, ltrans @ ptrans, lftype)) ]
+    ([ (LLIncompleteAutomaton (LLSimpleDesignator name,
+                               lstates, linmsgs, loutmsgs, ltrans @ ptrans, lftype)) ],
+     symProps)
   else
-    List.map 
-      (fun evalMap ->
-       let lldesig = (List.hd (makeLLInstantiation [ evalMap ] paramlist name)) in
-       let sevalMap = identMapToStringMap evalMap in
-       LLIncompleteAutomaton (lldesig, 
-                              List.map (lldesigSubstitutor sevalMap) lstates, 
-                              List.map (lldesigSubstitutor sevalMap) linmsgs, 
-                              List.map (lldesigSubstitutor sevalMap) loutmsgs,
-                              List.map (lltransSubstitutor sevalMap) (ltrans @ ptrans), lftype))
-      evalMaps
-      
+    (List.map 
+       (fun evalMap ->
+        let lldesig = (List.hd (makeLLInstantiation [ evalMap ] paramlist name)) in
+        let sevalMap = identMapToStringMap evalMap in
+        LLIncompleteAutomaton (lldesig, 
+                               List.map (lldesigSubstitutor sevalMap) lstates, 
+                               List.map (lldesigSubstitutor sevalMap) linmsgs, 
+                               List.map (lldesigSubstitutor sevalMap) loutmsgs,
+                               List.map (lltransSubstitutor sevalMap) (ltrans @ ptrans), lftype))
+       evalMaps,
+     symProps)
 
 let autDeclInstantiator symtab qMap propOpt autDecl =
   match autDecl with
@@ -438,9 +498,12 @@ let autDeclInstantiator symtab qMap propOpt autDecl =
   | ChannelAutomaton (desig, chanprops, msgs, ftype, lftype, dftype, _) ->
      instantiateChannelAutomaton symtab qMap propOpt desig chanprops msgs ftype lftype dftype
   | IncompleteAutomaton (desig, states, inmsgs, outmsgs, transitions, ftype, _) ->
-     instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs 
-                                    outmsgs transitions ftype
-
+     let automata, symProp = 
+       instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs 
+                                      outmsgs transitions ftype
+     in
+     symProps := LLPropAnd (symProp, !symProps);
+     automata
 
 let rec substInLProp substMap lprop =
   match lprop with
@@ -574,4 +637,4 @@ let lowerProg symtab prog =
                         acc)
           | _ -> acc) linitstateProp lautdecls)
   in
-  (igmsgdecls, lautdecls, linitstateProp, lspecs)
+  (igmsgdecls, lautdecls, linitstateProp, lspecs, !symProps)

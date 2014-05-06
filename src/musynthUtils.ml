@@ -196,7 +196,6 @@ let getMapsForProp paramlist qMap propOpt =
      let validcp = List.filter (fun cpelem -> evalProp prop (identConstPairList2Map cpelem)) cp in
      List.map identConstPairList2Map validcp
 
-
 (* Util functions to standardized fixed identifiers *)
 let makeTrueDesig () =
   LLSimpleDesignator "true"

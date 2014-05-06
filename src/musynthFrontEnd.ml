@@ -17,6 +17,7 @@ module Utils = MusynthUtils
 module Mgr = MusynthBDDManager
 module Debug = MusynthDebug
 module Trace = MusynthTrace
+module Bdd = Cudd.Bdd
 
 let musynthProcess filename =
   let inchan = 
@@ -45,7 +46,7 @@ let musynthProcess filename =
 
     let mgr = new Mgr.bddManager in
     printf "Encoding Program to BDDs and LTL to BDDs via Tableau... "; flush stdout;
-    let (transBDDs, initBDD, badStateBDD, dlBDD, ltltableaulist) = 
+    let (transBDDs, initBDD, badStateBDD, dlBDD, ltltableaulist, symPropBDD) = 
       Enc.encodeProg mgr lprog
     in
     printf "Done!\n"; flush stdout;
@@ -53,14 +54,14 @@ let musynthProcess filename =
       begin
         printf "Attempting to Synthesize... "; flush stdout;
         let solbdd = 
-          MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist 
+          MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symPropBDD 
         in
         printf "Done!\n"; flush stdout;
         if (mgr#isFalse solbdd) then
           printf "\n\nNo Solutions Found!\n\n"
         else 
           begin
-            printf "\n\n%e solutions found.\n" (mgr#getNumMinTermsParam solbdd);
+            printf "\n\n%e solutions found.\n" (Bdd.nbminterms (Bdd.supportsize solbdd) solbdd);
             printf "\n\nSolutions:\n"; flush stdout;
             Format.printf "@[<v 0>%a@,@]" (mgr#printParamVars !Opts.numSolsRequested) solbdd
           end

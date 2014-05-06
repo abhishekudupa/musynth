@@ -81,6 +81,8 @@ module Utils :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -99,6 +101,12 @@ module Utils :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -107,7 +115,8 @@ module Utils :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module MSSet :
       sig
@@ -379,7 +388,8 @@ module AST :
     val pLLProg :
       Format.formatter ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+      unit
   end
 val constructEnabledProp :
   MusynthTypes.llAutomatonT list ->
@@ -395,7 +405,7 @@ val constructFairnessSpecsChan :
   MusynthTypes.llAutomatonT list ->
   MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT list
 val constructFairnessSpecs :
-  'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
+  'a * MusynthTypes.llAutomatonT list * 'b * 'c * 'd ->
   MusynthTypes.fairnessSpecT list
 val createTablueaxVars :
   MusynthTypes.PropMap.key ->
@@ -410,7 +420,7 @@ val constructPrimedVarMap :
   'a MusynthTypes.LLDesigMap.t ->
   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t
 val substForVars :
-  MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ->
+  MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ->
   MusynthTypes.llPropT -> MusynthTypes.llPropT
 val constructTableau :
   MusynthTypes.llPropT ->

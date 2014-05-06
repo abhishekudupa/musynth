@@ -459,7 +459,7 @@ let checkProg symtab prog =
             
 (* low level checking routines *)
 let checkLLProg prog =
-  let (msglist, autlist, initstates, specs) = prog in
+  let (msglist, autlist, initstates, specs, _) = prog in
   (* check that the system is closed *)
   let allInMsgs = 
     List.fold_left 

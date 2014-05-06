@@ -458,8 +458,9 @@ let pLLAutomaton fmt aut =
      fprintf fmt "@]@,}@,@]"
              
 let pLLProg fmt prog = 
-  let mdecls, auts, initstateconstraints, specs = prog in
+  let mdecls, auts, initstateconstraints, specs, symProps = prog in
   fprintf fmt "@[<v 0>@[<v 4>messages {@,%a@]@,}@,@]" (pList "," true false pLLDesignator) mdecls;
   List.iter (fun aut -> pLLAutomaton fmt aut) auts;
   fprintf fmt "@[<v 0>@[<v 4>initial constraints:@,%a@,@]@,@]" pLLProp initstateconstraints;
-  List.iter (fun spec -> fprintf fmt "@[<v 0>@[<v 1>%a@]@,@,@]" pLLSpec spec) specs
+  List.iter (fun spec -> fprintf fmt "@[<v 0>@[<v 1>%a@]@,@,@]" pLLSpec spec) specs;
+  fprintf fmt "@[<v 0>Symmetry constraints:@,%a@,@,@]" pLLProp symProps

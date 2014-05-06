@@ -150,5 +150,5 @@ val checkProg :
   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
   MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
 val checkLLProg :
-  MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list * 'a * 'b ->
-  unit
+  MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list * 'a *
+  'b * 'c -> unit

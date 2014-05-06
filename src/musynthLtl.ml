@@ -74,7 +74,7 @@ let constructFairnessSpecs autlist aut =
   | _ -> [ constructFairnessSpecsAut autlist aut ]
 
 let constructFairnessSpecs prog = 
-  let _, automata, _, _ = prog in
+  let _, automata, _, _, _ = prog in
   List.concat (List.map (constructFairnessSpecs automata) automata)
 
 let createTablueaxVars prop =

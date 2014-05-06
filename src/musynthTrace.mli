@@ -10,6 +10,7 @@ module Opts :
     val reorderEnabled : bool ref
     val reorderMethod : Cudd.Man.reorder ref
     val tracePrintMode : string ref
+    val jumpStep : int ref
     val reorderMethods : string list
   end
 module AST :
@@ -88,6 +89,8 @@ module AST :
     val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
     val pLossFairness :
       Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+    val pDupFairness :
+      Format.formatter -> MusynthTypes.musDupFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -105,6 +108,11 @@ module AST :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+    val pLLFairness : Format.formatter -> MusynthTypes.llFairnessT -> unit
+    val pLLDupFairness :
+      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+    val pLLLossFairness :
+      Format.formatter -> MusynthTypes.llLossFairnessT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -112,7 +120,8 @@ module AST :
     val pLLProg :
       Format.formatter ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+      unit
   end
 module Debug :
   sig

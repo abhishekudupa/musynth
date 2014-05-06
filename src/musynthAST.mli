@@ -96,4 +96,5 @@ val pLLAutomaton : Format.formatter -> MusynthTypes.llAutomatonT -> unit
 val pLLProg :
   Format.formatter ->
   MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-  MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+  MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+  unit

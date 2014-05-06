@@ -74,6 +74,8 @@ module AST :
     val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
     val pLossFairness :
       Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+    val pDupFairness :
+      Format.formatter -> MusynthTypes.musDupFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -91,6 +93,11 @@ module AST :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+    val pLLFairness : Format.formatter -> MusynthTypes.llFairnessT -> unit
+    val pLLDupFairness :
+      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+    val pLLLossFairness :
+      Format.formatter -> MusynthTypes.llLossFairnessT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -98,7 +105,8 @@ module AST :
     val pLLProg :
       Format.formatter ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+      unit
   end
 module Utils :
   sig
@@ -183,6 +191,8 @@ module Utils :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -201,6 +211,12 @@ module Utils :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -209,7 +225,8 @@ module Utils :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module MSSet :
       sig
@@ -280,6 +297,14 @@ module Utils :
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
       MusynthTypes.musPropT option ->
       MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+    val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+    val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+    val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
     val getMsgsForAut :
       MusynthTypes.llAutomatonT ->
       MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -291,6 +316,12 @@ module Utils :
     val getAutomatonByName :
       MusynthTypes.llAutomatonT list ->
       MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+    val getFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+    val getLFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+    val getDFairnessForAutomaton :
+      MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
     val getSender :
       MusynthTypes.llIdentT ->
       MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
@@ -318,8 +349,6 @@ module Utils :
     val makeFormatterOfName : string -> out_channel * Format.formatter
     val makeConjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
     val makeDisjunction : MusynthTypes.llPropT list -> MusynthTypes.llPropT
-    val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-    val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
   end
 val getSimpleDesigForMS :
   int MusynthTypes.LLDesigMap.t -> MusynthTypes.llDesignatorT

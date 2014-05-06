@@ -203,7 +203,7 @@ module Lower :
           unit
         val checkLLProg :
           MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list *
-          'a * 'b -> unit
+          'a * 'b * 'c -> unit
       end
     module Utils :
       sig
@@ -292,6 +292,8 @@ module Lower :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -312,6 +314,12 @@ module Lower :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -321,7 +329,7 @@ module Lower :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module MSSet :
           sig
@@ -563,7 +571,8 @@ module Lower :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module Chan :
       sig
@@ -652,6 +661,8 @@ module Lower :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -672,6 +683,12 @@ module Lower :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -681,7 +698,7 @@ module Lower :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module Utils :
           sig
@@ -773,6 +790,8 @@ module Lower :
                   Format.formatter -> MusynthTypes.musFairnessT -> unit
                 val pLossFairness :
                   Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+                val pDupFairness :
+                  Format.formatter -> MusynthTypes.musDupFairnessT -> unit
                 val pAutomatonDecl :
                   Format.formatter ->
                   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -795,6 +814,12 @@ module Lower :
                   unit
                 val pLLAnnot :
                   Format.formatter -> MusynthTypes.llAnnotT -> unit
+                val pLLFairness :
+                  Format.formatter -> MusynthTypes.llFairnessT -> unit
+                val pLLDupFairness :
+                  Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+                val pLLLossFairness :
+                  Format.formatter -> MusynthTypes.llLossFairnessT -> unit
                 val pLLTrans :
                   Format.formatter -> MusynthTypes.llTransT -> unit
                 val pLLProp :
@@ -807,7 +832,8 @@ module Lower :
                   Format.formatter ->
                   MusynthTypes.llDesignatorT list *
                   MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-                  MusynthTypes.llSpecT list -> unit
+                  MusynthTypes.llSpecT list * MusynthTypes.llPropT -> 
+                  unit
               end
             module MSSet :
               sig
@@ -882,6 +908,14 @@ module Lower :
               MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
               MusynthTypes.musPropT option ->
               MusynthTypes.identifierT MusynthTypes.IdentMap.t list
+            val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
+            val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
+            val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
+            val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
+            val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
+            val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
             val getMsgsForAut :
               MusynthTypes.llAutomatonT ->
               MusynthTypes.llIdentT list * MusynthTypes.llIdentT list
@@ -894,6 +928,12 @@ module Lower :
             val getAutomatonByName :
               MusynthTypes.llAutomatonT list ->
               MusynthTypes.llIdentT -> MusynthTypes.llAutomatonT
+            val getFairnessForAutomaton :
+              MusynthTypes.llAutomatonT -> MusynthTypes.llFairnessT
+            val getLFairnessForAutomaton :
+              MusynthTypes.llAutomatonT -> MusynthTypes.llLossFairnessT
+            val getDFairnessForAutomaton :
+              MusynthTypes.llAutomatonT -> MusynthTypes.llDupFairnessT
             val getSender :
               MusynthTypes.llIdentT ->
               MusynthTypes.llAutomatonT list -> MusynthTypes.llAutomatonT
@@ -927,8 +967,6 @@ module Lower :
               MusynthTypes.llPropT list -> MusynthTypes.llPropT
             val makeDisjunction :
               MusynthTypes.llPropT list -> MusynthTypes.llPropT
-            val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
-            val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
           end
         val getSimpleDesigForMS :
           int MusynthTypes.LLDesigMap.t -> MusynthTypes.llDesignatorT
@@ -966,6 +1004,7 @@ module Lower :
           MusynthTypes.musChanDupT * MusynthTypes.musChanBlockT * int ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llTransT list
       end
+    val symProps : MusynthTypes.llPropT ref
     val lowerQMap :
       MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
@@ -1003,10 +1042,10 @@ module Lower :
       MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
       MusynthTypes.musDesignatorT -> MusynthTypes.musDesignatorT
     val lldesigSubstitutor :
-      string MusynthTypes.StringMap.t ->
+      MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
       MusynthTypes.llDesignatorT -> MusynthTypes.llDesignatorT
     val lltransSubstitutor :
-      string MusynthTypes.StringMap.t ->
+      MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
       MusynthTypes.llTransT -> MusynthTypes.llTransT
     val transSubstitutor :
       MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
@@ -1100,14 +1139,15 @@ module Lower :
       (MusynthTypes.musDesignatorT * MusynthTypes.musDesignatorT *
        MusynthTypes.musDesignatorT)
       MusynthTypes.musDeclType list ->
-      MusynthTypes.musFairnessT -> MusynthTypes.llAutomatonT list
+      MusynthTypes.musFairnessT ->
+      MusynthTypes.llAutomatonT list * MusynthTypes.llPropT
     val autDeclInstantiator :
       MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
       MusynthTypes.musSymTypeT MusynthTypes.IdentMap.t ->
       MusynthTypes.musPropT option ->
       MusynthTypes.musAutomatonDeclType -> MusynthTypes.llAutomatonT list
     val substInLProp :
-      string MusynthTypes.StringMap.t ->
+      MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
       MusynthTypes.llPropT -> MusynthTypes.llPropT
     val lowerProp :
       MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->
@@ -1124,7 +1164,7 @@ module Lower :
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType list *
       MusynthTypes.musPropT list * MusynthTypes.musSpecT list ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT
   end
 module CK :
   sig
@@ -1281,7 +1321,7 @@ module CK :
       MusynthTypes.musPropT list * MusynthTypes.musSpecT list -> unit
     val checkLLProg :
       MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list *
-      'a * 'b -> unit
+      'a * 'b * 'c -> unit
   end
 module Parser :
   sig
@@ -1463,7 +1503,8 @@ module AST :
     val pLLProg :
       Format.formatter ->
       MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+      unit
   end
 module ST :
   sig
@@ -1624,7 +1665,8 @@ module Enc :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module Utils :
       sig
@@ -1713,6 +1755,8 @@ module Enc :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -1733,6 +1777,12 @@ module Enc :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -1742,7 +1792,7 @@ module Enc :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module MSSet :
           sig
@@ -1988,6 +2038,8 @@ module Enc :
                   Format.formatter -> MusynthTypes.musFairnessT -> unit
                 val pLossFairness :
                   Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+                val pDupFairness :
+                  Format.formatter -> MusynthTypes.musDupFairnessT -> unit
                 val pAutomatonDecl :
                   Format.formatter ->
                   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -2010,6 +2062,12 @@ module Enc :
                   unit
                 val pLLAnnot :
                   Format.formatter -> MusynthTypes.llAnnotT -> unit
+                val pLLFairness :
+                  Format.formatter -> MusynthTypes.llFairnessT -> unit
+                val pLLDupFairness :
+                  Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+                val pLLLossFairness :
+                  Format.formatter -> MusynthTypes.llLossFairnessT -> unit
                 val pLLTrans :
                   Format.formatter -> MusynthTypes.llTransT -> unit
                 val pLLProp :
@@ -2022,7 +2080,8 @@ module Enc :
                   Format.formatter ->
                   MusynthTypes.llDesignatorT list *
                   MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-                  MusynthTypes.llSpecT list -> unit
+                  MusynthTypes.llSpecT list * MusynthTypes.llPropT -> 
+                  unit
               end
             module MSSet :
               sig
@@ -2321,7 +2380,7 @@ module Enc :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         val constructEnabledProp :
           MusynthTypes.llAutomatonT list ->
@@ -2337,7 +2396,7 @@ module Enc :
           MusynthTypes.llAutomatonT list ->
           MusynthTypes.llAutomatonT -> MusynthTypes.fairnessSpecT list
         val constructFairnessSpecs :
-          'a * MusynthTypes.llAutomatonT list * 'b * 'c ->
+          'a * MusynthTypes.llAutomatonT list * 'b * 'c * 'd ->
           MusynthTypes.fairnessSpecT list
         val createTablueaxVars :
           MusynthTypes.PropMap.key ->
@@ -2352,7 +2411,7 @@ module Enc :
           'a MusynthTypes.LLDesigMap.t ->
           MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t
         val substForVars :
-          MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t ->
+          MusynthTypes.LLDesigMap.key MusynthTypes.LLDesigMap.t ->
           MusynthTypes.llPropT -> MusynthTypes.llPropT
         val constructTableau :
           MusynthTypes.llPropT ->
@@ -2398,13 +2457,14 @@ module Enc :
                                 MusynthTypes.llIdentT list -> 'c;
         .. > ->
       MusynthTypes.llIdentT list * MusynthTypes.llAutomatonT list *
-      MusynthTypes.llPropT * MusynthTypes.llSpecT list ->
+      MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+      MusynthTypes.PropMap.key ->
       'a MusynthTypes.LLDesigMap.t * 'a * 'a * 'a *
       (MusynthTypes.llDesignatorT MusynthTypes.PropMap.t *
        MusynthTypes.PropMap.key MusynthTypes.LLDesigMap.t *
        MusynthTypes.PropMap.key MusynthTypes.PropMap.t * 'a * 'a * 'a list *
        ('a * 'a) list)
-      MusynthTypes.StringMap.t
+      MusynthTypes.StringMap.t * 'a
   end
 module MC :
   sig
@@ -2523,7 +2583,8 @@ module MC :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module Debug :
       sig
@@ -2581,6 +2642,7 @@ module MC :
             val reorderEnabled : bool ref
             val reorderMethod : Cudd.Man.reorder ref
             val tracePrintMode : string ref
+            val jumpStep : int ref
             val reorderMethods : string list
           end
         module AST :
@@ -2668,6 +2730,8 @@ module MC :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -2688,6 +2752,12 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -2697,7 +2767,7 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module Debug :
           sig
@@ -2931,7 +3001,7 @@ module MC :
               unit
             val checkLLProg :
               MusynthTypes.LLDesigSet.elt list *
-              MusynthTypes.llAutomatonT list * 'a * 'b -> unit
+              MusynthTypes.llAutomatonT list * 'a * 'b * 'c -> unit
           end
         module AST :
           sig
@@ -3055,7 +3125,7 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module Utils :
           sig
@@ -3147,6 +3217,8 @@ module MC :
                   Format.formatter -> MusynthTypes.musFairnessT -> unit
                 val pLossFairness :
                   Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+                val pDupFairness :
+                  Format.formatter -> MusynthTypes.musDupFairnessT -> unit
                 val pAutomatonDecl :
                   Format.formatter ->
                   MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -3169,6 +3241,12 @@ module MC :
                   unit
                 val pLLAnnot :
                   Format.formatter -> MusynthTypes.llAnnotT -> unit
+                val pLLFairness :
+                  Format.formatter -> MusynthTypes.llFairnessT -> unit
+                val pLLDupFairness :
+                  Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+                val pLLLossFairness :
+                  Format.formatter -> MusynthTypes.llLossFairnessT -> unit
                 val pLLTrans :
                   Format.formatter -> MusynthTypes.llTransT -> unit
                 val pLLProp :
@@ -3181,7 +3259,8 @@ module MC :
                   Format.formatter ->
                   MusynthTypes.llDesignatorT list *
                   MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-                  MusynthTypes.llSpecT list -> unit
+                  MusynthTypes.llSpecT list * MusynthTypes.llPropT -> 
+                  unit
               end
             module MSSet :
               sig
@@ -3650,7 +3729,7 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module Debug :
           sig
@@ -3882,7 +3961,7 @@ module MC :
                   MusynthTypes.musSpecT list -> unit
                 val checkLLProg :
                   MusynthTypes.LLDesigSet.elt list *
-                  MusynthTypes.llAutomatonT list * 'a * 'b -> unit
+                  MusynthTypes.llAutomatonT list * 'a * 'b * 'c -> unit
               end
             module AST :
               sig
@@ -4014,7 +4093,8 @@ module MC :
                   Format.formatter ->
                   MusynthTypes.llDesignatorT list *
                   MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-                  MusynthTypes.llSpecT list -> unit
+                  MusynthTypes.llSpecT list * MusynthTypes.llPropT -> 
+                  unit
               end
             module Utils :
               sig
@@ -4113,6 +4193,9 @@ module MC :
                     val pLossFairness :
                       Format.formatter ->
                       MusynthTypes.musLossFairnessT -> unit
+                    val pDupFairness :
+                      Format.formatter ->
+                      MusynthTypes.musDupFairnessT -> unit
                     val pAutomatonDecl :
                       Format.formatter ->
                       MusynthTypes.musAutomatonDeclType
@@ -4138,6 +4221,13 @@ module MC :
                       unit
                     val pLLAnnot :
                       Format.formatter -> MusynthTypes.llAnnotT -> unit
+                    val pLLFairness :
+                      Format.formatter -> MusynthTypes.llFairnessT -> unit
+                    val pLLDupFairness :
+                      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+                    val pLLLossFairness :
+                      Format.formatter ->
+                      MusynthTypes.llLossFairnessT -> unit
                     val pLLTrans :
                       Format.formatter -> MusynthTypes.llTransT -> unit
                     val pLLProp :
@@ -4150,7 +4240,8 @@ module MC :
                       Format.formatter ->
                       MusynthTypes.llDesignatorT list *
                       MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-                      MusynthTypes.llSpecT list -> unit
+                      MusynthTypes.llSpecT list * MusynthTypes.llPropT ->
+                      unit
                   end
                 module MSSet :
                   sig
@@ -4676,6 +4767,8 @@ module MC :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -4696,6 +4789,12 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -4705,7 +4804,7 @@ module MC :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module MSSet :
           sig
@@ -4878,7 +4977,7 @@ module MC :
         getAllButParamCube : unit -> 'a Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
-        getNumMinTermsParam : 'a Cudd.Bdd.t -> float;
+        getCubeForVar : MusynthTypes.llDesignatorT -> 'a Cudd.Bdd.t;
         getStateVars : 'a Cudd.Bdd.t ->
                        MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
         getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
@@ -4899,6 +4998,7 @@ module MC :
         getAllButParamCube : unit -> 'a Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForVar : MusynthTypes.llDesignatorT -> 'a Cudd.Bdd.t;
         getNumMinTermsParam : 'a Cudd.Bdd.t -> float;
         getStateVars : 'a Cudd.Bdd.t ->
                        MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
@@ -4922,8 +5022,9 @@ module MC :
         getCubeForParamVars : unit -> 'a Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
         getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+        getCubeForVar : MusynthTypes.llDesignatorT -> 'a Cudd.Bdd.t;
         getNumMinTermsParam : 'a Cudd.Bdd.t -> float;
-        getNumParamBits : unit -> int; getNumStateBits : unit -> int;
+        getNumStateBits : unit -> int;
         getParamVarNames : unit -> MusynthTypes.llDesignatorT list;
         getStateVars : 'a Cudd.Bdd.t ->
                        MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
@@ -4939,7 +5040,7 @@ module MC :
       'a Cudd.Bdd.t ->
       ('c * 'd * 'e * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
        ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list)
-      MusynthTypes.StringMap.t -> 'a Cudd.Bdd.t
+      MusynthTypes.StringMap.t -> 'a Cudd.Bdd.t -> 'a Cudd.Bdd.t
     val check :
       < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
         getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
@@ -5057,6 +5158,8 @@ module Utils :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -5075,6 +5178,12 @@ module Utils :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -5083,7 +5192,8 @@ module Utils :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module MSSet :
       sig
@@ -5370,7 +5480,7 @@ module Mgr :
           unit
         val checkLLProg :
           MusynthTypes.LLDesigSet.elt list * MusynthTypes.llAutomatonT list *
-          'a * 'b -> unit
+          'a * 'b * 'c -> unit
       end
     module AST :
       sig
@@ -5487,7 +5597,8 @@ module Mgr :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module Utils :
       sig
@@ -5576,6 +5687,8 @@ module Mgr :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -5596,6 +5709,12 @@ module Mgr :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -5605,7 +5724,7 @@ module Mgr :
               Format.formatter ->
               MusynthTypes.llDesignatorT list *
               MusynthTypes.llAutomatonT list * MusynthTypes.llPropT *
-              MusynthTypes.llSpecT list -> unit
+              MusynthTypes.llSpecT list * MusynthTypes.llPropT -> unit
           end
         module MSSet :
           sig
@@ -5972,6 +6091,7 @@ module Trace :
         val reorderEnabled : bool ref
         val reorderMethod : Cudd.Man.reorder ref
         val tracePrintMode : string ref
+        val jumpStep : int ref
         val reorderMethods : string list
       end
     module AST :
@@ -6055,6 +6175,8 @@ module Trace :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -6073,6 +6195,12 @@ module Trace :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -6081,7 +6209,8 @@ module Trace :
         val pLLProg :
           Format.formatter ->
           MusynthTypes.llDesignatorT list * MusynthTypes.llAutomatonT list *
-          MusynthTypes.llPropT * MusynthTypes.llSpecT list -> unit
+          MusynthTypes.llPropT * MusynthTypes.llSpecT list *
+          MusynthTypes.llPropT -> unit
       end
     module Debug :
       sig
@@ -6137,5 +6266,182 @@ module Trace :
       Format.formatter ->
       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list ->
       MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t list -> unit
+  end
+module Bdd :
+  sig
+    type 'a t = 'a Cudd.Bdd.t
+    type 'a bdd = 'a Cudd.Bdd.bdd = Bool of bool | Ite of int * 'a t * 'a t
+    type dt = Cudd.Man.d t
+    type vt = Cudd.Man.v t
+    external manager : 'a t -> 'a Cudd.Man.t = "camlidl_cudd_bdd_manager"
+    external is_cst : 'a t -> bool = "camlidl_cudd_bdd_is_cst"
+    external is_complement : 'a t -> bool = "camlidl_cudd_bdd_is_complement"
+    external topvar : 'a t -> int = "camlidl_cudd_bdd_topvar"
+    external dthen : 'a t -> 'a t = "camlidl_cudd_bdd_dthen"
+    external delse : 'a t -> 'a t = "camlidl_cudd_bdd_delse"
+    external cofactors : int -> 'a t -> 'a t * 'a t
+      = "camlidl_cudd_bdd_cofactors"
+    external cofactor : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_cofactor"
+    external inspect : 'a t -> 'a bdd = "camlidl_cudd_bdd_inspect"
+    external support : 'a t -> 'a t = "camlidl_cudd_bdd_support"
+    external supportsize : 'a t -> int = "camlidl_cudd_bdd_supportsize"
+    external is_var_in : int -> 'a t -> bool = "camlidl_cudd_bdd_is_var_in"
+    external vectorsupport : 'a t array -> 'a t
+      = "camlidl_cudd_bdd_vectorsupport"
+    external support_inter : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_support_inter"
+    external support_union : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_dand"
+    external support_diff : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_cofactor"
+    external list_of_support : 'a t -> int list
+      = "camlidl_cudd_list_of_support"
+    external dtrue : 'a Cudd.Man.t -> 'a t = "camlidl_cudd_bdd_dtrue"
+    external dfalse : 'a Cudd.Man.t -> 'a t = "camlidl_cudd_bdd_dfalse"
+    external ithvar : 'a Cudd.Man.t -> int -> 'a t
+      = "camlidl_cudd_bdd_ithvar"
+    external newvar : 'a Cudd.Man.t -> 'a t = "camlidl_cudd_bdd_newvar"
+    external newvar_at_level : 'a Cudd.Man.t -> int -> 'a t
+      = "camlidl_cudd_bdd_newvar_at_level"
+    external is_true : 'a t -> bool = "camlidl_cudd_bdd_is_true"
+    external is_false : 'a t -> bool = "camlidl_cudd_bdd_is_false"
+    external is_equal : 'a t -> 'a t -> bool = "camlidl_cudd_bdd_is_equal"
+    external is_leq : 'a t -> 'a t -> bool = "camlidl_cudd_bdd_is_leq"
+    external is_inter_empty : 'a t -> 'a t -> bool
+      = "camlidl_cudd_bdd_is_inter_empty"
+    external is_equal_when : 'a t -> 'a t -> 'a t -> bool
+      = "camlidl_cudd_bdd_is_equal_when"
+    external is_leq_when : 'a t -> 'a t -> 'a t -> bool
+      = "camlidl_cudd_bdd_is_leq_when"
+    val is_included_in : 'a t -> 'a t -> bool
+    external is_ite_cst : 'a t -> 'a t -> 'a t -> bool option
+      = "camlidl_cudd_bdd_is_ite_cst"
+    external is_var_dependent : int -> 'a t -> bool
+      = "camlidl_cudd_bdd_is_var_dependent"
+    external is_var_essential : int -> bool -> 'a t -> bool
+      = "camlidl_cudd_bdd_is_var_essential"
+    external size : 'a t -> int = "camlidl_cudd_bdd_size"
+    external nbpaths : 'a t -> float = "camlidl_cudd_bdd_nbpaths"
+    external nbtruepaths : 'a t -> float = "camlidl_cudd_bdd_nbtruepaths"
+    external nbminterms : int -> 'a t -> float
+      = "camlidl_cudd_bdd_nbminterms"
+    external density : int -> 'a t -> float = "camlidl_cudd_bdd_density"
+    external dnot : 'a t -> 'a t = "camlidl_cudd_bdd_dnot"
+    external dand : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_dand"
+    external dor : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_dor"
+    external xor : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_xor"
+    external nand : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_nand"
+    external nor : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_nor"
+    external nxor : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_nxor"
+    val eq : 'a t -> 'a t -> 'a t
+    external ite : 'a t -> 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_ite"
+    external ite_cst : 'a t -> 'a t -> 'a t -> 'a t option
+      = "camlidl_cudd_bdd_ite_cst"
+    external compose : int -> 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_compose"
+    val vectorcompose : ?memo:Cudd.Memo.t -> 'a t array -> 'a t -> 'a t
+    external intersect : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_intersect"
+    external varmap : 'a t -> 'a t = "camlidl_cudd_bdd_varmap"
+    val permute : ?memo:Cudd.Memo.t -> 'a t -> int array -> 'a t
+    external iter_node : ('a t -> unit) -> 'a t -> unit
+      = "camlidl_cudd_iter_node"
+    external iter_cube : (Cudd.Man.tbool array -> unit) -> 'a t -> unit
+      = "camlidl_cudd_bdd_iter_cube"
+    external iter_prime :
+      (Cudd.Man.tbool array -> unit) -> 'a t -> 'a t -> unit
+      = "camlidl_cudd_bdd_iter_prime"
+    external exist : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_exist"
+    external forall : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_forall"
+    external existand : 'a t -> 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_existand"
+    external existxor : 'a t -> 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_existxor"
+    external booleandiff : 'a t -> int -> 'a t
+      = "camlidl_cudd_bdd_booleandiff"
+    external cube_of_bdd : 'a t -> 'a t = "camlidl_cudd_cube_of_bdd"
+    external cube_of_minterm : 'a Cudd.Man.t -> Cudd.Man.tbool array -> 'a t
+      = "camlidl_cudd_cube_of_minterm"
+    external list_of_cube : 'a t -> (int * bool) list
+      = "camlidl_cudd_list_of_cube"
+    external cube_union : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_cube_union"
+    external pick_minterm : 'a t -> Cudd.Man.tbool array
+      = "camlidl_cudd_pick_minterm"
+    external pick_cube_on_support : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_pick_cube_on_support"
+    external pick_cubes_on_support : 'a t -> 'a t -> int -> 'a t array
+      = "camlidl_cudd_pick_cubes_on_support"
+    external constrain : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_constrain"
+    external tdconstrain : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_tdconstrain"
+    external restrict : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_restrict"
+    external tdrestrict : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_tdrestrict"
+    external minimize : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_minimize"
+    external licompaction : 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_licompaction"
+    external squeeze : 'a t -> 'a t -> 'a t = "camlidl_cudd_bdd_squeeze"
+    external clippingand : 'a t -> 'a t -> int -> bool -> 'a t
+      = "camlidl_cudd_bdd_clippingand"
+    external clippingexistand : 'a t -> 'a t -> 'a t -> int -> bool -> 'a t
+      = "camlidl_cudd_bdd_clippingexistand"
+    external underapprox : int -> int -> bool -> float -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_underapprox"
+    external overapprox : int -> int -> bool -> float -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_overapprox"
+    external remapunderapprox : int -> int -> float -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_remapunderapprox"
+    external remapoverapprox : int -> int -> float -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_remapoverapprox"
+    external biasedunderapprox :
+      int -> int -> float -> float -> 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_biasedunderapprox_bytecode"
+      "camlidl_cudd_bdd_biasedunderapprox"
+    external biasedoverapprox :
+      int -> int -> float -> float -> 'a t -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_biasedoverapprox_bytecode"
+      "camlidl_cudd_bdd_biasedoverapprox"
+    external subsetcompress : int -> int -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_subsetcompress"
+    external supersetcompress : int -> int -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_supersetcompress"
+    external subsetHB : int -> int -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_subsetHB"
+    external supersetHB : int -> int -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_supersetHB"
+    external subsetSP : int -> int -> bool -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_subsetSP"
+    external supersetSP : int -> int -> bool -> 'a t -> 'a t
+      = "camlidl_cudd_bdd_supersetSP"
+    external approxconjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_approxconjdecomp"
+    external approxdisjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_approxdisjdecomp"
+    external iterconjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_iterconjdecomp"
+    external iterdisjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_iterdisjdecomp"
+    external genconjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_genconjdecomp"
+    external gendisjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_gendisjdecomp"
+    external varconjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_varconjdecomp"
+    external vardisjdecomp : 'a t -> ('a t * 'a t) option
+      = "camlidl_cudd_bdd_vardisjdecomp"
+    external transfer : 'a t -> 'b Cudd.Man.t -> 'b t
+      = "camlidl_cudd_bdd_transfer"
+    external correlation : 'a t -> 'a t -> float
+      = "camlidl_cudd_bdd_correlation"
+    external correlationweights : 'a t -> 'a t -> float array -> float
+      = "camlidl_cudd_bdd_correlationweights"
+    external _print : 'a t -> unit = "camlidl_cudd_print"
+    val print__minterm : Format.formatter -> 'a t -> unit
+    val print_minterm :
+      (Format.formatter -> int -> unit) -> Format.formatter -> 'a t -> unit
+    val print :
+      (Format.formatter -> int -> unit) -> Format.formatter -> 'a t -> unit
+    val print_list :
+      (Format.formatter -> int -> unit) ->
+      Format.formatter -> (int * bool) list -> unit
   end
 val musynthProcess : string option -> unit
