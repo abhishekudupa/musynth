@@ -227,7 +227,7 @@ let transChecker symtab trans locopt =
      if ((aut1 <> aut2) || (aut2 <> aut3)) then
        raise (SemanticError ("States and messages in transition must refer " ^ 
                                "only to the automaton's states " ^ 
-                               "and messages", locopt))
+                                 "and messages", locopt))
      else
        ("", [])
   | _ -> raise (SemanticError ("Error in transition", locopt))
@@ -365,9 +365,9 @@ let checkAutDef symtab autdef loc =
        (fun msgdecl ->
         checkAutomatonMsgDecl symtab OutputMsg (convertDesigDeclToPrimed msgdecl)) msgs;
      (match chanProp with
-     | _, ChanLossless _, _, ChanNonBlocking loc, _ ->
-        raise (SemanticError ("Only lossy channels can be declared non-blocking", loc))
-     | _ -> ());
+      | _, ChanLossless _, _, ChanNonBlocking loc, _ ->
+         raise (SemanticError ("Only lossy channels can be declared non-blocking", loc))
+      | _ -> ());
      (autname, autparamtypelist)
 
 let initStateDeclChecker symtab propList =
@@ -512,7 +512,7 @@ let checkLLProg prog =
      in
      if (List.length senders) <> 1 then
        raise (SemanticError ("Error. Message \"" ^ (lldesigToString msg) ^ "\" does not have exactly one " ^ 
-                              "Sender.", None))
+                               "Sender.", None))
      else
        ()) allMsgs;
 

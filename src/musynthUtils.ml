@@ -411,4 +411,4 @@ let makeDisjunction propList =
      List.fold_left 
        (fun acc prop ->
         LLPropOr (acc, prop)) seed rest
-     
+       

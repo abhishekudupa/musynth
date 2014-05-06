@@ -151,7 +151,7 @@ type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT = 
   | SpecInvar of string * musPropT * sourcelocation option
   | SpecLTL of string * musPropT * (musPropT * musPropT) list * 
-      (musPropT * musPropT) list * sourcelocation option
+                 (musPropT * musPropT) list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
@@ -275,7 +275,7 @@ module LLDesigSetMap =
     (struct 
       type t = LLDesigSet.t
       let compare = LLDesigSet.compare
-     end)
+    end)
 
 module IntMap = Map.Make
                   (struct 
@@ -365,6 +365,17 @@ let rec getPrimedLLDesig lldesig =
   | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "'")
+
+let rec getBaseLLDesig lldesig =
+  match lldesig with
+  | LLSimpleDesignator name -> name
+  | LLIndexDesignator (ndesig, name) -> getBaseLLDesig ndesig
+  | _ -> assert false
+
+let rec countLLDesigParams lldesig =
+  match lldesig with
+  | LLSimpleDesignator _ -> 0
+  | LLIndexDesignator (ndesig, name) -> 1 + (countLLDesigParams ndesig)
 
 (* type for signalling synthesis status *)
 type 'a synthExitStatT =

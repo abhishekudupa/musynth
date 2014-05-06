@@ -809,7 +809,7 @@ module LTL :
       MusynthTypes.PropMap.key * MusynthTypes.llPropT *
       MusynthTypes.fairnessSpecT list
   end
-val constructDLFProps :
+val constructDLProps :
   MusynthTypes.llIdentT list ->
   MusynthTypes.llAutomatonT list -> MusynthTypes.llPropT
 val encodeStateVariables :

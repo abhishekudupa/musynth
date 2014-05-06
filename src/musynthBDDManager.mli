@@ -625,12 +625,15 @@ class bddManager :
     method getNumParamVars : unit -> int
     method getNumStateBits : unit -> int
     method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
+    method getParamVarNames : unit -> MusynthTypes.LLDesigSet.elt list
     method getParamVarPrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit
     method getParamVars :
       Cudd.Man.d Cudd.Bdd.t ->
       MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t
     method getPeakBDDSize : unit -> int
+    method getStateVarNames : unit -> MusynthTypes.LLDesigMap.key list
+    method getStateVarNamesNI : unit -> MusynthTypes.LLDesigMap.key list
     method getStateVarPrinter :
       unit -> Format.formatter -> Cudd.Man.tbool array -> unit
     method getStateVars :

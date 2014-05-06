@@ -121,7 +121,7 @@ let findPathCube mgr initStates transRel errstate =
   in
   let stateList = forwardStates initStates initStates in
   foldStateList stateList errstate
-    
+                
 let findPath mgr initStates transRel errstate =
   List.map 
     mgr#getStateVars 

@@ -17,7 +17,7 @@ let numSolsRequested = ref 1
 
 let reorderEnabled = ref false
 
-let reorderMethod = ref Cudd.Man.REORDER_NONE
+let reorderMethod = ref Cudd.Man.REORDER_SIFT
 
 let tracePrintMode = ref "diff"
 

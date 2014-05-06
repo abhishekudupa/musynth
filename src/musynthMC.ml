@@ -102,9 +102,9 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
   Debug.dflush ();
   
   if (not (Bdd.is_false (Bdd.dand feasibleStates chioftester))) then
-    Debug.dprintf "mc" "Feasible and chi of tester is not empty"
+    Debug.dprintf "mc" "Feasible and chi of tester is not empty@,"
   else
-    Debug.dprintf "mc" "Feasible and chi of tester is empty";
+    Debug.dprintf "mc" "Feasible and chi of tester is empty@,";
   
   let feasibleBadStates = Bdd.dand (Bdd.dand feasibleStates chioftester) initStates in
   Debug.dprintf "mc" "Feasible BAD states (liveness) BDD has %d nodes@," 
@@ -116,21 +116,23 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
     mgr#makeTrue ()
   else
     begin
+
       if (Debug.debugEnabled ()) then
         begin
           let fmt = Debug.getDebugFmt () in
           Debug.dprintf "mc" "Found a liveness violation of property \"%s\":@," 
                         propName; 
           Debug.dflush ();
-          let prefix, period = MCU.findLoop mgr initStates origTransRel 
-                                            feasibleStates jlist clist in
           if (Debug.debugOptEnabled "trace") then
+            let prefix, period = MCU.findLoop mgr initStates origTransRel 
+                                              feasibleStates jlist clist in
             Trace.printTraceLiveness fmt prefix period
           else
             ()
         end
       else
         ();
+
       let badParams = Bdd.exist (mgr#getAllButParamCube ()) feasibleBadStates in
       Bdd.dnot badParams
     end
@@ -143,7 +145,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
   let actInitStates = Bdd.dand initstates paramConstraints in
   assert (Bdd.is_inter_empty actInitStates badstates);
   Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
-    k (mgr#getNumMinTermsParam actInitStates); 
+                k (mgr#getNumMinTermsParam actInitStates); 
   Debug.dflush ();
   let kReachStat = MCU.postK k mgr transRel actInitStates in
   let kReach = 
@@ -195,28 +197,70 @@ let conjoinTransitionRels mgr transBDDs =
 
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
-let synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist =
+let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist =
   let transrel = conjoinTransitionRels mgr transBDDs in
-  let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfBDD) in
+  let badstates = Bdd.dor badStateBDD dlBDD in
   (* iteratively synthesize for greater and greater k until we hit fixpoint *)
   let rec synthesize k paramConstraints =
     mgr#minimize ();
     Debug.dprintf "mc" "Synthesizing upto %d steps...@," k; Debug.dflush ();
-    let result = 
-      getParamsForKSteps k paramConstraints mgr transrel 
-        initBDD badstates ltltableaulist 
+    let result =
+      getParamsForKSteps k paramConstraints mgr transrel
+        initBDD badstates ltltableaulist
     in
     match result with
     | ExecFixpoint params -> params
     | ExecNonConverged params ->
       synthesize (k + !Opts.jumpStep) params
   in
-  let solbdd = synthesize 0 (mgr#getConstraintsOnParams ()) in
+  let solbdd = synthesize 0 paramConstraints in
   if (Debug.debugEnabled ()) then
     Debug.dprintf "mc" "Found %e solutions@," (mgr#getNumMinTermsParam solbdd)
   else
     ();
   solbdd
+
+let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist =
+  let transRel = conjoinTransitionRels mgr transBDDs in
+  (* set initial params to false *)
+  let paramNames = mgr#getParamVarNames () in
+  let paramConstProp = 
+    List.fold_left 
+      (fun prop name -> LLPropAnd (LLPropEquals (name, Utils.makeDeferDesig ()), prop))
+      LLPropTrue paramNames
+  in
+  let paramConstraints = mgr#prop2BDD paramConstProp in
+  let reachableStates = MCU.computeFixPoint 
+                          (MCU.postOrTransformer mgr transRel)
+                          MCU.inclusionFixPointTester (Bdd.dand initBDD paramConstraints)
+  in
+  let deadlockedReachable = Bdd.dand reachableStates dlBDD in
+  if (Bdd.is_false deadlockedReachable) then
+    begin
+      Debug.dprintf "mc" "No Deadlock Found@,";
+      mgr#makeFalse ()
+    end
+  else
+    begin
+      let rstates = Bdd.exist (mgr#getCubeForParamVars ()) reachableStates in
+      Debug.dprintf "mc" "%e Deadlocked states.@," (Bdd.nbminterms (mgr#getNumStateBits ())
+                                                                   (Bdd.existand (mgr#getCubeForParamVars ())
+                                                                                 rstates dlBDD));
+
+      let dlParams = Bdd.existand (mgr#getCubeForUnprimedVars ()) rstates dlBDD in
+      let dlsupport = Bdd.support dlParams in
+      let dlSupportSize = Bdd.supportsize dlParams in
+      Debug.dprintf "mc" "Support of deadlock has size %d:@," dlSupportSize;
+      Debug.dprintf "mc" "%a@," (Bdd.print (mgr#getBitPrinter ())) (Bdd.support dlParams);
+      Debug.dprintf "mc" "DL on support has %e cubes.@," (Bdd.nbminterms dlSupportSize dlParams);
+      let newConstraints = Bdd.exist dlsupport paramConstraints in
+      let newConstraints = Bdd.dand newConstraints (Bdd.dnot dlParams) in
+      let newConstraints = Bdd.dand newConstraints (mgr#getConstraintsOnParams ()) in
+      Debug.dprintf "mc" "New param constraints have %e cubes.@," 
+                    (Bdd.nbminterms (mgr#getNumParamBits ()) newConstraints);
+      synthFrontEndInternal mgr newConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist
+    end
+
 
 let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
   let transrel = conjoinTransitionRels mgr transBDDs in
@@ -245,32 +289,32 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
   match reachStat with
   | MCFailureSafety trace -> reachStat
   | MCSuccess reachStates ->
-    Debug.dprintf "mc" ("No safety violation found. Fixpoint in %d iterations. " ^^
+     Debug.dprintf "mc" ("No safety violation found. Fixpoint in %d iterations. " ^^
                            "Proceeding to liveness checks.@,@,") !reachIter;
-    StringMap.fold
-      (fun propname tableau acc ->
+     StringMap.fold
+       (fun propname tableau acc ->
         let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
         match acc with
         | MCSuccess _ ->
-          let ltransrel = Bdd.dand transrel tableautrans in
-          let lreachStates = 
-            MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
-              MCU.inclusionFixPointTester initBDD
-          in
-          let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
-          if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
-            begin
-              let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
-              Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
-              Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
-                Trace.printState (mgr#getStateVars badReachableStates);
-              Debug.dflush ();
-              let prefix, loop = MCU.findLoop mgr initBDD ltransrel feasible jlist clist in
-              MCFailureLiveness (propname, prefix, loop)
-            end
-          else
-            MCSuccess feasible
+           let ltransrel = Bdd.dand transrel tableautrans in
+           let lreachStates = 
+             MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
+                                 MCU.inclusionFixPointTester initBDD
+           in
+           let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
+           if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
+             begin
+               let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
+               Debug.dprintf "mc" "Violation of property \"%s\" found.@," propname;
+               Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
+                             Trace.printState (mgr#getStateVars badReachableStates);
+               Debug.dflush ();
+               let prefix, loop = MCU.findLoop mgr initBDD ltransrel feasible jlist clist in
+               MCFailureLiveness (propname, prefix, loop)
+             end
+           else
+             MCSuccess feasible
         | MCFailureLiveness _ -> 
-          acc
+           acc
         | _ -> assert false) ltltableaulist reachStat
   | _ -> assert false

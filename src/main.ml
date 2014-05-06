@@ -64,41 +64,41 @@ let reorderMethOptionToMethod opt =
 let rec processDebugOptions optlist = 
   match optlist with
   | "prog" :: rest -> 
-    Opts.debugOptions := StringSet.add "prog" !Opts.debugOptions;
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "prog" !Opts.debugOptions;
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "lprog" :: rest -> 
-    Opts.debugOptions := StringSet.add "lprog" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "lprog" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "trace" :: rest -> 
-    Opts.debugOptions := StringSet.add "trace" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "trace" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "trans" :: rest -> 
-    Opts.debugOptions := StringSet.add "trans" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "trans" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "all" :: rest -> 
-    Opts.debugOptions := StringSet.add "all" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "all" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "bdd" :: rest -> 
-    Opts.debugOptions := StringSet.add "bdd" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "bdd" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "mc" :: rest -> 
-    Opts.debugOptions := StringSet.add "mc" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "mc" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "ltl" :: rest -> 
-    Opts.debugOptions := StringSet.add "ltl" !Opts.debugOptions; 
-    Opts.debugDisabled := false;
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "ltl" !Opts.debugOptions; 
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "none" :: rest -> 
-    Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
-    Opts.debugDisabled := true; 
-    processDebugOptions rest
+     Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
+     Opts.debugDisabled := true; 
+     processDebugOptions rest
   | _ -> optlist
 
 let processOptions arglist =
@@ -115,48 +115,48 @@ let processOptions arglist =
             match arglist with
             | [] -> []
             | "-debug" :: rest ->
-              processDebugOptions rest
+               processDebugOptions rest
             | "-j" :: intval :: rest ->
-              Opts.jumpStep := (int_of_string intval);
-              if (!Opts.jumpStep = 0) then
-                Opts.jumpStep := max_int
-              else
-                ();
-              rest
-            | "-c" :: rest ->
-              Opts.conjunctivePart := true; rest
-            | "-n" :: num :: rest ->
-              Opts.numSolsRequested := (int_of_string num); rest
-            | "-df" :: fname :: rest ->
-              Opts.debugFileName := fname; rest
-            | "-dr" :: dropt :: rest ->
-              Opts.reorderEnabled := true;
-              (try
-                 let meth = reorderMethOptionToMethod dropt in
-                 Opts.reorderMethod := meth;
-                 rest
-               with 
-               | Invalid_argument "Not a valid reordering method" ->
-                 Opts.reorderMethod := Cudd.Man.REORDER_SYMM_SIFT;
-                 (dropt :: rest))
-            | "-tp" :: "diff" :: rest ->
-              Opts.tracePrintMode := "diff"; rest
-            | "-tp" :: "full" :: rest -> 
-              Opts.tracePrintMode := "full"; rest
-            | "-tp" :: rest ->
-              raise (Invalid_argument "Unknown trace printing mode!")
-            | str :: rest ->
-              if !Opts.inputFileName <> "" then
-                begin
-                  fprintf stderr "%s\n" !Opts.inputFileName;
-                  fprintf stderr "Only one input file may be specified.\n";
-                  fprintf stderr "Already have input file \"%s\".\n" !Opts.inputFileName;
-                  fprintf stderr "Don't know what to do with argument \"%s\".\n" str;
-                  printUsage arg0
-                end
+               Opts.jumpStep := (int_of_string intval);
+               if (!Opts.jumpStep = 0) then
+                 Opts.jumpStep := max_int
                else
-                Opts.inputFileName := str;
-              rest
+                 ();
+               rest
+            | "-c" :: rest ->
+               Opts.conjunctivePart := true; rest
+            | "-n" :: num :: rest ->
+               Opts.numSolsRequested := (int_of_string num); rest
+            | "-df" :: fname :: rest ->
+               Opts.debugFileName := fname; rest
+            | "-dr" :: dropt :: rest ->
+               Opts.reorderEnabled := true;
+               (try
+                   let meth = reorderMethOptionToMethod dropt in
+                   Opts.reorderMethod := meth;
+                   rest
+                 with 
+                 | Invalid_argument "Not a valid reordering method" ->
+                    Opts.reorderMethod := Cudd.Man.REORDER_SYMM_SIFT;
+                    (dropt :: rest))
+            | "-tp" :: "diff" :: rest ->
+               Opts.tracePrintMode := "diff"; rest
+            | "-tp" :: "full" :: rest -> 
+               Opts.tracePrintMode := "full"; rest
+            | "-tp" :: rest ->
+               raise (Invalid_argument "Unknown trace printing mode!")
+            | str :: rest ->
+               if !Opts.inputFileName <> "" then
+                 begin
+                   fprintf stderr "%s\n" !Opts.inputFileName;
+                   fprintf stderr "Only one input file may be specified.\n";
+                   fprintf stderr "Already have input file \"%s\".\n" !Opts.inputFileName;
+                   fprintf stderr "Don't know what to do with argument \"%s\".\n" str;
+                   printUsage arg0
+                 end
+               else
+                 Opts.inputFileName := str;
+               rest
           end
         in
         processOptionsRec rest

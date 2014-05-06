@@ -12,11 +12,11 @@ module LTL = MusynthLtl
 (* deadlock freedom prop. constructed in terms of available transitions *)
 (* This COULD be constructed in terms of the LCMesg, but this way makes *)
 (* analysis of counterexamples easier, so we stick with it              *)
-let constructDLFProps msglist automata =
+let constructDLProps msglist automata =
   List.fold_left 
     (fun prop msg ->
-      let sprop = Utils.getCSPredsForMsgAll msg automata in
-      LLPropAnd (LLPropNot sprop, prop)) LLPropTrue msglist
+     let sprop = Utils.getCSPredsForMsgAll msg automata in
+     LLPropAnd (LLPropNot sprop, prop)) LLPropTrue msglist
 
 let encodeStateVariables mgr automaton =
   let name, states = 
@@ -216,10 +216,10 @@ let encodeProg mgr prog =
       (fun m spec ->
        match spec with
        | LLSpecLTL (name, prop, justicelist, compassionlist) ->
-         let actJList = List.map (fun (a, b) -> Justice (a, b)) justicelist in
-         let actCList = List.map (fun (a, b) -> Compassion (a, b)) compassionlist in
-         let tableaudesc = LTL.constructTableau prop in
-         let p2vmap, v2pmap, chimap, chioftester, t, tjlist = tableaudesc in
+          let actJList = List.map (fun (a, b) -> Justice (a, b)) justicelist in
+          let actCList = List.map (fun (a, b) -> Compassion (a, b)) compassionlist in
+          let tableaudesc = LTL.constructTableau prop in
+          let p2vmap, v2pmap, chimap, chioftester, t, tjlist = tableaudesc in
           let myjlist = universaljlist @ actJList @ tjlist in
           let myclist = universalclist @ actCList in
 
@@ -227,26 +227,26 @@ let encodeProg mgr prog =
             begin
               Debug.dprintf "trans" "Tableau:@,%a@,@," AST.pLLProp t;
               Debug.dprintf "ltl" "Justices for prop %a:@,@,"
-                AST.pLLProp prop;
+                            AST.pLLProp prop;
               List.iter 
                 (fun j -> 
-                  let prop1, prop2 = 
-                    match j with
-                    | LTLJustice (prop1, prop2) -> Debug.dprintf "ltl" "(LTL) "; prop1, prop2
-                    | Justice (prop1, prop2) -> prop1, prop2
-                    | _ -> assert false
-                  in
-                  Debug.dprintf "ltl" "%a -->@,%a@," AST.pLLProp prop1 AST.pLLProp prop2) myjlist;
+                 let prop1, prop2 = 
+                   match j with
+                   | LTLJustice (prop1, prop2) -> Debug.dprintf "ltl" "(LTL) "; prop1, prop2
+                   | Justice (prop1, prop2) -> prop1, prop2
+                   | _ -> assert false
+                 in
+                 Debug.dprintf "ltl" "%a -->@,%a@," AST.pLLProp prop1 AST.pLLProp prop2) myjlist;
               Debug.dprintf "ltl" "Compassions for prop %a:@,@," AST.pLLProp prop;
               List.iter 
                 (fun j -> 
-                  let p, q = 
-                    match j with
-                    | LossDupCompassion (p, q) -> Debug.dprintf "ltl" "(LD) "; p, q
-                    | Compassion (p, q) -> p, q
-                    | _ -> assert false
-                  in
-                  Debug.dprintf "ltl" "%a -->@,%a@," AST.pLLProp p AST.pLLProp q)
+                 let p, q = 
+                   match j with
+                   | LossDupCompassion (p, q) -> Debug.dprintf "ltl" "(LD) "; p, q
+                   | Compassion (p, q) -> p, q
+                   | _ -> assert false
+                 in
+                 Debug.dprintf "ltl" "%a -->@,%a@," AST.pLLProp p AST.pLLProp q)
                 myclist;
               Debug.dflush ()
             end
@@ -266,33 +266,33 @@ let encodeProg mgr prog =
          v2pmap;
        let enct = mgr#prop2BDD t in
        let encjlist = List.map 
-         (fun j -> 
-           let prop1, prop2 = 
-             match j with
-             | Justice (prop1, prop2)
-             | LTLJustice (prop1, prop2) -> prop1, prop2
-             | _ -> assert false
-           in
-           mgr#prop2BDD (LLPropOr (LLPropNot prop1, prop2)))
-         myjlist in
+                        (fun j -> 
+                         let prop1, prop2 = 
+                           match j with
+                           | Justice (prop1, prop2)
+                           | LTLJustice (prop1, prop2) -> prop1, prop2
+                           | _ -> assert false
+                         in
+                         mgr#prop2BDD (LLPropOr (LLPropNot prop1, prop2)))
+                        myjlist in
 
        let encclist = List.map 
-         (fun j -> 
-           let prop1, prop2 =
-             match j with
-             | Compassion (prop1, prop2)
-             | LossDupCompassion (prop1, prop2) -> prop1, prop2
-             | _ -> assert false
-           in
-           (mgr#prop2BDD prop1, mgr#prop2BDD prop2)) myclist in
+                        (fun j -> 
+                         let prop1, prop2 =
+                           match j with
+                           | Compassion (prop1, prop2)
+                           | LossDupCompassion (prop1, prop2) -> prop1, prop2
+                           | _ -> assert false
+                         in
+                         (mgr#prop2BDD prop1, mgr#prop2BDD prop2)) myclist in
        let encchioftester = mgr#prop2BDD chioftester in
        (p2vmap, v2pmap, chimap, encchioftester, enct, encjlist, encclist))
       ltltableaumap
   in
-        
+  
   let badstates = LLPropNot invariants in
-  let dlfProp = constructDLFProps msgdecls automata in
-  let dlfBDD = mgr#prop2BDD dlfProp in
+  let dlProp = constructDLProps msgdecls automata in
+  let dlBDD = mgr#prop2BDD dlProp in
   let transBDDs = 
     LLDesigMap.fold 
       (fun ident prop acc ->
@@ -309,5 +309,5 @@ let encodeProg mgr prog =
                                    initconstraints)
   in
   let initBDD = mgr#prop2BDD initconstraints in
-  (transBDDs, initBDD, badStateBDD, dlfBDD, encodedTableauMap)
+  (transBDDs, initBDD, badStateBDD, dlBDD, encodedTableauMap)
 

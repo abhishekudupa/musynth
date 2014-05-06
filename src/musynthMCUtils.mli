@@ -74,6 +74,8 @@ module AST :
     val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
     val pLossFairness :
       Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+    val pDupFairness :
+      Format.formatter -> MusynthTypes.musDupFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -91,6 +93,11 @@ module AST :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+    val pLLFairness : Format.formatter -> MusynthTypes.llFairnessT -> unit
+    val pLLDupFairness :
+      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+    val pLLLossFairness :
+      Format.formatter -> MusynthTypes.llLossFairnessT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -387,6 +394,8 @@ module MGR :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -405,6 +414,12 @@ module MGR :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -788,12 +803,15 @@ module MGR :
         method getNumParamVars : unit -> int
         method getNumStateBits : unit -> int
         method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
+        method getParamVarNames : unit -> MusynthTypes.LLDesigSet.elt list
         method getParamVarPrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getParamVars :
           Cudd.Man.d Cudd.Bdd.t ->
           MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t
         method getPeakBDDSize : unit -> int
+        method getStateVarNames : unit -> MusynthTypes.LLDesigMap.key list
+        method getStateVarNamesNI : unit -> MusynthTypes.LLDesigMap.key list
         method getStateVarPrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getStateVars :

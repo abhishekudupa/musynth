@@ -74,6 +74,8 @@ module AST :
     val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
     val pLossFairness :
       Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+    val pDupFairness :
+      Format.formatter -> MusynthTypes.musDupFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -91,6 +93,11 @@ module AST :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+    val pLLFairness : Format.formatter -> MusynthTypes.llFairnessT -> unit
+    val pLLDupFairness :
+      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+    val pLLLossFairness :
+      Format.formatter -> MusynthTypes.llLossFairnessT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -567,6 +574,8 @@ module MGR :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -585,6 +594,12 @@ module MGR :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -968,12 +983,15 @@ module MGR :
         method getNumParamVars : unit -> int
         method getNumStateBits : unit -> int
         method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
+        method getParamVarNames : unit -> MusynthTypes.LLDesigSet.elt list
         method getParamVarPrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getParamVars :
           Cudd.Man.d Cudd.Bdd.t ->
           MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t
         method getPeakBDDSize : unit -> int
+        method getStateVarNames : unit -> MusynthTypes.LLDesigMap.key list
+        method getStateVarNamesNI : unit -> MusynthTypes.LLDesigMap.key list
         method getStateVarPrinter :
           unit -> Format.formatter -> Cudd.Man.tbool array -> unit
         method getStateVars :
@@ -1118,6 +1136,8 @@ module MCU :
         val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
         val pLossFairness :
           Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+        val pDupFairness :
+          Format.formatter -> MusynthTypes.musDupFairnessT -> unit
         val pAutomatonDecl :
           Format.formatter ->
           MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -1136,6 +1156,12 @@ module MCU :
           Format.formatter ->
           MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
         val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+        val pLLFairness :
+          Format.formatter -> MusynthTypes.llFairnessT -> unit
+        val pLLDupFairness :
+          Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+        val pLLLossFairness :
+          Format.formatter -> MusynthTypes.llLossFairnessT -> unit
         val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
         val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
         val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -1452,6 +1478,8 @@ module MCU :
               Format.formatter -> MusynthTypes.musFairnessT -> unit
             val pLossFairness :
               Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+            val pDupFairness :
+              Format.formatter -> MusynthTypes.musDupFairnessT -> unit
             val pAutomatonDecl :
               Format.formatter ->
               MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType ->
@@ -1472,6 +1500,12 @@ module MCU :
               Format.formatter ->
               MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
             val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+            val pLLFairness :
+              Format.formatter -> MusynthTypes.llFairnessT -> unit
+            val pLLDupFairness :
+              Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+            val pLLLossFairness :
+              Format.formatter -> MusynthTypes.llLossFairnessT -> unit
             val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
             val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
             val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -1877,12 +1911,18 @@ module MCU :
             method getNumParamVars : unit -> int
             method getNumStateBits : unit -> int
             method getNumTotalBits : unit -> MusynthTypes.IntSet.elt
+            method getParamVarNames :
+              unit -> MusynthTypes.LLDesigSet.elt list
             method getParamVarPrinter :
               unit -> Format.formatter -> Cudd.Man.tbool array -> unit
             method getParamVars :
               Cudd.Man.d Cudd.Bdd.t ->
               MusynthTypes.LLDesigSet.elt MusynthTypes.LLDesigMap.t
             method getPeakBDDSize : unit -> int
+            method getStateVarNames :
+              unit -> MusynthTypes.LLDesigMap.key list
+            method getStateVarNamesNI :
+              unit -> MusynthTypes.LLDesigMap.key list
             method getStateVarPrinter :
               unit -> Format.formatter -> Cudd.Man.tbool array -> unit
             method getStateVars :
@@ -2323,10 +2363,9 @@ val getParamsForKSteps :
 val conjoinTransitionRels :
   < makeTrue : unit -> 'a Cudd.Bdd.t; .. > ->
   'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t -> 'a Cudd.Bdd.t
-val synthFrontEnd :
+val synthFrontEndInternal :
   < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
     getAllButParamCube : unit -> 'a Cudd.Bdd.t;
-    getConstraintsOnParams : unit -> 'a Cudd.Bdd.t;
     getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
     getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
     getNumMinTermsParam : 'a Cudd.Bdd.t -> float;
@@ -2336,6 +2375,33 @@ val synthFrontEnd :
     getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
     makeTrue : unit -> 'a Cudd.Bdd.t; minimize : unit -> 'b;
     pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array; .. > ->
+  'a Cudd.Bdd.t ->
+  'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
+  'a Cudd.Bdd.t ->
+  'a Cudd.Bdd.t ->
+  'a Cudd.Bdd.t ->
+  ('c * 'd * 'e * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t * 'a Cudd.Bdd.t list *
+   ('a Cudd.Bdd.t * 'a Cudd.Bdd.t) list)
+  MusynthTypes.StringMap.t -> 'a Cudd.Bdd.t
+val synthFrontEnd :
+  < cubeOfMinTerm : Cudd.Man.tbool array -> 'a Cudd.Bdd.t;
+    getAllButParamCube : unit -> 'a Cudd.Bdd.t;
+    getBitPrinter : unit -> Format.formatter -> int -> unit;
+    getConstraintsOnParams : unit -> 'a Cudd.Bdd.t;
+    getCubeForParamVars : unit -> 'a Cudd.Bdd.t;
+    getCubeForPrimedVars : unit -> 'a Cudd.Bdd.t;
+    getCubeForUnprimedVars : unit -> 'a Cudd.Bdd.t;
+    getNumMinTermsParam : 'a Cudd.Bdd.t -> float;
+    getNumParamBits : unit -> int; getNumStateBits : unit -> int;
+    getParamVarNames : unit -> MusynthTypes.llDesignatorT list;
+    getStateVars : 'a Cudd.Bdd.t ->
+                   MusynthTypes.llDesignatorT MusynthTypes.LLDesigMap.t;
+    getSubstTableP2U : unit -> 'a Cudd.Bdd.t array;
+    getSubstTableU2P : unit -> 'a Cudd.Bdd.t array;
+    makeFalse : unit -> 'a Cudd.Bdd.t; makeTrue : unit -> 'a Cudd.Bdd.t;
+    minimize : unit -> 'b;
+    pickMinTermOnStates : 'a Cudd.Bdd.t -> Cudd.Man.tbool array;
+    prop2BDD : MusynthTypes.llPropT -> 'a Cudd.Bdd.t; .. > ->
   'a Cudd.Bdd.t MusynthTypes.LLDesigMap.t ->
   'a Cudd.Bdd.t ->
   'a Cudd.Bdd.t ->

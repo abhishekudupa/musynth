@@ -45,7 +45,7 @@ let musynthProcess filename =
 
     let mgr = new Mgr.bddManager in
     printf "Encoding Program to BDDs and LTL to BDDs via Tableau... "; flush stdout;
-    let (transBDDs, initBDD, badStateBDD, dlfBDD, ltltableaulist) = 
+    let (transBDDs, initBDD, badStateBDD, dlBDD, ltltableaulist) = 
       Enc.encodeProg mgr lprog
     in
     printf "Done!\n"; flush stdout;
@@ -53,7 +53,7 @@ let musynthProcess filename =
       begin
         printf "Attempting to Synthesize... "; flush stdout;
         let solbdd = 
-          MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist 
+          MC.synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist 
         in
         printf "Done!\n"; flush stdout;
         if (mgr#isFalse solbdd) then
@@ -69,7 +69,7 @@ let musynthProcess filename =
       begin
         printf "Nothing to synthesize, switching to model checking mode.\nModel checking... ";
         flush stdout;
-        let status = MC.check mgr transBDDs initBDD badStateBDD dlfBDD ltltableaulist in
+        let status = MC.check mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist in
         printf "Done!\n";
         match status with
         | MCSuccess _ ->

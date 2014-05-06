@@ -126,7 +126,7 @@ let rec lltransSubstitutor substMap trans =
                            valset LLDesigSet.empty))
 
   | TParametrizedMsgDest _ -> raise UnimplementedException
-     
+                                    
 let transSubstitutor substMap trans =
   let start, msg, final = trans in
   (desigSubstitutor substMap start,
@@ -313,6 +313,18 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
   in
   let lstates = LLDesigMap.fold (fun lstate annot acc -> lstate :: acc) lstate2AnnotMap [] in
   let ltrans = transInstantiator transitions in
+  
+  let existingTransChecker state event =
+    List.exists
+      (fun trans ->
+       let ostate, oevent = 
+         match trans with
+         | TComplete (s, e) -> s, e
+         | _ -> assert false
+       in
+       (ostate = state && oevent = event)) ltrans
+  in
+
   let ptrans = 
     LLDesigMap.fold 
       (fun lstate annot acc ->
@@ -322,41 +334,81 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
           let newtrans = 
             (List.fold_left 
                (fun acc2 levent ->
-                let _, availparams1 = getParamsFromLLIdent lstate in
-                let _, availparams2 = getParamsFromLLIdent levent in
-                let availparams = availparams1 @ availparams2 in
-                let goodcands = 
-                  List.filter 
-                    (fun cand -> checkParamCompatibility cand availparams)
-                    lstates
-                in
-                let goodcands = (Utils.makeDeferDesig ()) :: goodcands in
-                let newvarname = "synth_t_" ^ (string_of_int (Utils.getuid ())) in
-                (TParametrizedDest (lstate, levent, (LLSimpleDesignator newvarname, 
-                                                     (mkLLDesigSet goodcands)))) ::acc2)
+                if (existingTransChecker lstate levent) then
+                  acc2
+                else
+                  let _, availparams1 = getParamsFromLLIdent lstate in
+                  let _, availparams2 = getParamsFromLLIdent levent in
+                  let availparams = availparams1 @ availparams2 in
+                  let goodcands = 
+                    List.filter 
+                      (fun cand -> checkParamCompatibility cand availparams)
+                      lstates
+                  in
+                  let goodcands = (Utils.makeDeferDesig ()) :: goodcands in
+                  
+                  let newvarname = "synth_t_" ^ (string_of_int (Utils.getuid ())) in
+                  (TParametrizedDest (lstate, levent, (LLSimpleDesignator newvarname, 
+                                                       (mkLLDesigSet goodcands)))) :: acc2)
                [] lleventlist)
           in
           acc @ newtrans
-       | LLAnnotNumEventList (num, lleventlist) -> raise UnimplementedException) 
+       | LLAnnotNumEventList (num, lleventlist) -> raise UnimplementedException)
       lstate2AnnotMap []
   in
-  (* filter out any duplicates we might have introduced *)
-  let ptrans = 
-    List.filter 
-      (fun trans ->
-       let start, msg =
-         (match trans with
-          | TParametrizedDest (start, msg, _) -> start, msg 
-          | _ -> assert false) 
-       in
-       not (List.exists 
-              (fun otrans -> 
-               let ostart, omsg = 
-                 (match otrans with
-                  | TComplete (start, msg, _) -> start, msg
-                  | _ -> assert false) in
-               (ostart = start) && (omsg = msg)) ltrans)) ptrans 
-  in
+
+  (* returns indices of the free types in the two typelists *)
+  let findFreeTypes typelist1 typelist2 = 
+    let typelist = typelist1 @ typelist2 in
+    let filterPred typ = 
+      List.length (List.filter (fun t -> t = typ) typelist) = 1
+    in
+    let idxlist1 = List.fold_left 
+                     (fun lst typ -> 
+                      if filterPred typ then 
+                        typ :: lst 
+                      else 
+                        lst) [] typelist1
+    in
+    let idxlist2 = List.fold_left
+                     (fun lst typ ->
+                      if filterPred typ then 
+                        typ :: lst 
+                      else
+                        lst) [] typelist2
+    in
+    (idxlist1, idxlist2)
+  
+  (* do the arguments match modulo the positions in the free type list? *)
+  let matchArgs idxlist desig1 desig2 =
+    let rec matchArgsRec desig1 desig2 position =
+      match desig1, desig2 with
+      | LLSimpleDesignator n1, LLSimpleDesignator n2 -> n1 = n2
+      | LLIndexDesignator (ndesig1, n1), LLIndexDesignator (ndesig2, n2) ->
+         if (List.mem position idxlist) then
+           matchArgsRec ndesig1 ndesig2 (position - 1)
+         else
+           ((n1 = n2) && (matchArgsRec ndesig1 ndesig2 (position - 1)))
+    in
+    let numParams = countLLDesigParams desig1 in
+    if (numParams <> (countLLDesigParams desig2)) then
+      raise (Invalid_argument "Mismatched designators in matchArgs")
+    else
+      matchArgsRec desig1 desig2 numParams
+         
+  (* exploit symmetry *)
+  let symProps = 
+    List.fold_left 
+      (fun prop trans ->
+       match trans with
+       | TParametrizedDest (lstate, levent, (paramName, cands)) ->
+          let actS = getBaseLLDesig lstate in
+          let actM = getBaseLLDesig levent in
+          let types1 = CK.getTypeObligationsForIdent symtab (actS, None) in
+          let types2 = CK.getTypeObligationsForIdent symtab (actM, None) in
+          let idxlistS, idxlistM = findFreeTypes types1 types2 in
+          
+
   (* now instantiate the copies of this automaton *)
   let ident, paramlist = CK.destructDesigDecl desig in
   let name, _ = ident in
@@ -376,7 +428,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
                               List.map (lldesigSubstitutor sevalMap) loutmsgs,
                               List.map (lltransSubstitutor sevalMap) (ltrans @ ptrans), lftype))
       evalMaps
-    
+      
 
 let autDeclInstantiator symtab qMap propOpt autDecl =
   match autDecl with
@@ -410,7 +462,7 @@ let rec substInLProp substMap lprop =
   | LLPropTLU (prop1, prop2) ->
      LLPropTLU (substInLProp substMap prop1,
                 substInLProp substMap prop2)  
-     
+               
 
 let rec lowerProp symtab prop = 
   match prop with
@@ -487,14 +539,14 @@ let lowerSpec symtab spec =
      LLSpecLTL (name, lowerAndCanonicalizeProp symtab prop, 
                 List.map
                   (fun (a, b) ->
-                    (lowerAndCanonicalizeProp symtab a, 
-                     lowerAndCanonicalizeProp symtab b)) jlist,
+                   (lowerAndCanonicalizeProp symtab a, 
+                    lowerAndCanonicalizeProp symtab b)) jlist,
                 List.map 
                   (fun (a, b) -> 
-                    (lowerAndCanonicalizeProp symtab a, 
-                     lowerAndCanonicalizeProp symtab b)) clist)
+                   (lowerAndCanonicalizeProp symtab a, 
+                    lowerAndCanonicalizeProp symtab b)) clist)
   | _ -> assert false
-  
+                
 
 let lowerProg symtab prog =
   let stdecls, gmsgdecls, autdecls, isdecls, specs = prog in

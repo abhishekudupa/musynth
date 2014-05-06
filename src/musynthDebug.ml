@@ -45,7 +45,7 @@ let shutDownDebugSubsys () =
      close_out f;
      debugOC := None
   | None -> ()
-  
+              
 
 (* functions for debug printing, etc. *)
 let dprintf debugOpt =
