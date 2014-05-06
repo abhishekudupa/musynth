@@ -150,8 +150,8 @@ type musAutomatonDeclT = musAutomatonDeclType musDeclType
 
 type musSpecT = 
   | SpecInvar of string * musPropT * sourcelocation option
-  | SpecLTL of string * musPropT * musPropT list * 
-                 (musPropT * musPropT) list * sourcelocation option
+  | SpecLTL of string * musPropT * (musPropT * musPropT) list * 
+      (musPropT * musPropT) list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 
 type musProgT = musSymTypeDeclBlockT * musMsgDeclBlockT * 
@@ -186,7 +186,7 @@ type symtabEntry =
   | AutomatonName of (string * autType * symTabScope) declEntry
   | InvariantName of string * musPropT
   (* name, ltl property * fairness list *)
-  | LTLSpecName of string * musPropT * musPropT list * (musPropT * musPropT) list
+  | LTLSpecName of string * musPropT * (musPropT * musPropT) list * (musPropT * musPropT) list
   | DeclaredExpr of string * musPropT
 
  and symTabScope = symtabEntry IdentMap.t ref
@@ -348,7 +348,7 @@ type llMonitorT = (llIdentT list * llIdentT list * (llIdentT * musPropT * llIden
 
 type llSpecT =
   | LLSpecInvar of string * llPropT
-  | LLSpecLTL of string * llPropT * llPropT list * (llPropT * llPropT) list
+  | LLSpecLTL of string * llPropT * (llPropT * llPropT) list * (llPropT * llPropT) list
 
 (* global messages, automata, initial state constraints, properties *)
 type llProgT = (llIdentT list * llAutomatonT list * llPropT * llSpecT list)
@@ -377,10 +377,19 @@ type 'a execExitStatT =
   | ExecFixpoint of 'a
 
 (* type for constructing fairness specs *)
-(* Paramterized. We use the same type for bdds as well as props *)
+(* We model the justice prop as a pair as well *)
+(* to avoid losing information that is useful  *)
+(* during analysis of counterexamples *)
+(* We also distinguish regular (process)          *)
+(* compassion requirements and justice/compassion *)
+(* requirements added to eliminate degenerate  *)
+(* behaviors from lossy and duplicating chans as well *)
+(* as from the LTL tester construction  *)
 type fairnessSpecT =
-  | Justice of llPropT
+  | Justice of llPropT * llPropT
   | Compassion of llPropT * llPropT
+  | LossDupCompassion of llPropT * llPropT
+  | LTLJustice of llPropT * llPropT
 
 (* type for traces *)
 type musynthTraceT = (llDesignatorT LLDesigMap.t) list

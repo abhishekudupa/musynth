@@ -485,9 +485,14 @@ let lowerSpec symtab spec =
      LLSpecInvar (name, lowerAndCanonicalizeProp symtab prop)
   | SpecLTL (name, prop, jlist, clist, _) ->
      LLSpecLTL (name, lowerAndCanonicalizeProp symtab prop, 
-                List.map (lowerAndCanonicalizeProp symtab) jlist,
-                List.map (fun (a, b) -> (lowerAndCanonicalizeProp symtab a, 
-                                         lowerAndCanonicalizeProp symtab b)) clist)
+                List.map
+                  (fun (a, b) ->
+                    (lowerAndCanonicalizeProp symtab a, 
+                     lowerAndCanonicalizeProp symtab b)) jlist,
+                List.map 
+                  (fun (a, b) -> 
+                    (lowerAndCanonicalizeProp symtab a, 
+                     lowerAndCanonicalizeProp symtab b)) clist)
   | _ -> assert false
   
 

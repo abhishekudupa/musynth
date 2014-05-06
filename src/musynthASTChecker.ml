@@ -419,7 +419,7 @@ let rec checkSpec symtab spec =
      ignore (ST.bindGlobal symtab (specname, None) (InvariantName (specname, prop)))
   | SpecLTL (specname, prop, justicelist, compassionlist, loc) ->
      checkProp symtab prop;
-     List.iter (checkPureProp symtab) justicelist;
+     List.iter (fun (a, b) -> checkPureProp symtab a; checkPureProp symtab b) justicelist;
      List.iter (fun (a, b) -> checkPureProp symtab a; checkPureProp symtab b) compassionlist;
      ignore (ST.bindGlobal symtab (specname, None) (LTLSpecName (specname, prop, 
                                                                  justicelist,

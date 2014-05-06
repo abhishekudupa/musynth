@@ -506,6 +506,8 @@ module AST :
     val pFairness : Format.formatter -> MusynthTypes.musFairnessT -> unit
     val pLossFairness :
       Format.formatter -> MusynthTypes.musLossFairnessT -> unit
+    val pDupFairness :
+      Format.formatter -> MusynthTypes.musDupFairnessT -> unit
     val pAutomatonDecl :
       Format.formatter ->
       MusynthTypes.musAutomatonDeclType MusynthTypes.musDeclType -> unit
@@ -523,6 +525,11 @@ module AST :
       Format.formatter ->
       MusynthTypes.llDesignatorT * MusynthTypes.LLDesigSet.t -> unit
     val pLLAnnot : Format.formatter -> MusynthTypes.llAnnotT -> unit
+    val pLLFairness : Format.formatter -> MusynthTypes.llFairnessT -> unit
+    val pLLDupFairness :
+      Format.formatter -> MusynthTypes.llDupFairnessT -> unit
+    val pLLLossFairness :
+      Format.formatter -> MusynthTypes.llLossFairnessT -> unit
     val pLLTrans : Format.formatter -> MusynthTypes.llTransT -> unit
     val pLLProp : Format.formatter -> MusynthTypes.llPropT -> unit
     val pLLSpec : Format.formatter -> MusynthTypes.llSpecT -> unit
@@ -945,10 +952,10 @@ val desigSubstitutor :
   MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
   MusynthTypes.musDesignatorT -> MusynthTypes.musDesignatorT
 val lldesigSubstitutor :
-  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  string MusynthTypes.StringMap.t ->
   MusynthTypes.llDesignatorT -> MusynthTypes.llDesignatorT
 val lltransSubstitutor :
-  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  string MusynthTypes.StringMap.t ->
   MusynthTypes.llTransT -> MusynthTypes.llTransT
 val transSubstitutor :
   MusynthTypes.identifierT MusynthTypes.IdentMap.t ->
@@ -1048,7 +1055,7 @@ val autDeclInstantiator :
   MusynthTypes.musPropT option ->
   MusynthTypes.musAutomatonDeclType -> MusynthTypes.llAutomatonT list
 val substInLProp :
-  MusynthTypes.StringMap.key MusynthTypes.StringMap.t ->
+  string MusynthTypes.StringMap.t ->
   MusynthTypes.llPropT -> MusynthTypes.llPropT
 val lowerProp :
   MusynthTypes.symtabEntry MusynthTypes.IdentMap.t ref list ref ->

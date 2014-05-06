@@ -345,7 +345,7 @@ invariant : INVARIANT STRINGCONST LBRACE prop RBRACE
 ltlspec : LTLSPEC STRINGCONST LBRACE prop optJustice optCompassion RBRACE
         { SpecLTL ($2, $4, $5, $6, Some (getlhsloc ())) }
 
-optJustice : JUSTICE LPAREN propList RPAREN
+optJustice : JUSTICE LPAREN propPairList RPAREN
         { $3 }
     | /* empty */
         { [] }

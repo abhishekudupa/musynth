@@ -59,6 +59,7 @@ module StringSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
+    val find : elt -> t -> elt
   end
 type identifierT = string * sourcelocation option
 module IdentMap :
@@ -119,6 +120,7 @@ module IdentSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
+    val find : elt -> t -> elt
   end
 type musSymTypeT =
     SymTypeNamed of identifierT * sourcelocation option
@@ -207,7 +209,7 @@ type musAutomatonDeclType =
 type musAutomatonDeclT = musAutomatonDeclType musDeclType
 type musSpecT =
     SpecInvar of string * musPropT * sourcelocation option
-  | SpecLTL of string * musPropT * musPropT list *
+  | SpecLTL of string * musPropT * (musPropT * musPropT) list *
       (musPropT * musPropT) list * sourcelocation option
   | SpecDefine of identifierT * musPropT * sourcelocation option
 type musProgT =
@@ -229,7 +231,7 @@ type symtabEntry =
   | SymVarName of string * musSymTypeT
   | AutomatonName of (string * autType * symTabScope) declEntry
   | InvariantName of string * musPropT
-  | LTLSpecName of string * musPropT * musPropT list *
+  | LTLSpecName of string * musPropT * (musPropT * musPropT) list *
       (musPropT * musPropT) list
   | DeclaredExpr of string * musPropT
 and symTabScope = symtabEntry IdentMap.t ref
@@ -278,6 +280,7 @@ module LLDesigSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
+    val find : elt -> t -> elt
   end
 module LLDesigMap :
   sig
@@ -427,6 +430,7 @@ module IntSet :
     val max_elt : t -> elt
     val choose : t -> elt
     val split : elt -> t -> t * bool * t
+    val find : elt -> t -> elt
   end
 type llIdentT = llDesignatorT
 type llTypeT = LLDesigSet.t
@@ -493,13 +497,18 @@ type llMonitorT =
     llIdentT list * llIdentT list * (llIdentT * musPropT * llIdentT) list
 type llSpecT =
     LLSpecInvar of string * llPropT
-  | LLSpecLTL of string * llPropT * llPropT list * (llPropT * llPropT) list
+  | LLSpecLTL of string * llPropT * (llPropT * llPropT) list *
+      (llPropT * llPropT) list
 type llProgT = llIdentT list * llAutomatonT list * llPropT * llSpecT list
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
 type 'a synthExitStatT = SynthSafe | SynthCEX of 'a
 type 'a execExitStatT = ExecNonConverged of 'a | ExecFixpoint of 'a
-type fairnessSpecT = Justice of llPropT | Compassion of llPropT * llPropT
+type fairnessSpecT =
+    Justice of llPropT * llPropT
+  | Compassion of llPropT * llPropT
+  | LossDupCompassion of llPropT * llPropT
+  | LTLJustice of llPropT * llPropT
 type musynthTraceT = llDesignatorT LLDesigMap.t list
 type 'a modelCheckingStatusT =
     MCSuccess of 'a

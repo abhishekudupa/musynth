@@ -23,28 +23,28 @@ let constructFairnessSpecsAut autlist aut =
   match ftype with
   | LLFairnessJustice ->
      Debug.dprintf "ltl" "Aut %a: Justice@," AST.pLLIdent autname;
-     Justice (LLPropOr (LLPropNot enprop, chooseprop))
+     Justice (enprop, chooseprop)
   | LLFairnessCompassion ->
      Debug.dprintf "ltl" "Aut %a: Compassion@," AST.pLLIdent autname;
      Compassion (enprop, chooseprop)
   | LLFairnessNone -> 
      Debug.dprintf "ltl" "Aut %a: None@," AST.pLLIdent autname;
-     Justice (LLPropTrue)
+     Justice (LLPropTrue, LLPropTrue)
 
 let constructFiniteLossFairness chan =
   let inmsgs, _ = Utils.getMsgsForAut chan in
   List.map
     (fun msg ->
-     Compassion (LLPropEquals (Utils.makeLCMesgDesig (), msg),
-                 LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg)))
+     LossDupCompassion (LLPropEquals (Utils.makeLCMesgDesig (), msg),
+                        LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg)))
     inmsgs
 
 let constructFiniteDupFairness chan =
   let inmsgs, _ = Utils.getMsgsForAut chan in
   List.map
     (fun msg ->
-     Compassion (LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg),
-                 LLPropEquals (Utils.makeLCMesgDesig (), msg)))
+     LossDupCompassion (LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg),
+                        LLPropEquals (Utils.makeLCMesgDesig (), msg)))
     inmsgs
 
 let constructFairnessSpecsChan autlist chan =
@@ -53,7 +53,7 @@ let constructFairnessSpecsChan autlist chan =
   let fspecs = constructFairnessSpecsAut autlist chan in
   let fspecs = 
     match fspecs with
-    | Justice LLPropTrue -> []
+    | Justice (LLPropTrue, LLPropTrue) -> []
     | _ -> [ fspecs ]
   in
   let lfspecs = 
@@ -67,7 +67,7 @@ let constructFairnessSpecsChan autlist chan =
      | LLDupFairnessFinite -> constructFiniteDupFairness chan) 
   in
   fspecs @ lfspecs @ dfspecs
-     
+
 let constructFairnessSpecs autlist aut =
   match aut with
   | LLCompleteAutomaton (_, _, _, _, _, _, _, _, true) -> constructFairnessSpecsChan autlist aut
@@ -249,7 +249,7 @@ let constructTableau ltlprop =
        | LLPropTLU (p, q) ->
           let chiofq = PropMap.find q chimap in
           let chiofform = PropMap.find formula chimap in
-          (LLPropOr (chiofq, LLPropNot chiofform))
+          LTLJustice (chiofform, chiofq)
        | _ -> assert false) uFormulaVarPairs
   in
   (* also return the chi of the formula *)
