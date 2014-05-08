@@ -1,0 +1,12 @@
+*.cmo
+*.cmi
+*.cmx
+*.cmxa
+*.cma
+*.annot
+depend
+musynthLexer.ml
+musynthLexer.mli
+musynthParser.ml
+musynthParser.mli
+musynthParser.output

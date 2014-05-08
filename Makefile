@@ -9,12 +9,12 @@ OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
-OCAMLCFLAGS=-g -annot
-OCAMLOPTFLAGS=
+OCAMLCFLAGS=-g -annot -cc g++
+OCAMLOPTFLAGS=-cc g++
 
 INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
 OCAMLCFLAGS+=$(INCDIRS)
-OCAMLOPTFLAGS+=$(INCDIRS) -inline 32
+OCAMLOPTFLAGS+=$(INCDIRS) -inline 128
 
 BINDIR=$(PROJECTROOT)/bin
 .PHONY:				clean opt all default byte
@@ -149,10 +149,10 @@ endif
 $(SRCDIR)/%.cmx : $(SRCDIR)/%.ml
 ifeq "x$(VERBOSE_BUILD)" "x"
 	@$(ECHO) -e "[ocamlopt] `basename $<` --> `basename $@`"; tput setaf 1;\
-	($(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $< || (tput sgr0 && exit 1)) && tput sgr0 \
+	($(OCAMLOPT) $(OCAMLOPTFLAGS) -c $(INCDIRS) $< || (tput sgr0 && exit 1)) && tput sgr0 \
 	tput sgr0
 else
-	$(OCAMLOPT) $(OCAMLCFLAGS) -c $(INCDIRS) $<
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $(INCDIRS) $<
 endif
 
 

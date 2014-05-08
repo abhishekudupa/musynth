@@ -545,10 +545,9 @@ let checkLLProg prog =
   List.iter 
     (fun aut ->
      match aut with
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, true) -> ()
-     | LLCompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _, _, _, false) -> ()
      | LLIncompleteAutomaton (_, states, inmsgs, outmsgs, transitions, _) ->
-        List.iter (fun state -> checkState state transitions inmsgs outmsgs) states) autlist;
+        List.iter (fun state -> checkState state transitions inmsgs outmsgs) states
+     | _ -> ()) autlist;
 
   (* Incomplete automata must be deterministic *)
   (* We allow multiple start states, but the transitions must be deterministic *)
