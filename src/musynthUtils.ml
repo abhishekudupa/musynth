@@ -110,6 +110,10 @@ let getuid () =
 let resetuid () =
   nextuid := 0
 
+let getSynthVarUID () = 
+  let uid = getuid () in
+  "musynth_synth_t_" ^ (string_of_int uid)
+
 (* cross products and prop evaluation *)
 let crossProduct lstlst =
   let rec crossProductRec lstlst =

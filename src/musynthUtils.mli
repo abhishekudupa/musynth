@@ -25,6 +25,8 @@ val getuid : unit -> int
 
 val resetuid : unit -> unit
 
+val getSynthVarUID : unit -> string
+
 val crossProduct : 'a list list -> 'a list list
 
 val identConstPairList2Map : (MusynthTypes.IdentMap.key * 'a) list -> 

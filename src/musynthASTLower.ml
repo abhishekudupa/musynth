@@ -349,7 +349,7 @@ let instantiateIncompleteAutomaton symtab qMap propOpt desig states inmsgs outms
                   in
                   let goodcands = (Utils.makeDeferDesig ()) :: goodcands in
                   
-                  let newvarname = "synth_t_" ^ (string_of_int (Utils.getuid ())) in
+                  let newvarname = Utils.getSynthVarUID () in
                   (TParametrizedDest (lstate, levent, (LLSimpleDesignator newvarname, 
                                                        (mkLLDesigSet goodcands)))) :: acc2)
                [] lleventlist)

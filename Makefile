@@ -9,8 +9,8 @@ OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
-OCAMLCFLAGS=-g -annot -cc g++
-OCAMLOPTFLAGS=-cc g++
+OCAMLCFLAGS=-g -annot -cc g++ -ccopt -Wno-write-strings
+OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings
 
 INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
 OCAMLCFLAGS+=$(INCDIRS)
