@@ -4,6 +4,11 @@ MAKEFLAGS+=-Oline
 
 ECHO=/bin/echo
 
+CUDDDIR=$(PROJECTROOT)/extern/mlcudd/release-2.2.0
+CUDDCMA=$(CUDDDIR)/cudd.cma
+CUDDCMXA=$(CUDDDIR)/cudd.cmxa
+CUDDBUILDSTAMP=$(CUDDDIR)/.cudd-built.ts
+
 OCAMLC=ocamlc.opt
 OCAMLOPT=ocamlopt.opt
 OCAMLYACC=ocamlyacc
@@ -12,12 +17,12 @@ OCAMLDEP=ocamldep.opt
 OCAMLCFLAGS=-g -annot -cc g++ -ccopt -Wno-write-strings
 OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings
 
-INCDIRS=-I $(SRCDIR) -I $(PROJECTROOT)/extern/mlcudd/release-2.2.0 
+INCDIRS=-I $(SRCDIR) -I $(CUDDDIR)
 OCAMLCFLAGS+=$(INCDIRS)
 OCAMLOPTFLAGS+=$(INCDIRS) -inline 128
 
 BINDIR=$(PROJECTROOT)/bin
-.PHONY:				clean opt all default byte
+.PHONY:				clean distclean opt all default byte
 
 GENSRC= \
 	musynthParser.ml \
@@ -82,7 +87,7 @@ ifeq "x$(VERBOSE_BUILD)" "x"
 	($(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma $(CMO) \
 		-ccopt -lcuddcaml -o $@ || (tput sgr0 && exit 1)) && tput sgr0
 else
-	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom cudd.cma $(CMO) \
+	$(OCAMLC) $(OCAMLCFLAGS) -linkall -custom $(CUDDCMA) $(CMO) \
 		-ccopt -lcuddcaml -o $@
 endif
 
@@ -92,11 +97,11 @@ ifeq "x$(VERBOSE_BUILD)" "x"
 	($(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa $(CMX) \
 		-ccopt -lcuddcaml -o $@ || (tput sgr0 && exit 1)) && tput sgr0
 else
-	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall cudd.cmxa $(CMX) \
+	$(OCAMLOPT) $(OCAMLOPTFLAGS) -linkall $(CUDDCMXA) $(CMX) \
 		-ccopt -lcuddcaml -o $@ 
 endif
 
-$(DEPEND) : $(MLI) $(ML)
+$(DEPEND) : $(MLI) $(ML) $(CUDDBUILDSTAMP)
 ifeq "x$(VERBOSE_BUILD)" "x"
 	@$(ECHO) -e "[ocamldep] $(BASEMLI) $(BASEML)\n\t--> depend"; tput setaf 1;\
 	($(OCAMLDEP) $(INCDIRS) $(MLI) $(ML) > $@ || (tput sgr0 && exit 1)) && tput sgr0
@@ -155,12 +160,29 @@ else
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $(INCDIRS) $<
 endif
 
+$(CUDDCMA) : $(CUDDBUILDSTAMP)
 
-ifneq ($(MAKECMDGOALS), clean)
+$(CUDDCMXA) : $(CUDDBUILDSTAMP)
+
+$(CUDDBUILDSTAMP) :
+ifeq "x$(VERBOSE_BUILD)" "x"
+	@$(ECHO) -e "Building CUDD..."; \
+	make -C $(CUDDDIR); touch $(CUDDBUILDSTAMP); \
+	$(ECHO) -e "CUDD Build complete!"
+else
+	make -C $(CUDDDIR); touch $(CUDDBUILDSTAMP)
+endif
+
+ifneq ($(MAKECMDGOALS), clean) 
+ifneq ($(MAKECMDGOALS), distclean)
 -include $(DEPEND)
+endif
 endif
 
 clean:
 	@$(ECHO) -n "Cleaning..."; \
 	rm -rf $(CMO) $(CMI) $(CMX) $(DOTO) $(ABSGENS) $(DEPEND) $(BYTEEXES) $(OPTEXES) src/*.annot src/musynthParser.output; \
 	$(ECHO) " done!"
+
+distclean: clean
+	make -C $(CUDDDIR) distclean; rm -rf $(CUDDBUILDSTAMP)
