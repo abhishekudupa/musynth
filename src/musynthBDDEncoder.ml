@@ -10,8 +10,6 @@ module Debug = MusynthDebug
 module LTL = MusynthLtl
 
 (* deadlock freedom prop. constructed in terms of available transitions *)
-(* This COULD be constructed in terms of the LCMesg, but this way makes *)
-(* analysis of counterexamples easier, so we stick with it              *)
 let constructDLProps msglist automata =
   List.fold_left 
     (fun prop msg ->
@@ -57,33 +55,59 @@ let getNextStatePropForTrans primedstate transition =
              acc)) valset LLPropFalse
   | _ -> assert false
 
-let getNextStatePropOnAllForMsg autlist msg =
+let getTransPropOnAllForMsg autlist msg =
   let sender = Utils.getSender msg autlist in
   let receivers = Utils.getReceivers msg autlist in
   let relaut = sender :: receivers in
-
+  let otheraut = 
+    List.filter 
+      (fun aut -> 
+       (not (List.mem aut relaut))) 
+      autlist
+  in
+  let otherunchangedprop = 
+    List.fold_left
+      (fun prop aut ->
+       let statename = Utils.getStateNameForAutomaton aut in
+       let statenamep = Utils.getStateNamePForAutomaton aut in
+       LLPropAnd (LLPropEquals (statename, statenamep), prop))
+      LLPropTrue otheraut
+  in
+  
+  let transprop = 
+    List.fold_left 
+      (fun autprop aut ->
+       let reltrans = 
+         List.filter 
+           (fun trans ->
+            match trans with
+            | TComplete (_, m, _) 
+            | TParametrizedDest (_, m, _) -> msg = m
+            | _ -> assert false) (Utils.getTransitionsForAut aut) 
+       in
+       let statenameP = Utils.getStateNamePForAutomaton aut in
+       let myprop = 
+         List.fold_left 
+           (fun prop trans ->
+            LLPropOr (getNextStatePropForTrans statenameP trans, prop)) LLPropFalse reltrans
+       in
+       LLPropAnd (myprop, autprop)) LLPropTrue relaut
+  in
   List.fold_left 
-    (fun autprop aut ->
-     let reltrans = 
-       List.filter 
-         (fun trans ->
-          match trans with
-          | TComplete (_, m, _) 
-          | TParametrizedDest (_, m, _) -> msg = m
-          | _ -> assert false) (Utils.getTransitionsForAut aut) 
-     in
+    (fun prop aut ->
+     let statename = Utils.getStateNameForAutomaton aut in
      let statenameP = Utils.getStateNamePForAutomaton aut in
-     let myprop = 
-       List.fold_left 
-         (fun prop trans ->
-          LLPropOr (getNextStatePropForTrans statenameP trans, prop)) LLPropFalse reltrans
-     in
-     LLPropAnd (myprop, autprop)) LLPropTrue relaut
+     LLPropAnd
+       (LLPropEquals (statename, statenamep), prop)) 
+    transprop otheraut
 
 (* builds the transition relation. Also includes part of the *)
 (* transition relation for lastchosen that is determined by  *)
 (* this automaton                                            *)
-let getTransitionRelationForAut aut autlist =
+let getTransRelForMsg msg autlist =
+  let csprop = Utils.getCSPredsForMsgAll msg autlist in
+  
+
   let transitions = Utils.getTransitionsForAut aut in
   let statename = Utils.getStateNameForAutomaton aut in
   let statenamep = Utils.getStateNamePForAutomaton aut in
