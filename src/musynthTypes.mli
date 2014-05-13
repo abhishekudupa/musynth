@@ -261,11 +261,14 @@ type 'a execExitStatT =
   | ExecNonConverged of 'a 
   | ExecFixpoint of 'a
 
-type fairnessSpecT =
-  | Justice of llPropT * llPropT
-  | Compassion of llPropT * llPropT
-  | LossDupCompassion of llPropT * llPropT
-  | LTLJustice of llPropT * llPropT
+type 'a fairnessSpecT =
+  | ProcessJustice of llDesignatorT * 'a * 'a
+  | ProcessCompassion of llDesignatorT * 'a * 'a
+  | LossCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+  | DupCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+  | Justice of 'a * 'a
+  | Compassion of 'a * 'a
+  | LTLJustice of 'a * 'a
 
 type musynthTraceT = llDesignatorT LLDesigMap.t list
 

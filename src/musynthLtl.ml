@@ -8,12 +8,6 @@ module Opts = MusynthOptions
 module Debug = MusynthDebug
 module AST = MusynthAST
 
-let constructEnabledProp autlist automaton = 
-  let _, outmsgs = Utils.getMsgsForAut automaton in
-  List.fold_left 
-    (fun prop msg ->
-     LLPropOr (Utils.getCSPredsForMsgAll msg autlist, prop)) LLPropFalse outmsgs
-
 (* works with any kind of automaton *)
 let constructFairnessSpecsAut autlist aut =
   let autname = Utils.getNameForAut aut in
