@@ -397,20 +397,19 @@ type 'a execExitStatT =
   | ExecNonConverged of 'a
   | ExecFixpoint of 'a
 
-(* type for constructing fairness specs *)
-(* We model the justice prop as a pair as well *)
-(* to avoid losing information that is useful  *)
-(* during analysis of counterexamples *)
-(* We also distinguish regular (process)          *)
-(* compassion requirements and justice/compassion *)
-(* requirements added to eliminate degenerate  *)
-(* behaviors from lossy and duplicating chans as well *)
-(* as from the LTL tester construction  *)
-type fairnessSpecT =
-  | Justice of llPropT * llPropT
-  | Compassion of llPropT * llPropT
-  | LossDupCompassion of llPropT * llPropT
-  | LTLJustice of llPropT * llPropT
+type 'a fairnessSpecT =
+  (* process name, enabled prop, trans relation restricted to outputs *)
+  | ProcessJustice of llDesignatorT * 'a * 'a
+  | ProcessCompassion of llDesignatorT * 'a * 'a
+  (* Channel name, Unprimed message name, trans relation restricted to inputs, outputs *)
+  | LossCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+  | DupCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+  (* Vanilla Justice requirement *)
+  | Justice of 'a * 'a
+  (* Vanilla Compassion requirement *)
+  | Compassion of 'a * 'a
+  (* Justice requirement from LTL props *)
+  | LTLJustice of 'a * 'a
 
 (* type for traces *)
 type musynthTraceT = (llDesignatorT LLDesigMap.t) list
