@@ -28,3 +28,4 @@ vdd_caml.c
 *.annot
 *.so.*
 META
+.cudd-built.ts
