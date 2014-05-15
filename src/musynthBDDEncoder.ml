@@ -34,8 +34,6 @@ let encodeParamVariables mgr automaton =
            paramreg :: acc
         | _ -> assert false) [] transitions
 
-  
-
 (* evaluates to a map of bdds for each message *)
 let encodeTransitionRelation mgr allmsgs automata =
   let tpropmap = makeTransProp allmsgs automata in
