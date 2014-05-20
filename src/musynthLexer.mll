@@ -108,7 +108,8 @@ rule token = parse
      let endpos = lexeme_end_p lexbuf in
      let loc = (startpos.pos_lnum, startpos.pos_cnum - startpos.pos_bol,
                 endpos.pos_lnum, endpos.pos_cnum - endpos.pos_bol) in
-     if ((String.sub name 0 (String.length musynthString)) = musynthString) then
+     if (((String.length name) >= (String.length musynthString)) &&
+           ((String.sub name 0 (String.length musynthString)) = musynthString)) then
        raise (ParseError ("Lexer: Identifiers beginning with \"" ^ musynthString ^ "\" are " ^ 
                             "reserved.", loc))
      else

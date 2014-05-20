@@ -172,19 +172,13 @@ let printTraceFullLiveness fmt prefix loop =
   printLoop loop  
 
 let printTraceSafety fmt trace =
-  if (Debug.debugEnabled ()) then
-    match !Opts.tracePrintMode with
-    | "full" -> printTraceFullSafety fmt trace
-    | "diff" -> printTraceDiffSafety fmt trace
-    | _ -> assert false
-  else
-    ()
+  match !Opts.tracePrintMode with
+  | "full" -> printTraceFullSafety fmt trace
+  | "diff" -> printTraceDiffSafety fmt trace
+  | _ -> assert false
 
 let printTraceLiveness fmt prefix loop =
-  if (Debug.debugEnabled ()) then
-    match !Opts.tracePrintMode with
-    | "full" -> printTraceFullLiveness fmt prefix loop
-    | "diff" -> printTraceDiffLiveness fmt prefix loop
-    | _ -> assert false
-  else
-    ()
+  match !Opts.tracePrintMode with
+  | "full" -> printTraceFullLiveness fmt prefix loop
+  | "diff" -> printTraceDiffLiveness fmt prefix loop
+  | _ -> assert false

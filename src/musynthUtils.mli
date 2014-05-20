@@ -50,11 +50,6 @@ val getMapsForProp : MusynthTypes.IdentMap.key list ->
 
 val makeTrueDesig : unit -> MusynthTypes.llDesignatorT
 val makeFalseDesig : unit -> MusynthTypes.llDesignatorT
-val makeLCMesgDesig : unit -> MusynthTypes.llDesignatorT
-val makeLCProcDesig : unit -> MusynthTypes.llDesignatorT
-val makeLCMesgDesigPrime : unit -> MusynthTypes.llDesignatorT
-val makeLCProcDesigPrime : unit -> MusynthTypes.llDesignatorT
-val makeDeadlockDesig : unit -> MusynthTypes.llDesignatorT
 val makeDeferDesig : unit -> MusynthTypes.llDesignatorT
 
 val getMsgsForAut : MusynthTypes.llAutomatonT ->

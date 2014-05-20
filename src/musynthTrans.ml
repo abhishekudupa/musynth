@@ -64,7 +64,7 @@ let makeTransPropForMsg msg autlist =
   let otherunchangedprop = 
     List.fold_left
       (fun prop aut ->
-       let statename = Utils.getStateNamePForAutomaton aut in
+       let statename = Utils.getStateNameForAutomaton aut in
        let statenameP = Utils.getStateNamePForAutomaton aut in
        LLPropAnd (LLPropEquals (statename, statenameP), prop))
       LLPropTrue otheraut

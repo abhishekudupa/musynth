@@ -216,10 +216,6 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
      | ExecFixpoint s -> s) 
   in
   Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
-  Debug.dprintf "mc" "Reachable (safety) with choose vars existentially quantified has %d nodes@,"
-                (Bdd.size (Bdd.exist (Bdd.dand (mgr#getCubeForVar (Utils.makeLCMesgDesig ()))
-                                               (mgr#getCubeForVar (Utils.makeLCProcDesig ())))
-                                     kReach));
   Debug.dflush ();
   (* get params for safety *)
   let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
