@@ -9,7 +9,7 @@ let debugFileName = ref ""
 
 let onlySafety = ref true 
 
-let disjunctivePart = ref false 
+let disjunctivePart = ref true
 
 let inputFileName = ref ""
 
