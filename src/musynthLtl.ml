@@ -7,69 +7,78 @@ module Utils = MusynthUtils
 module Opts = MusynthOptions
 module Debug = MusynthDebug
 module AST = MusynthAST
+module Trans = MusynthTrans
 
 (* works with any kind of automaton *)
-let constructFairnessSpecsAut autlist aut =
+let constructFairnessSpecsAut transMap autlist aut =
   let autname = Utils.getNameForAut aut in
-  let enprop = constructEnabledProp autlist aut in
-  let chooseprop = LLPropEquals (Utils.makeLCProcDesig (), autname) in
+  let enprop = Trans.constructEnabledProp autlist aut in
+  let _, outmsgs = Utils.getMsgsForAut aut in
+  let rTransProp = Trans.makeRestrictedTransProp transMap outmsgs in
   let ftype = Utils.getFairnessForAutomaton aut in
   match ftype with
   | LLFairnessJustice ->
-     Debug.dprintf "ltl" "Aut %a: Justice@," AST.pLLIdent autname;
-     Justice (enprop, chooseprop)
+     [ ProcessJustice (autname, enprop, rTransProp) ]
   | LLFairnessCompassion ->
-     Debug.dprintf "ltl" "Aut %a: Compassion@," AST.pLLIdent autname;
-     Compassion (enprop, chooseprop)
+     [ ProcessCompassion (autname, enprop, rTransProp) ]
   | LLFairnessNone -> 
-     Debug.dprintf "ltl" "Aut %a: None@," AST.pLLIdent autname;
-     Justice (LLPropTrue, LLPropTrue)
+     [ FairnessSpecNone ]
 
-let constructFiniteLossFairness chan =
-  let inmsgs, _ = Utils.getMsgsForAut chan in
-  List.map
-    (fun msg ->
-     LossDupCompassion (LLPropEquals (Utils.makeLCMesgDesig (), msg),
-                        LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg)))
-    inmsgs
+let constructFiniteLossFairness transMap autlist chan =
+  let autname = Utils.getNameForAut chan in
+  let inmsgs, outmsgs = Utils.getMsgsForAut chan in
+  List.map2
+    (fun inmsg outmsg ->
+     let inRTransProp = 
+       Trans.makeRestrictedTransProp transMap [ inmsg ]
+     in
+     let outRTransProp = 
+       Trans.makeRestrictedTransProp transMap [ outmsg ]
+     in
+     LossCompassion (autname, inmsg, outmsg, 
+                     inRTransProp, outRTransProp))
+    inmsgs outmsgs
 
-let constructFiniteDupFairness chan =
-  let inmsgs, _ = Utils.getMsgsForAut chan in
-  List.map
-    (fun msg ->
-     LossDupCompassion (LLPropEquals (Utils.makeLCMesgDesig (), getPrimedLLDesig msg),
-                        LLPropEquals (Utils.makeLCMesgDesig (), msg)))
-    inmsgs
+let constructFiniteDupFairness transMap autlist chan =
+  let autname = Utils.getNameForAut chan in
+  let inmsgs, outmsgs = Utils.getMsgsForAut chan in
+  List.map2
+    (fun inmsg outmsg ->
+     let inRTransProp = 
+       Trans.makeRestrictedTransProp transMap [ inmsg ]
+     in
+     let outRTransProp = 
+       Trans.makeRestrictedTransProp transMap [ outmsg ]
+     in
+     DupCompassion (autname, inmsg, outmsg, 
+                    inRTransProp, outRTransProp))
+    inmsgs outmsgs
 
-let constructFairnessSpecsChan autlist chan =
+let constructFairnessSpecsChan transMap autlist chan =
   let lftype = Utils.getLFairnessForAutomaton chan in
   let dftype = Utils.getDFairnessForAutomaton chan in
-  let fspecs = constructFairnessSpecsAut autlist chan in
-  let fspecs = 
-    match fspecs with
-    | Justice (LLPropTrue, LLPropTrue) -> []
-    | _ -> [ fspecs ]
-  in
+  let fspecs = constructFairnessSpecsAut transMap autlist chan in
   let lfspecs = 
     (match lftype with
      | LLLossFairnessNone -> []
-     | LLLossFairnessFinite -> constructFiniteLossFairness chan) 
+     | LLLossFairnessFinite -> constructFiniteLossFairness transMap autlist chan) 
   in
   let dfspecs = 
     (match dftype with
      | LLDupFairnessNone -> []
-     | LLDupFairnessFinite -> constructFiniteDupFairness chan) 
+     | LLDupFairnessFinite -> constructFiniteDupFairness transMap autlist chan) 
   in
   fspecs @ lfspecs @ dfspecs
 
-let constructFairnessSpecs autlist aut =
+let constructFairnessSpecsForOne transMap autlist aut =
   match aut with
-  | LLCompleteAutomaton (_, _, _, _, _, _, _, _, true) -> constructFairnessSpecsChan autlist aut
-  | _ -> [ constructFairnessSpecsAut autlist aut ]
+  | LLCompleteAutomaton (_, _, _, _, _, _, _, _, true) -> 
+     constructFairnessSpecsChan transMap autlist aut
+  | _ -> constructFairnessSpecsAut transMap autlist aut
 
-let constructFairnessSpecs prog = 
+let constructFairnessSpecs transMap prog = 
   let _, automata, _, _, _ = prog in
-  List.concat (List.map (constructFairnessSpecs automata) automata)
+  List.concat (List.map (constructFairnessSpecsForOne transMap automata) automata)
 
 let createTablueaxVars prop =
   let rec createTablueaxVarsRec ptf2varmap var2ptfmap chimap prop =

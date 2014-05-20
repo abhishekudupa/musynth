@@ -397,13 +397,17 @@ type 'a execExitStatT =
   | ExecNonConverged of 'a
   | ExecFixpoint of 'a
 
-type 'a fairnessSpecT =
+type ('a, 'b) fairnessSpecT =
+  (* Dummy constructor for no fairness *)
+  | FairnessSpecNone
   (* process name, enabled prop, trans relation restricted to outputs *)
-  | ProcessJustice of llDesignatorT * 'a * 'a
-  | ProcessCompassion of llDesignatorT * 'a * 'a
-  (* Channel name, Unprimed message name, trans relation restricted to inputs, outputs *)
-  | LossCompassion of llDesignatorT * llDesignatorT * 'a * 'a
-  | DupCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+  | ProcessJustice of llDesignatorT * 'a * 'b
+  | ProcessCompassion of llDesignatorT * 'a * 'b
+  (* Channel name, Unprimed message name, Primed Message Name, *)
+  (* Transition relation restricted to primed message,         *)
+  (* Transition relation restricted to unprimed message        *)
+  | LossCompassion of llDesignatorT * llDesignatorT * llDesignatorT * 'b * 'b
+  | DupCompassion of llDesignatorT * llDesignatorT * llDesignatorT * 'b * 'b
   (* Vanilla Justice requirement *)
   | Justice of 'a * 'a
   (* Vanilla Compassion requirement *)

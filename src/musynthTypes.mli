@@ -261,11 +261,12 @@ type 'a execExitStatT =
   | ExecNonConverged of 'a 
   | ExecFixpoint of 'a
 
-type 'a fairnessSpecT =
-  | ProcessJustice of llDesignatorT * 'a * 'a
-  | ProcessCompassion of llDesignatorT * 'a * 'a
-  | LossCompassion of llDesignatorT * llDesignatorT * 'a * 'a
-  | DupCompassion of llDesignatorT * llDesignatorT * 'a * 'a
+type ('a, 'b) fairnessSpecT =
+  | FairnessSpecNone
+  | ProcessJustice of llDesignatorT * 'a * 'b
+  | ProcessCompassion of llDesignatorT * 'a * 'b
+  | LossCompassion of llDesignatorT * llDesignatorT * llDesignatorT * 'b * 'b
+  | DupCompassion of llDesignatorT * llDesignatorT * llDesignatorT * 'b * 'b
   | Justice of 'a * 'a
   | Compassion of 'a * 'a
   | LTLJustice of 'a * 'a

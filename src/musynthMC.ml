@@ -12,6 +12,7 @@ module MGR = MusynthBDDManager
 module MCU = MusynthMCUtils
 module Utils = MusynthUtils
 
+
 let getSafetyParams mgr initStates reachStates transRel badStates =
   let reachableBadStates = Bdd.dand reachStates badStates in
   if (Bdd.is_false reachableBadStates) then
@@ -37,9 +38,73 @@ let getSafetyParams mgr initStates reachStates transRel badStates =
       Bdd.dnot badParams
     end
 
-let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
-  let transRel = Bdd.dand reach origTransRel in
+let getFeasible mgr initStates reach chioftester origTransRel 
+                tableauTransRel jlist clist =
+
+  let transRel = MCU.restrictTransRelToStates origTransRel reach in
   let iteration = ref 0 in
+
+  let filterOnFairness states transRel fairness =
+    let newTrans = MCU.restrictTransRelToStates transRel states in
+    match fairness with
+    | FairnessSpecNone -> states
+    | ProcessJustice (pname, enabled, rtrans) ->
+       let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
+       let notenstates = Bdd.dand states (Bdd.dnot enabled) in
+       let takenstates = MCU.restrictedPre mgr rtrans states states in
+       let justStates = Bdd.dor notenstates takenstates in
+       MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                           MCU.inclusionFixPointTester justStates
+
+    | ProcessCompassion (pname, enabled, rtrans) ->
+       let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
+       let notenstates = Bdd.dand states (Bdd.dnot enabled) in
+       let takenstates = MCU.restrictedPre mgr rtrans states states in
+       Bdd.dor
+         notenstates 
+         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                              MCU.inclusionFixPointTester 
+                              takenstates)
+         
+    | LossCompassion (cname, imname, omname, irtrans, ortrans) ->
+       let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
+       let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
+       let notstates = Bdd.dnot states in
+       let notrecvstates = MCU.restrictedPre mgr irtrans states notstates in
+       let sentstates = MCU.restrictedPre mgr ortrans states states in
+       Bdd.dor
+         notrecvstates
+         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                              MCU.inclusionFixPointTester
+                              sentstates)
+
+    | DupCompassion (cname, imname, omname, irtrans, ortrans) ->
+       let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
+       let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
+       let notstates = Bdd.dnot states in
+       let notsentstates = MCU.restrictedPre mgr ortrans states notstates in
+       let recvstates = MCU.restrictedPre mgr irtrans states states in
+       Bdd.dor
+         notsentstates
+         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                              MCU.inclusionFixPointTester
+                              recvstates)
+
+    | Justice (prop1, prop2)
+    | LTLJustice (prop1, prop2) ->
+       let justiceProp = Bdd.dor (Bdd.dnot prop1) prop2 in
+       let justStates = Bdd.dand states justiceProp in
+       MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                           MCU.inclusionFixPointTester justStates
+
+    | Compassion (p, q) ->
+       let notpstates = Bdd.dand states (Bdd.dnot p) in
+       let qstates = Bdd.dand states q in
+       Bdd.dor
+         notpstates
+         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                              MCU.inclusionFixPointTester qstates)
+  in
   
   let rec elimCycles transRel states = 
     Debug.dprintf "mc" "Elim Cycles: iteration %d@," !iteration;
@@ -58,10 +123,7 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
     let newStates = 
       List.fold_left
         (fun states justiceSpec ->
-         let justStates = Bdd.dand states justiceSpec in
-         let newTrans = Bdd.dand transRel states in
-         MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                             MCU.inclusionFixPointTester justStates)
+         filterOnFairness states transRel justiceSpec)
         newStates jlist
     in
     (* filter based on compassion *)
@@ -73,14 +135,8 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
     let newStates = 
       List.fold_left
         (fun states compassionSpec ->
-         let newTrans = Bdd.dand transRel states in
-         let p, q = compassionSpec in
-         let cStates1 = Bdd.dand states (Bdd.dnot p) in
-         let cStates2 = Bdd.dand states q in
-         let cStates2 = MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                                            MCU.inclusionFixPointTester cStates2
-         in
-         Bdd.dor cStates1 cStates2) newStates clist
+         filterOnFairness states transRel compassionSpec)
+        newStates clist
     in
     if (Bdd.is_equal newStates states) then
       newStates
@@ -93,9 +149,12 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
   Debug.dflush ();
   MCU.computeFixPoint (MCU.preOrTransformer mgr transRel) MCU.inclusionFixPointTester newStates
 
-let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist clist propName =
-  let feasibleStates = getFeasible mgr initStates reach chioftester 
-                                   origTransRel jlist clist 
+let getParamsForInfeasible mgr initStates reach chioftester origTransRel 
+                           tableauTransRel jlist clist propName =
+
+  let feasibleStates = 
+    getFeasible mgr initStates reach chioftester 
+                origTransRel tableauTransRel jlist clist 
   in
   Debug.dprintf "mc" "Feasible states (liveness) BDD has %d nodes@," 
                 (Bdd.size feasibleStates);
@@ -124,8 +183,11 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel jlist c
                         propName; 
           Debug.dflush ();
           if (Debug.debugOptEnabled "trace") then
-            let prefix, period = MCU.findLoop mgr initStates origTransRel 
-                                              feasibleStates jlist clist in
+            let prefix, period = 
+              MCU.findLoop 
+                mgr initStates origTransRel 
+                tableauTransRel feasibleStates jlist clist 
+            in
             Trace.printTraceLiveness fmt prefix period
           else
             ()
@@ -176,7 +238,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
                      propname k (Bdd.nbminterms (Bdd.supportsize pconstraints) pconstraints);
        Debug.dflush ();
        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
-       let ltransRel = Bdd.dand transRel tableautrans in
+       let ltransRel = MCU.addTableauTransRel transRel tableautrans in
        let kReachStat = MCU.postK k mgr transRel actInitStates in
        let kReach =
          (match kReachStat with
@@ -186,23 +248,19 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
        Debug.dprintf "mc" "Reachable (liveness) BDD has %d nodes@," (Bdd.size kReach);
        Debug.dflush ();
        let sparams = getParamsForInfeasible mgr actInitStates kReach chioftester 
-                                            ltransRel jlist clist propname
+                                            ltransRel tableautrans jlist clist propname
        in
        Bdd.dand pconstraints sparams) tableau newParamConstraints
   in
   match kReachStat with
   | ExecNonConverged _ -> ExecNonConverged sparams
   | ExecFixpoint _ -> ExecFixpoint sparams
-
-let conjoinTransitionRels mgr transBDDs =
-  LLDesigMap.fold 
-    (fun name bdd accbdd ->
-     Bdd.dand bdd accbdd) transBDDs (mgr#makeTrue ())
+    
 
 (* TODO: Currently hardwired to use monolithic transition *)
 (*       Change this to be based on command line option   *)
 let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist =
-  let transrel = conjoinTransitionRels mgr transBDDs in
+  let transrel = MCU.getTransRel mgr transBDDs in
   let badstates = Bdd.dor badStateBDD dlBDD in
   (* iteratively synthesize for greater and greater k until we hit fixpoint *)
   let rec synthesize k paramConstraints =
@@ -225,7 +283,7 @@ let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlB
   solbdd
 
 let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symPropBDD =
-  let transRel = conjoinTransitionRels mgr transBDDs in
+  let transRel = MCU.getTransRel mgr transBDDs in
   (* set initial params to false *)
   let paramNames = mgr#getParamVarNames () in
   let paramConstProp = 
@@ -267,31 +325,31 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symProp
       synthFrontEndInternal mgr newConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist
     end
 
-
-let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
-  let transrel = conjoinTransitionRels mgr transBDDs in
-  let badstates = Bdd.dor badStateBDD (Bdd.dnot dlfbdd) in
+let check mgr transBDDs initBDD badStateBDD dlbdd ltltableaulist =
+  let transRel = MCU.getTransRel mgr transBDDs in
+  let badStates = Bdd.dor badStateBDD dlbdd in
   let reachIter = ref 0 in
 
-  let rec computeReachable states frontier =
+  let rec computeReachable reachStates frontier =
     reachIter := !reachIter + 1;
-    let newStates = Bdd.dor states (MCU.post mgr transrel states) in
-    if (Bdd.is_leq newStates states) then
-      MCSuccess newStates
+    let newReachStates = Bdd.dor reachStates frontier in
+    if (Bdd.is_leq newReachStates reachStates) then
+      MCSuccess newReachStates
     else
       (* check if we have a violation *)
-      if (not (Bdd.is_inter_empty newStates badstates)) then
-        let reachableBadStates = Bdd.dand newStates badstates in
-        let trace = MCU.findPath mgr initBDD transrel
+      if (not (Bdd.is_inter_empty newReachStates badStateBDD)) then
+        let reachableBadStates = Bdd.dand newReachStates badStates in
+        let trace = MCU.findPath mgr initBDD transRel
                                  (mgr#cubeOfMinTerm (mgr#pickMinTermOnStates reachableBadStates))
         in
         MCFailureSafety trace
       else
-        let newFrontier = Bdd.dand newStates (Bdd.dnot states) in
-        computeReachable newStates newFrontier
+        let postFrontier = MCU.post mgr transRel frontier in
+        let newFrontier = Bdd.dand postFrontier (Bdd.dnot newReachStates) in
+        computeReachable newReachStates newFrontier
   in
 
-  let reachStat = computeReachable initBDD initBDD in
+  let reachStat = computeReachable (mgr#makeFalse ()) initBDD in
   match reachStat with
   | MCFailureSafety trace -> reachStat
   | MCSuccess reachStates ->
@@ -302,12 +360,13 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
         let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
         match acc with
         | MCSuccess _ ->
-           let ltransrel = Bdd.dand transrel tableautrans in
+           let ltransrel = MCU.addTableauTransRel transRel tableautrans in
            let lreachStates = 
              MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
                                  MCU.inclusionFixPointTester initBDD
            in
-           let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
+           let feasible = getFeasible mgr initBDD lreachStates chioftester 
+                                      ltransrel tableautrans jlist clist in
            if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
              begin
                let badReachableStates = Bdd.dand (Bdd.dand feasible chioftester) initBDD in
@@ -315,7 +374,10 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
                Debug.dprintf "mc" "Initial state which violates property:@,%a@,"
                              Trace.printState (mgr#getStateVars badReachableStates);
                Debug.dflush ();
-               let prefix, loop = MCU.findLoop mgr initBDD ltransrel feasible jlist clist in
+               let prefix, loop = 
+                 MCU.findLoop mgr initBDD ltransrel 
+                              tableautrans feasible jlist clist 
+               in
                MCFailureLiveness (propname, prefix, loop)
              end
            else

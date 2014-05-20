@@ -16,5 +16,4 @@ val makeTransMap : MusynthTypes.llIdentT list ->
 
 val makeRestrictedTransProp : MusynthTypes.llPropT MusynthTypes.LLDesigMap.t ->
                               MusynthTypes.llIdentT list ->
-                              MusynthTypes.llAutomatonT list ->
-                              MusynthTypes.llPropT
+                              MusynthTypes.llPropT list

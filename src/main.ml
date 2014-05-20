@@ -23,7 +23,7 @@ let printUsage arg0 =
   fprintf stderr "                     mc     - Enable logging from the model checker/synthesizer.\n";
   fprintf stderr "-tp <full|diff>  : Mode to print traces (full or delta from previous).\n";
   fprintf stderr "-j <num>         : Jump by <num> steps each iteration (default = 1, 0 = infinity).\n";
-  fprintf stderr "-c               : Use conjunctive partitioning of transition relation.\n";
+  fprintf stderr "-d               : Use disjunctive partitioning of transition relation.\n";
   fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
   fprintf stderr "                   Where <method> is one of (defaults to linear):\n";
   List.iter 
@@ -123,8 +123,8 @@ let processOptions arglist =
                else
                  ();
                rest
-            | "-c" :: rest ->
-               Opts.conjunctivePart := true; rest
+            | "-d" :: rest ->
+               Opts.disjunctivePart := true; rest
             | "-n" :: num :: rest ->
                Opts.numSolsRequested := (int_of_string num); rest
             | "-df" :: fname :: rest ->

@@ -2,6 +2,7 @@
 
 open MusynthTypes
 module Utils = MusynthUtils
+module Opts = MusynthOptions
 
 let constructEnabledProp autlist automaton = 
   let _, outmsgs = Utils.getMsgsForAut automaton in
@@ -86,13 +87,19 @@ let makeTransMap msglist autlist =
      LLDesigMap.add msg ctprop m)
     LLDesigMap.empty msglist
 
-let makeRestrictedTransProp transMap msglist autlist =
+let makeRestrictedTransProp transMap msglist =
   let msgset = 
     List.fold_left 
       (fun set msg -> LLDesigSet.add msg set) LLDesigSet.empty msglist 
   in
-  LLDesigSet.fold 
-    (fun msg rtrans ->
-     LLPropOr (LLDesigMap.find msg transMap, rtrans)) 
-    msgset LLPropFalse
-    
+  if !Opts.disjunctivePart then
+    LLDesigSet.fold 
+      (fun msg lst ->
+       (LLDesigMap.find msg transMap) :: lst)
+      msgset []
+  else
+    [ LLDesigSet.fold 
+        (fun msg prop ->
+         LLPropOr (LLDesigMap.find msg transMap, prop))
+        msgset LLPropFalse ]
+

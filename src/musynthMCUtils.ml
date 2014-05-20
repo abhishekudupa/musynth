@@ -9,17 +9,85 @@ module Debug = MusynthDebug
 module Opts = MusynthOptions
 module MGR = MusynthBDDManager
 
-let post mgr transRel states =
+let getTransRel mgr transBDDs =
+  if !Opts.disjunctivePart then
+    LLDesigMap.fold 
+      (fun k v lst -> v :: lst)
+      transBDDs []
+  else
+    [ LLDesigMap.fold
+        (fun k v prop -> Bdd.dor v prop)
+        transBDDs (mgr#makeFalse ()) ]
+
+(* Distribute the conjunction over the disjunction if needed *)
+let addTableauTransRel transRel tableauTransRel =
+  List.map (Bdd.dand tableauTransRel) transRel
+
+let restrictTransRelToStates transRel states =
+  List.map (Bdd.dand states) transRel
+
+let composeTransRel mgr transRel =
+  List.fold_left
+    (fun prop trans ->
+     Bdd.dor trans prop)
+    (mgr#makeFalse ()) transRel
+
+(* Post without the renaming *)
+let postPrime mgr transRel states =
   let ucube = mgr#getCubeForUnprimedVars () in
+  List.fold_left 
+    (fun acc msgTransRel -> 
+     Bdd.dor (Bdd.existand ucube states msgTransRel) acc)
+    (mgr#makeFalse ()) transRel
+
+(* Pre of a set of primed states *)
+let prePrime mgr transRel states =
+  let pcube = mgr#getCubeForPrimedVars () in
+  List.fold_left
+    (fun acc msgTransRel ->
+     Bdd.dor (Bdd.existand pcube states msgTransRel) acc)
+    (mgr#makeFalse ()) transRel
+
+let primeSet mgr states =
+  let substTable = mgr#getSubstTableU2P () in
+  Bdd.vectorcompose substTable states
+
+let unprimeSet mgr states =
   let substTable = mgr#getSubstTableP2U () in
-  let postimage = Bdd.existand ucube states transRel in
-  Bdd.vectorcompose substTable postimage
+  Bdd.vectorcompose substTable states
 
 let pre mgr transRel states =
+  let pstates = primeSet mgr states in
+  prePrime mgr transRel pstates
+
+let post mgr transRel states =
+  let postImagePrimed = postPrime mgr transRel states in
+  unprimeSet mgr postImagePrimed
+
+(* finds the subset s of states such that pre(s) |= restriction *)
+(* both states and restriction are in terms of unprimed vars    *)
+(* The result s \subseteq states is in terms of unprimed vars   *)
+let restrictedPre mgr transRel states restriction =
+  let ucube = mgr#getCubeForUnprimedVars () in
+  let statesprimed = primeSet mgr states in
+  let sandrest = Bdd.dand statesprimed restriction in
+  let primedresult = 
+    List.fold_left
+      (fun acc trans ->
+       Bdd.dor (Bdd.existand ucube trans sandrest) acc)
+      (mgr#makeFalse ()) transRel
+  in
+  unprimeSet mgr primedresult
+
+(* the dual of restrictedPre *)
+let restrictedPost mgr transRel states restriction =
   let pcube = mgr#getCubeForPrimedVars () in
-  let substTable = mgr#getSubstTableU2P () in
-  let substBdd = Bdd.vectorcompose substTable states in
-  Bdd.existand pcube substBdd transRel
+  let restrictionprimed = primeSet mgr restriction in
+  let sandrest = Bdd.dand states restrictionprimed in
+  List.fold_left
+    (fun acc trans ->
+     Bdd.dor (Bdd.existand pcube trans sandrest) acc)
+    (mgr#makeFalse ()) transRel
 
 let inclusionFixPointTester oldpred newpred =
   Bdd.is_leq newpred oldpred
@@ -127,7 +195,7 @@ let findPath mgr initStates transRel errstate =
     mgr#getStateVars 
     (findPathCube mgr initStates transRel errstate)
 
-let findLoopCube mgr initStates transRel finalStates jlist clist =
+let findLoopCube mgr initStates transRel tableauTransRel finalStates jlist clist =
   if (Bdd.is_false finalStates) then
     ([], [])
   else
@@ -135,7 +203,11 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
       let pFinalStates = 
         Bdd.vectorcompose 
           (mgr#getSubstTableU2P ()) finalStates in
-      let newTrans = Bdd.dand (Bdd.dand finalStates pFinalStates) transRel in
+      let newTrans = 
+        restrictTransRelToStates 
+          transRel 
+          (Bdd.dand finalStates pFinalStates)
+      in
       let s = mgr#cubeOfMinTerm (Bdd.pick_minterm finalStates) in
 
       let rec refineS s =
@@ -158,46 +230,151 @@ let findLoopCube mgr initStates transRel finalStates jlist clist =
                                   inclusionFixPointTester s 
       in
       let pfinal = Bdd.vectorcompose (mgr#getSubstTableU2P ()) final in
-      let newTrans = Bdd.dand (Bdd.dand final pfinal) newTrans in
+      let newTrans = 
+        restrictTransRelToStates
+          newTrans (Bdd.dand final pfinal)
+      in
       let prefix = findPathCube mgr initStates transRel final in
       let lastInPrefix = List.hd (List.rev prefix) in
       let postOfLastInPrefix = post mgr newTrans lastInPrefix in
+
       let period = [ mgr#cubeOfMinTerm (Bdd.pick_minterm postOfLastInPrefix) ] in
-      let period = 
-        List.fold_left
-          (fun period justiceSpec ->
-           let satJusticeSpec prop = (not (Bdd.is_inter_empty prop justiceSpec)) in
-           if (List.exists satJusticeSpec period) then
+
+      (* Helper functions for connecting period with fairness requirements *)
+      let rec isTransTaken period rtrans =
+        match period with
+        | [] -> false
+        | [ head ] -> false
+        | fst :: snd :: rest ->
+           if (not (Bdd.is_inter_empty (post mgr rtrans fst) snd)) then
+             true
+           else
+             isTransTaken (snd :: rest) rtrans
+      in
+      
+      (* similar to findPathCube, except that it also detects when *)
+      (* a particular transition is taken                          *)
+      let findPathStateOrTrans initState statePred transPred = 
+        let rec forwardStates reachable frontier =
+          if (not (Bdd.is_inter_empty reachable statePred)) then
+            [ reachable ]
+          else
+            let postReach = post mgr newTrans frontier in
+            let postReachTrans = post mgr transPred frontier in
+            if (not (Bdd.is_inter_empty postReach postReachTrans)) then
+              [ reachable; Bdd.dand postReach postReachTrans ]
+            else
+              let newReach = Bdd.dor postReach reachable in
+              if (Bdd.is_leq newReach reachable) then
+                raise (Failure ("MusynthMCUtils.findPathStateOrTrans: Reached fixpoint!"))
+              else
+                let newFrontier = Bdd.dand newReach (Bdd.dnot reachable) in
+                reachable :: (forwardStates newReach newFrontier)
+        in
+        let rec foldStateList stateK myState =
+          match stateK with
+          | [] -> assert false
+          | [ head ] ->
+             let minTerm = mgr#pickMinTermOnStates (Bdd.dand myState head) in
+             [ mgr#cubeOfMinTerm minTerm ]
+          | head :: rest ->
+             let traceSoFar = foldStateList rest myState in
+             let firstInTrace = List.hd traceSoFar in
+             let preImage = pre mgr transRel firstInTrace in
+             let preImageRestricted = Bdd.dand preImage head in
+             let minTerm = mgr#pickMinTermOnStates preImageRestricted in
+             let cube = mgr#cubeOfMinTerm minTerm in
+             cube :: traceSoFar
+        in
+        let stateList = forwardStates initState initState in
+        let lastState = List.nth stateList ((List.length stateList) - 1) in
+        let lastCube = mgr#cubeOfMinTerm (mgr#pickMinTermOnStates lastState) in
+        foldStateList stateList lastCube
+      in
+
+      let addFairnessToPeriod period fairness =
+        match fairness with
+        | FairnessSpecNone -> period
+        | ProcessJustice (pname, enabled, rtrans) ->
+           let rtrans = addTableauTransRel rtrans tableauTransRel in
+           let rtrans = restrictTransRelToStates rtrans (Bdd.dand final pfinal) in
+           let notenabled = List.exists (Bdd.is_inter_empty enabled) period in
+           let taken = isTransTaken period rtrans in
+           if (notenabled || taken) then
              period
            else
              let lastInPeriod = List.nth period ((List.length period) - 1) in
-             let newPath = findPathCube mgr lastInPeriod newTrans (Bdd.dand final justiceSpec) in
-             period @ (List.tl newPath))
-          period jlist
+             period @ (List.tl (findPathStateOrTrans lastInPeriod (Bdd.dnot enabled) rtrans))
+                        
+        | ProcessCompassion (pname, enabled, rtrans) ->
+           let rtrans = addTableauTransRel rtrans tableauTransRel in
+           let rtrans = restrictTransRelToStates rtrans (Bdd.dand final pfinal) in
+           let gnotenabled = Bdd.is_inter_empty final enabled in
+           let taken = isTransTaken period rtrans in
+           if (gnotenabled || taken) then
+             period
+           else
+             let lastInPeriod = List.nth period ((List.length period) - 1) in
+             period @ (List.tl (findPathStateOrTrans lastInPeriod (mgr#makeFalse ()) rtrans))
+
+        | LossCompassion (cname, imname, omname, irtrans, ortrans) ->
+           let irtrans = addTableauTransRel irtrans tableauTransRel in
+           let irtrans = restrictTransRelToStates irtrans (Bdd.dand final pfinal) in
+           let ortrans = addTableauTransRel ortrans tableauTransRel in
+           let ortrans = restrictTransRelToStates ortrans (Bdd.dand final pfinal) in
+           let gnotrecvd = Bdd.is_false (restrictedPre mgr irtrans final final) in
+           let sent = isTransTaken period ortrans in
+           if (gnotrecvd || sent) then
+             period
+           else
+             let lastInPeriod = List.nth period ((List.length period) - 1) in
+             period @ (List.tl (findPathStateOrTrans lastInPeriod (mgr#makeFalse ()) ortrans))
+
+        | DupCompassion (cname, imname, omname, irtrans, ortrans) ->
+           let irtrans = addTableauTransRel irtrans tableauTransRel in
+           let irtrans = restrictTransRelToStates irtrans (Bdd.dand final pfinal) in
+           let ortrans = addTableauTransRel ortrans tableauTransRel in
+           let ortrans = restrictTransRelToStates ortrans (Bdd.dand final pfinal) in
+           let gnotsent = Bdd.is_false (restrictedPre mgr ortrans final final) in
+           let recvd = isTransTaken period irtrans in
+           if (gnotsent || recvd) then
+             period
+           else
+             let lastInPeriod = List.nth period ((List.length period) - 1) in
+             period @ (List.tl (findPathStateOrTrans lastInPeriod (mgr#makeFalse ()) irtrans))
+
+        | Justice (p, q)
+        | LTLJustice (p, q) ->
+           let jprop = Bdd.dor (Bdd.dnot p) q in
+           if (List.exists (fun cube -> not (Bdd.is_inter_empty jprop cube)) period) then
+             period
+           else
+             let lastInPeriod = List.nth period ((List.length period) - 1) in
+             period @ List.tl (findPathCube mgr lastInPeriod newTrans (Bdd.dand final jprop))
+                              
+        | Compassion (p, q) ->
+           if ((List.exists (fun cube -> not (Bdd.is_inter_empty q cube)) period) ||
+                 (Bdd.is_inter_empty final q)) then
+             period
+           else
+             let lastInPeriod = List.nth period ((List.length period) - 1) in
+             period @ List.tl (findPathCube mgr lastInPeriod newTrans (Bdd.dand final q))
       in
+      (* end of helper functions *)
+      
       let period = 
         List.fold_left
-          (fun period compassionSpec ->
-           let p, q = compassionSpec in
-           let satCompassionSpec prop = (not (Bdd.is_inter_empty prop q)) in
-           if ((not (List.exists satCompassionSpec period)) && 
-                 (not (Bdd.is_inter_empty final p))) then
-             begin
-               let lastInPeriod = List.nth period ((List.length period) - 1) in
-               let newPath = findPathCube mgr lastInPeriod newTrans (Bdd.dand final q) in
-               period @ (List.tl newPath)
-             end
-           else
-             period) period clist
+          (fun period fspec ->
+           addFairnessToPeriod period fspec) period (jlist @ clist)
       in
-      let lastInPeriod = List.nth period ((List.length period) - 1) in
-      let newPath = findPathCube mgr lastInPeriod newTrans lastInPrefix in
-      let period = period @ (List.tl newPath) in
       (prefix, period)
-    end
+    end (* else *)
 
-let findLoop mgr initStates transRel finalStates jlist clist =
-  let prefix, period = findLoopCube mgr initStates transRel finalStates jlist clist in
+let findLoop mgr initStates transRel tableauTransRel finalStates jlist clist =
+  let prefix, period = 
+    findLoopCube 
+      mgr initStates transRel tableauTransRel finalStates jlist clist 
+  in
   (List.map mgr#getStateVars prefix,
    List.map mgr#getStateVars period)
 
