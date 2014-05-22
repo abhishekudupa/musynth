@@ -123,6 +123,11 @@ let getFeasible mgr initStates reach chioftester origTransRel
     let newStates = 
       List.fold_left
         (fun states justiceSpec ->
+         mgr#reorder 10;
+         Debug.dprintf "mc" "Elim Cycles: Filtering on fairness: %a, %d nodes@,"
+                       Utils.pFairnessSpec justiceSpec (Bdd.size states);
+         Debug.dflush ();
+
          filterOnFairness states transRel justiceSpec)
         newStates jlist
     in
@@ -135,6 +140,11 @@ let getFeasible mgr initStates reach chioftester origTransRel
     let newStates = 
       List.fold_left
         (fun states compassionSpec ->
+         mgr#reorder 10;
+         Debug.dprintf "mc" "Elim Cycles: Filtering on fairness: %a, %d nodes@,"
+                       Utils.pFairnessSpec compassionSpec (Bdd.size states);
+         Debug.dflush ();
+
          filterOnFairness states transRel compassionSpec)
         newStates clist
     in
@@ -271,7 +281,7 @@ let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlB
     | ExecNonConverged params ->
       synthesize (k + !Opts.jumpStep) params
   in
-  let solbdd = synthesize 0 paramConstraints in
+  let solbdd = synthesize !Opts.jumpStep paramConstraints in
   if (Debug.debugEnabled ()) then
     Debug.dprintf "mc" "Found %e solutions@," (mgr#getNumMinTermsParam solbdd)
   else

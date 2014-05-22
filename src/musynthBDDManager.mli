@@ -121,6 +121,7 @@ object
   method makeFalse : unit -> Cudd.Man.d Cudd.Bdd.t
   method makeTrue : unit -> Cudd.Man.d Cudd.Bdd.t
   method minimize : unit -> unit
+  method reorder : int -> unit
   method pickMinTermOnPStates : Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
   method pickMinTermOnParams : Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array
   method pickMinTermOnStates : Cudd.Man.d Cudd.Bdd.t -> Cudd.Man.tbool array

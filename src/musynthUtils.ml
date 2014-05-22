@@ -400,3 +400,23 @@ let makeDisjunction propList =
        (fun acc prop ->
         LLPropOr (acc, prop)) seed rest
        
+let pFairnessSpec fmt fairness =
+  match fairness with
+  | FairnessSpecNone -> fprintf fmt "none"
+  | ProcessJustice (pname, _, _) ->
+     fprintf fmt "Justice for process %a" AST.pLLDesignator pname
+  | ProcessCompassion (pname, _, _) ->
+     fprintf fmt "Compassion for process %a" AST.pLLDesignator pname
+  | LossCompassion (cname, imname, _, _, _) ->
+     fprintf fmt "Finite Loss Compassion for channel %a on msg %a"
+             AST.pLLDesignator cname AST.pLLDesignator imname
+  | DupCompassion (cname, imname, _, _, _) ->
+     fprintf fmt "Finite Dup Compassion for channel %a on msg %a"
+             AST.pLLDesignator cname AST.pLLDesignator imname
+  | Justice (_, _) ->
+     fprintf fmt "Vanilla Justice" 
+  | Compassion (_, _) ->
+     fprintf fmt "Vanilla Compassion"
+  | LTLJustice (_, _) ->
+     fprintf fmt "LTL Justice"
+

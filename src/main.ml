@@ -95,6 +95,10 @@ let rec processDebugOptions optlist =
      Opts.debugOptions := StringSet.add "ltl" !Opts.debugOptions; 
      Opts.debugDisabled := false;
      processDebugOptions rest
+  | "fp" :: rest ->
+     Opts.debugOptions := StringSet.add "fp" !Opts.debugOptions;
+     Opts.debugDisabled := false;
+     processDebugOptions rest
   | "none" :: rest -> 
      Opts.debugOptions := StringSet.add "none" !Opts.debugOptions; 
      Opts.debugDisabled := true; 

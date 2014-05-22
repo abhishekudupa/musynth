@@ -727,6 +727,9 @@ object (self)
     Man.reduce_heap manager !Opts.reorderMethod 10;
     ignore (Man.garbage_collect manager)
 
+  method reorder bound =
+    Man.reduce_heap manager !Opts.reorderMethod bound
+
   (* accessors for var names *)
   method getParamVarNames () =
     LLDesigSet.elements paramVars

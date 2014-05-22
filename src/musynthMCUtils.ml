@@ -70,12 +70,13 @@ let post mgr transRel states =
 let restrictedPre mgr transRel states restriction =
   let ucube = mgr#getCubeForUnprimedVars () in
   let statesprimed = primeSet mgr states in
-  let sandrest = Bdd.dand statesprimed restriction in
+  let rTransRel = restrictTransRelToStates transRel restriction in
   let primedresult = 
     List.fold_left
       (fun acc trans ->
-       Bdd.dor (Bdd.existand ucube trans sandrest) acc)
-      (mgr#makeFalse ()) transRel
+       let mystates = Bdd.existand ucube trans statesprimed in
+       Bdd.dor mystates acc)
+      (mgr#makeFalse ()) rTransRel
   in
   unprimeSet mgr primedresult
 
@@ -111,10 +112,16 @@ let preOrTransformer mgr transRel pred =
 (* and return the set of states reachable in k or fewer steps *)
 (* also indicates if a fixpoint was reached *)
 let postK k mgr transRel states = 
+  let iteration = ref 0 in
   let rec postKRec k reach frontier =
     match k with
     | 0 -> ExecNonConverged reach
     | _ -> 
+       iteration := !iteration + 1;
+       Debug.dprintf "fp" "postK: iteration %d@,Reordering... " !iteration;
+       Debug.dflush ();
+       mgr#reorder 10;
+       Debug.dprintf "fp" "Done!@,"; Debug.dflush ();
        let newReach = Bdd.dor reach (post mgr transRel frontier) in
        if (Bdd.is_leq newReach reach) then
          ExecFixpoint newReach
@@ -143,12 +150,19 @@ let preK k mgr transRel states =
   preKRec k states states
 
 (* fix point function *)
-let rec computeFixPoint pTransFormer fpCondition pred =
-  let newPred = pTransFormer pred in
-  if fpCondition pred newPred then
-    newPred
-  else
-    computeFixPoint pTransFormer fpCondition newPred
+let computeFixPoint pTransFormer fpCondition pred =
+  let iteration = ref 0 in
+  let rec computeFixPointRec pred =
+    iteration := !iteration + 1;
+    Debug.dprintf "fp" "computeFixPoint: iteration %d@," !iteration;
+    Debug.dflush ();
+    let newPred = pTransFormer pred in
+    if fpCondition pred newPred then
+      newPred
+    else
+      computeFixPointRec newPred
+  in
+  computeFixPointRec pred
 
 (* construct a path from some initial state to *)
 (* the specified error state. Assumption is that *)
