@@ -375,6 +375,12 @@ let rec getPrimedLLDesig lldesig =
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "'")
 
+let rec getDPrimedLLDesig lldesig =
+  match lldesig with
+  | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
+  | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
+  | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "''")
+
 let rec getBaseLLDesig lldesig =
   match lldesig with
   | LLSimpleDesignator name -> name

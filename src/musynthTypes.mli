@@ -250,6 +250,7 @@ type llProgT =
 
 val lldesigToString : llDesignatorT -> string
 val getPrimedLLDesig : llDesignatorT -> llDesignatorT
+val getDPrimedLLDesig : llDesignatorT -> llDesignatorT
 val getBaseLLDesig : llDesignatorT -> string
 val countLLDesigParams : llDesignatorT -> int
 

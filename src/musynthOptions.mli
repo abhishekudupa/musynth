@@ -9,4 +9,5 @@ val reorderEnabled : bool ref
 val reorderMethod : Cudd.Man.reorder ref
 val tracePrintMode : string ref
 val jumpStep : int ref
+val iterativeSq : bool ref
 val reorderMethods : string list

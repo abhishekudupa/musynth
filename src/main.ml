@@ -25,6 +25,7 @@ let printUsage arg0 =
   fprintf stderr "-j <num>         : Jump by <num> steps each iteration (default = 1, 0 = infinity).\n";
   fprintf stderr "-dp              : Disable disjunctive partitioning of transition relation.\n";
   fprintf stderr "-dr <method>     : Enable Dynamic Reordering.\n";
+  fprintf stderr "-is              : Use iterative squaring to compute fixpoints (where applicable).\n";
   fprintf stderr "                   Where <method> is one of (defaults to linear):\n";
   List.iter 
     (fun meth ->
@@ -149,6 +150,8 @@ let processOptions arglist =
                Opts.tracePrintMode := "full"; rest
             | "-tp" :: rest ->
                raise (Invalid_argument "Unknown trace printing mode!")
+            | "-is" :: rest ->
+               Opts.iterativeSq := true; rest
             | str :: rest ->
                if !Opts.inputFileName <> "" then
                  begin

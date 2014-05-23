@@ -22,6 +22,7 @@ object (self)
   val mutable varMap = LLDesigMap.empty
   val mutable stateBitSet = IntSet.empty
   val mutable pStateBitSet = IntSet.empty
+  val mutable dPStateBitSet = IntSet.empty
   val mutable paramBitSet = IntSet.empty
   val mutable stateVars = LLDesigMap.empty
   val mutable paramVars = LLDesigSet.empty
@@ -29,6 +30,7 @@ object (self)
                                     
   (* caches *)
   val mutable cachedPrimedVarCube = None
+  val mutable cachedDPrimedVarCube = None
   val mutable cachedUnprimedVarCube = None
   val mutable cachedParamVarCube = None
   val mutable cachedAllVarCube = None
@@ -66,6 +68,7 @@ object (self)
     varMap <- LLDesigMap.empty;
     stateBitSet <- IntSet.empty;
     pStateBitSet <- IntSet.empty;
+    dPStateBitSSet <- In
     paramBitSet <- IntSet.empty;
     stateVars <- LLDesigMap.empty;
     paramVars <- LLDesigSet.empty;
@@ -75,6 +78,7 @@ object (self)
                           
   method private invalidateCaches () =
     cachedPrimedVarCube <- None;
+    cachedDPrimedVarCube <- None;
     cachedUnprimedVarCube <- None;
     cachedParamVarCube <- None;
     cachedAllVarCube <- None;
@@ -323,6 +327,14 @@ object (self)
     let varNameP = getPrimedLLDesig varName in
     self#registerVar varName varDomain;
     self#registerVar varNameP varDomain;
+    if !Opts.iterativeSq then
+      begin
+        let varNameDP = getDPrimedLLDesig varName in
+        self#registerVar varNameDP varDomain;
+        let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameDP varMap in
+        dPStateBitSSet <- IntSet.union dPStateBitSSet (self#registerBitsForVar low size);
+    else
+      ();
     (* We haven't thrown an exception -> We're good! *)
     stateVars <- LLDesigMap.add varName varNameP stateVars;
     (* register the bits as belonging to state vars and pstatevars *)
@@ -400,6 +412,23 @@ object (self)
        cachedPrimedVarCube <- Some cube;
        cube
 
+  method getCubeForDPrimedVars () =
+    match cachedDPrimedVarCube with
+    | Some cube -> cube
+    | None ->
+       let cube = 
+         if !Opts.iterativeSq then
+           LLDesigMap.fold 
+             (fun vname pname bdd ->
+              let dpname = getDPrimedLLDesig vname in
+              Bdd.dand (self#getCubeForOneVar dpname) bdd)
+             stateVars (self#makeTrue ())
+         else
+           self#makeTrue ()
+       in
+       cachedDPrimedVarCube <- Some cube;
+       cube
+
   method getCubeForParamVars () =
     match cachedParamVarCube with
     | Some c -> c
@@ -471,7 +500,8 @@ object (self)
     | None ->
        let cube1 = self#getCubeForPrimedVars () in
        let cube2 = self#getCubeForUnprimedVars () in
-       let cube = Bdd.dand cube1 cube2 in
+       let cube3 = self#getCubeForDPrimedVars () in
+       let cube = Bdd.dand cube1 (Bdd.dand cube2 cube3) in
        cachedAllButParamCube <- Some cube;
        cube
 
@@ -511,10 +541,10 @@ object (self)
     Bdd.nbminterms numTotalBits (Bdd.dand bdd (self#makeTrue ()))
 
   method getNumMinTermsState bdd =
-    Bdd.nbminterms numStateBits (Bdd.exist 
-                                   (Bdd.dand (self#getCubeForPrimedVars ())
-                                             (self#getCubeForParamVars ()))
-                                   bdd)
+    let ebdd = Bdd.dand (self#getCubeForPrimedVars ())
+                        (self#getCubeForDPrimedVars ()) in
+    let ebdd = Bdd.dand (self#getCubeForPrimedVars ()) ebdd in
+    Bdd.nbminterms numStateBits (Bdd.exist ebdd bdd)
 
   method getNumMinTermsStateNI bdd =
     Bdd.nbminterms (numStateBits - numInternalStateBits) 
@@ -631,6 +661,8 @@ object (self)
          | _ -> Man.False) cube
 
   method pickMinTermOnPStates bdd =
+    let ecube = Bdd.dand (self#getCubeForParamVars ()) (self#getCubeForUnprimedVars ()) in
+    let ecube = Bdd.dand ecube (self#getCubeForDPrimedVars ()) in
     let ebdd = Bdd.exist (Bdd.dand (self#getCubeForUnprimedVars ())
                                    (self#getCubeForParamVars ())) bdd in
     let minTerm = Bdd.pick_minterm ebdd in
