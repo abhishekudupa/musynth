@@ -84,11 +84,11 @@ let restrictedPre mgr transRel states restriction =
 let restrictedPost mgr transRel states restriction =
   let pcube = mgr#getCubeForPrimedVars () in
   let restrictionprimed = primeSet mgr restriction in
-  let sandrest = Bdd.dand states restrictionprimed in
+  let rTransRel = restrictTransRelToStates transRel restrictionprimed in
   List.fold_left
     (fun acc trans ->
-     Bdd.dor (Bdd.existand pcube trans sandrest) acc)
-    (mgr#makeFalse ()) transRel
+     Bdd.dor (Bdd.existand pcube trans states) acc)
+    (mgr#makeFalse ()) rTransRel
 
 let inclusionFixPointTester oldpred newpred =
   Bdd.is_leq newpred oldpred
@@ -120,7 +120,7 @@ let postK k mgr transRel states =
        iteration := !iteration + 1;
        Debug.dprintf "fp" "postK: iteration %d@,Reordering... " !iteration;
        Debug.dflush ();
-       mgr#reorder 10;
+       (* mgr#reorder 10; *)
        Debug.dprintf "fp" "Done!@,"; Debug.dflush ();
        let newReach = Bdd.dor reach (post mgr transRel frontier) in
        if (Bdd.is_leq newReach reach) then
@@ -130,6 +130,58 @@ let postK k mgr transRel states =
          postKRec (k - 1) newReach newFrontier
   in
   postKRec k states states
+
+(* private type, not exported *)
+type 'a pruneStatT =
+  | PrunedNonConverged of 'a
+  | PrunedFixpoint of 'a
+  | PrunedError of 'a
+
+let prunedPostK k mgr transRel states badStates =
+  let outeriter = ref 0 in
+  
+  (* repeatedly called the inner function until postK is computed *)
+  let rec prunedPostKRec initStates =
+    outeriter := !outeriter + 1;
+    let inneriter = ref 0 in
+
+    let rec postKOrPrune k reach frontier =
+      inneriter := !inneriter + 1;
+      Debug.dprintf "fp" "prunedPostK: outer iter %d, inner iter %d@,"
+                    !outeriter !inneriter;
+      Debug.dflush ();
+
+      let newReach = Bdd.dor reach frontier in
+      let reachableBadStates = Bdd.dand newReach badStates in
+      if (not (Bdd.is_false reachableBadStates)) then
+        let abpcube = mgr#getAllButParamCube () in
+        let badparams = Bdd.exist abpcube reachableBadStates in
+        PrunedError badparams
+      else
+        if (Bdd.is_leq newReach reach) then
+          PrunedFixpoint newReach
+        else
+          match k with 
+          | 0 -> PrunedNonConverged newReach
+          | _ ->
+             let newFrontier = (Bdd.dand (post mgr transRel frontier) 
+                                         (Bdd.dnot newReach)) 
+             in
+             postKOrPrune (k - 1) newReach newFrontier
+    in
+
+    let stat = postKOrPrune k (mgr#makeFalse ()) initStates in
+    let abpcube = mgr#getAllButParamCube () in
+    match stat with
+    | PrunedNonConverged states -> 
+       ExecNonConverged (states, Bdd.exist abpcube initStates)
+    | PrunedFixpoint states -> 
+       ExecFixpoint (states, Bdd.exist abpcube initStates)
+    | PrunedError badparams ->
+       let newInitStates = Bdd.dand initStates (Bdd.dnot badparams) in
+       prunedPostKRec newInitStates
+  in
+  prunedPostKRec states
 
 (* compute the pre image k times *)
 (* and return the set of states that can reach "states" *)

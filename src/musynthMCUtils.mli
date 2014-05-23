@@ -84,6 +84,14 @@ val postK : int -> MusynthBDDManager.bddManager ->
             MusynthBDDManager.bddType -> 
             MusynthBDDManager.bddType MusynthTypes.execExitStatT
 
+val prunedPostK : int -> MusynthBDDManager.bddManager ->
+                  MusynthBDDManager.bddType list -> 
+                  MusynthBDDManager.bddType -> 
+                  MusynthBDDManager.bddType ->
+                  (MusynthBDDManager.bddType * 
+                     MusynthBDDManager.bddType) 
+                    MusynthTypes.execExitStatT
+
 val preK : int -> MusynthBDDManager.bddManager ->
            MusynthBDDManager.bddType list -> MusynthBDDManager.bddType -> 
            MusynthBDDManager.bddType MusynthTypes.execExitStatT

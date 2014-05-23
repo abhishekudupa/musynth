@@ -13,31 +13,6 @@ module MCU = MusynthMCUtils
 module Utils = MusynthUtils
 
 
-let getSafetyParams mgr initStates reachStates transRel badStates =
-  let reachableBadStates = Bdd.dand reachStates badStates in
-  if (Bdd.is_false reachableBadStates) then
-    mgr#makeTrue ()
-  else
-    begin
-      if (Debug.debugEnabled ()) then
-        let fmt = Debug.getDebugFmt () in
-        begin
-          Debug.dprintf "mc" "Found a safety violation:@,";
-          let trace = MCU.findPath mgr initStates transRel 
-                                   (mgr#cubeOfMinTerm (mgr#pickMinTermOnStates 
-                                                         reachableBadStates))
-          in
-          if (Debug.debugOptEnabled "trace") then
-            Trace.printTraceSafety fmt trace
-          else
-            ()
-        end
-      else
-        ();
-      let badParams = Bdd.existand (mgr#getAllButParamCube ()) reachStates badStates in
-      Bdd.dnot badParams
-    end
-
 let getFeasible mgr initStates reach chioftester origTransRel 
                 tableauTransRel jlist clist =
 
@@ -107,8 +82,11 @@ let getFeasible mgr initStates reach chioftester origTransRel
   in
   
   let rec elimCycles transRel states = 
-    Debug.dprintf "mc" "Elim Cycles: iteration %d@," !iteration;
     iteration := !iteration + 1;
+    Debug.dprintf "mc" "Elim Cycles: iteration %d, Reordering... " !iteration;
+    Debug.dflush ();
+    mgr#reorder 32;
+    Debug.dprintf "mc" "Done!@,";
     Debug.dprintf "mc" "Elim Cycles: Finding Cycles@,";
     Debug.dflush (); 
     let newStates = MCU.computeFixPoint (MCU.preAndTransformer mgr transRel)
@@ -123,7 +101,7 @@ let getFeasible mgr initStates reach chioftester origTransRel
     let newStates = 
       List.fold_left
         (fun states justiceSpec ->
-         mgr#reorder 10;
+         (* mgr#reorder 10; *)
          Debug.dprintf "mc" "Elim Cycles: Filtering on fairness: %a, %d nodes@,"
                        Utils.pFairnessSpec justiceSpec (Bdd.size states);
          Debug.dflush ();
@@ -140,7 +118,7 @@ let getFeasible mgr initStates reach chioftester origTransRel
     let newStates = 
       List.fold_left
         (fun states compassionSpec ->
-         mgr#reorder 10;
+         (* mgr#reorder 10; *)
          Debug.dprintf "mc" "Elim Cycles: Filtering on fairness: %a, %d nodes@,"
                        Utils.pFairnessSpec compassionSpec (Bdd.size states);
          Debug.dflush ();
@@ -214,23 +192,20 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel
 (* badstates is the states where an invariant is blown *)
 (* tableau is the list of ltl tableaus *)
 let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tableau =
+  (* audupa: Hack, we compute params for reachable states first *)
   let actInitStates = Bdd.dand initstates paramConstraints in
   assert (Bdd.is_inter_empty actInitStates badstates);
   Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
                 k (Bdd.nbminterms (Bdd.supportsize paramConstraints) paramConstraints); 
   Debug.dflush ();
-  let kReachStat = MCU.postK k mgr transRel actInitStates in
-  let kReach = 
-    (match kReachStat with
-     | ExecNonConverged s -> s
-     | ExecFixpoint s -> s) 
+  let kReachStat = MCU.prunedPostK max_int mgr transRel actInitStates badstates in
+  let kReach, newParamConstraints = 
+    match kReachStat with
+    | ExecNonConverged (s, c) -> (s, c)
+    | ExecFixpoint (s, c) -> (s, c)
   in
   Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
   Debug.dflush ();
-  (* get params for safety *)
-  let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
-  let newParamConstraints = Bdd.dand paramConstraints sparams in
-
   (* Now for each tableau, construct the set of k reachable states for THAT tableau *)
   (* check if there exist cycles for THAT tableau, and refine params accordingly    *)
   (* and check subsequent tableau with the refined parameters                       *)
