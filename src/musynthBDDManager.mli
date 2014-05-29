@@ -27,6 +27,7 @@ object
   val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
   val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
   val mutable cachedVarCubes : Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigSetMap.t
+  val mutable dPStateBitSet : MusynthTypes.IntSet.t
   val mutable indexToBitNameMap : string MusynthTypes.IntMap.t
   val mutable internalStateVars : MusynthTypes.LLDesigSet.t
   val mutable manager : Cudd.Man.d Cudd.Man.t
@@ -67,9 +68,10 @@ object
   method getCubeForAllVars : unit -> Cudd.Man.d Cudd.Bdd.t
   method private getCubeForOneVar : MusynthTypes.LLDesigMap.key -> 
                                     Cudd.Man.d Cudd.Bdd.t
-
+                                               
   method getCubeForParamVars : unit -> Cudd.Man.d Cudd.Bdd.t
   method getCubeForPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
+  method getCubeForDPrimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
   method getCubeForUnprimedVars : unit -> Cudd.Man.d Cudd.Bdd.t
   method getCubeForVar : MusynthTypes.LLDesigSet.elt -> Cudd.Man.d Cudd.Bdd.t
   method getCubeForVars : MusynthTypes.LLDesigSet.elt list -> Cudd.Man.d Cudd.Bdd.t

@@ -68,7 +68,7 @@ object (self)
     varMap <- LLDesigMap.empty;
     stateBitSet <- IntSet.empty;
     pStateBitSet <- IntSet.empty;
-    dPStateBitSSet <- In
+    dPStateBitSet <- IntSet.empty;
     paramBitSet <- IntSet.empty;
     stateVars <- LLDesigMap.empty;
     paramVars <- LLDesigSet.empty;
@@ -332,7 +332,8 @@ object (self)
         let varNameDP = getDPrimedLLDesig varName in
         self#registerVar varNameDP varDomain;
         let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameDP varMap in
-        dPStateBitSSet <- IntSet.union dPStateBitSSet (self#registerBitsForVar low size);
+        dPStateBitSet <- IntSet.union dPStateBitSet (self#registerBitsForVar low size);
+      end
     else
       ();
     (* We haven't thrown an exception -> We're good! *)
@@ -550,7 +551,8 @@ object (self)
     Bdd.nbminterms (numStateBits - numInternalStateBits) 
                    (Bdd.exist 
                       (Bdd.dand (self#getCubeForPrimedVars ())
-                                (self#getCubeForParamVars ()))
+                                (Bdd.dand (self#getCubeForDPrimedVars ())
+                                          (self#getCubeForParamVars ())))
                       bdd)
 
   method getNumMinTermsParam bdd =
@@ -622,7 +624,9 @@ object (self)
     let bdd = Bdd.dand bdd (self#makeTrue ()) in
     let printer = self#getStateVarPrinter () in
     let ebdd = Bdd.exist (Bdd.dand (self#getCubeForParamVars ())
-                                   (self#getCubeForPrimedVars ())) bdd in
+                                   (Bdd.dand
+                                      (self#getCubeForPrimedVars ())
+                                      (self#getCubeForDPrimedVars ()))) bdd in
     
     let cubes = Bdd.pick_cubes_on_support ebdd (self#getCubeForUnprimedVars ()) n in
     
@@ -663,8 +667,7 @@ object (self)
   method pickMinTermOnPStates bdd =
     let ecube = Bdd.dand (self#getCubeForParamVars ()) (self#getCubeForUnprimedVars ()) in
     let ecube = Bdd.dand ecube (self#getCubeForDPrimedVars ()) in
-    let ebdd = Bdd.exist (Bdd.dand (self#getCubeForUnprimedVars ())
-                                   (self#getCubeForParamVars ())) bdd in
+    let ebdd = Bdd.exist ecube bdd in
     let minTerm = Bdd.pick_minterm ebdd in
     self#determinizeOnSet pStateBitSet minTerm
 
@@ -693,13 +696,15 @@ object (self)
   method getNStateVars n bdd =
     let n = if n = 0 then max_int else n in
     let ebdd = Bdd.exist (Bdd.dand (self#getCubeForPrimedVars ())
-                                   (self#getCubeForParamVars ())) bdd in
+                                   (Bdd.dand
+                                      (self#getCubeForDPrimedVars ())
+                                      (self#getCubeForParamVars ()))) bdd in
     let cubes = Bdd.pick_cubes_on_support (self#getCubeForUnprimedVars ()) ebdd n in
 
     Array.fold_left 
       (fun lst cube ->
        (self#getStateVars cube) :: lst) [] cubes
-      
+
   method getParamVars bdd = 
     let minTerm = self#pickMinTermOnStates bdd in
     LLDesigSet.fold
@@ -708,7 +713,7 @@ object (self)
        LLDesigMap.add name (cubeToDomValFun minTerm) map)
       paramVars LLDesigMap.empty
 
-  method getNParamVars n bdd = 
+  method getNParamVars n bdd =
     let n = if n = 0 then max_int else n in
     let ebdd = Bdd.exist (self#getAllButParamCube ()) bdd in
     let cubes = Bdd.pick_cubes_on_support (self#getCubeForParamVars ()) ebdd n in
