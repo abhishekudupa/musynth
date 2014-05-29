@@ -13,6 +13,7 @@ object
   val mutable cachedCubePrinter : (Format.formatter -> 
                                    Cudd.Man.tbool array -> 
                                    unit) option
+  val mutable cachedP2DPSubstTable : Cudd.Man.d Cudd.Bdd.t array option
   val mutable cachedP2USubstTable : Cudd.Man.d Cudd.Bdd.t array option
   val mutable cachedParamVarCube : Cudd.Man.d Cudd.Bdd.t option
   val mutable cachedParamVarPrinter : (Format.formatter -> 
@@ -25,6 +26,7 @@ object
                                        unit) option
 
   val mutable cachedU2PSubstTable : Cudd.Man.d Cudd.Bdd.t array option
+  val mutable cachedU2DPSubstTable : Cudd.Man.d Cudd.Bdd.t array option
   val mutable cachedUnprimedVarCube : Cudd.Man.d Cudd.Bdd.t option
   val mutable cachedVarCubes : Cudd.Man.d Cudd.Bdd.t MusynthTypes.LLDesigSetMap.t
   val mutable dPStateBitSet : MusynthTypes.IntSet.t
@@ -59,6 +61,9 @@ object
   method private determinizeOnSet : MusynthTypes.IntSet.t -> 
                                     Cudd.Man.tbool array -> 
                                     Cudd.Man.tbool array
+
+  method disableAutoReorder : unit -> unit
+  method enableAutoReorder : unit -> unit
 
   method getAllButParamCube : unit -> Cudd.Man.d Cudd.Bdd.t
   method getAllVarPrinter : unit -> Format.formatter -> Cudd.Man.tbool array -> unit
@@ -104,6 +109,8 @@ object
 
   method getSubstTableP2U : unit -> Cudd.Man.d Cudd.Bdd.t array
   method getSubstTableU2P : unit -> Cudd.Man.d Cudd.Bdd.t array
+  method getSubstTableP2DP : unit -> Cudd.Man.d Cudd.Bdd.t array
+  method getSubstTableU2DP : unit -> Cudd.Man.d Cudd.Bdd.t array
   method private invalidateCaches : unit -> unit
   method isFalse : Cudd.Man.d Cudd.Bdd.t -> bool
   method private lg : int -> int

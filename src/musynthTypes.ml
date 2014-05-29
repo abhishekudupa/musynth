@@ -377,7 +377,7 @@ let rec getPrimedLLDesig lldesig =
 
 let rec getDPrimedLLDesig lldesig =
   match lldesig with
-  | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "'")
+  | LLSimpleDesignator name -> LLSimpleDesignator (name ^ "''")
   | LLIndexDesignator (ndesig, name) -> LLIndexDesignator (getPrimedLLDesig ndesig, name)
   | LLFieldDesignator (ndesig, name) -> LLFieldDesignator (ndesig, name ^ "''")
 

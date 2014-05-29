@@ -21,82 +21,112 @@ let getFeasible mgr initStates reach chioftester origTransRel
 
   let filterOnFairness states transRel fairness =
     let newTrans = MCU.restrictTransRelToStates transRel states in
-    match fairness with
-    | FairnessSpecNone -> states
-    | ProcessJustice (pname, enabled, rtrans) ->
-       let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
-       let notenstates = Bdd.dand states (Bdd.dnot enabled) in
-       let takenstates = MCU.restrictedPre mgr rtrans states states in
-       let justStates = Bdd.dor notenstates takenstates in
-       MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                           MCU.inclusionFixPointTester justStates
+    let newTrans = MCU.restrictTransRelToStates newTrans (MCU.primeSet mgr states) in
+    let newStates = 
+      match fairness with
+      | FairnessSpecNone -> states
+      | ProcessJustice (pname, enabled, rtrans) ->
+         let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
+         let notenstates = Bdd.dand states (Bdd.dnot enabled) in
+         let takenstates = MCU.restrictedPre mgr rtrans states states in
+         let justStates = Bdd.dor notenstates takenstates in
+         if (!Opts.iterativeSq) then
+           let sqTrans = MCU.iterativeSquarer mgr newTrans in
+           Bdd.dor justStates (MCU.pre mgr sqTrans justStates)
+         else
+           MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                               MCU.inclusionFixPointTester justStates
+                               
 
-    | ProcessCompassion (pname, enabled, rtrans) ->
-       let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
-       let notenstates = Bdd.dand states (Bdd.dnot enabled) in
-       let takenstates = MCU.restrictedPre mgr rtrans states states in
-       Bdd.dor
-         notenstates 
-         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                              MCU.inclusionFixPointTester 
-                              takenstates)
-         
-    | LossCompassion (cname, imname, omname, irtrans, ortrans) ->
-       let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
-       let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
-       let notstates = Bdd.dnot states in
-       let notrecvstates = MCU.restrictedPre mgr irtrans states notstates in
-       let sentstates = MCU.restrictedPre mgr ortrans states states in
-       Bdd.dor
-         notrecvstates
-         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                              MCU.inclusionFixPointTester
-                              sentstates)
+      | ProcessCompassion (pname, enabled, rtrans) ->
+         let rtrans = MCU.addTableauTransRel rtrans tableauTransRel in
+         let notenstates = Bdd.dand states (Bdd.dnot enabled) in
+         let takenstates = MCU.restrictedPre mgr rtrans states states in
+         Bdd.dor
+           notenstates 
+           (if (!Opts.iterativeSq) then
+              let sqTrans = MCU.iterativeSquarer mgr newTrans in
+              Bdd.dor takenstates (MCU.pre mgr sqTrans takenstates)
+            else
+              (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                                   MCU.inclusionFixPointTester 
+                                   takenstates))
+           
+      | LossCompassion (cname, imname, omname, irtrans, ortrans) ->
+         let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
+         let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
+         let notstates = Bdd.dnot states in
+         let notrecvstates = MCU.restrictedPre mgr irtrans states notstates in
+         let sentstates = MCU.restrictedPre mgr ortrans states states in
+         Bdd.dor
+           notrecvstates
+           (if (!Opts.iterativeSq) then
+              let sqTrans = MCU.iterativeSquarer mgr newTrans in
+              Bdd.dor sentstates (MCU.pre mgr sqTrans sentstates)
+            else
+              (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                                   MCU.inclusionFixPointTester
+                                   sentstates))
 
-    | DupCompassion (cname, imname, omname, irtrans, ortrans) ->
-       let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
-       let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
-       let notstates = Bdd.dnot states in
-       let notsentstates = MCU.restrictedPre mgr ortrans states notstates in
-       let recvstates = MCU.restrictedPre mgr irtrans states states in
-       Bdd.dor
-         notsentstates
-         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                              MCU.inclusionFixPointTester
-                              recvstates)
+      | DupCompassion (cname, imname, omname, irtrans, ortrans) ->
+         let irtrans = MCU.addTableauTransRel irtrans tableauTransRel in
+         let ortrans = MCU.addTableauTransRel ortrans tableauTransRel in
+         let notstates = Bdd.dnot states in
+         let notsentstates = MCU.restrictedPre mgr ortrans states notstates in
+         let recvstates = MCU.restrictedPre mgr irtrans states states in
+         Bdd.dor
+           notsentstates
+           (if (!Opts.iterativeSq) then
+              let sqTrans = MCU.iterativeSquarer mgr newTrans in
+              Bdd.dor recvstates (MCU.pre mgr sqTrans recvstates)
+            else
+              (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                                   MCU.inclusionFixPointTester
+                                   recvstates))
 
-    | Justice (prop1, prop2)
-    | LTLJustice (prop1, prop2) ->
-       let justiceProp = Bdd.dor (Bdd.dnot prop1) prop2 in
-       let justStates = Bdd.dand states justiceProp in
-       MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                           MCU.inclusionFixPointTester justStates
+      | Justice (prop1, prop2)
+      | LTLJustice (prop1, prop2) ->
+         let justiceProp = Bdd.dor (Bdd.dnot prop1) prop2 in
+         let justStates = Bdd.dand states justiceProp in
+         if (!Opts.iterativeSq) then
+           let sqTrans = MCU.iterativeSquarer mgr newTrans in
+           Bdd.dor justStates (MCU.pre mgr sqTrans justStates)
+         else
+           MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                               MCU.inclusionFixPointTester justStates
 
-    | Compassion (p, q) ->
-       let notpstates = Bdd.dand states (Bdd.dnot p) in
-       let qstates = Bdd.dand states q in
-       Bdd.dor
-         notpstates
-         (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
-                              MCU.inclusionFixPointTester qstates)
-  in
+      | Compassion (p, q) ->
+         let notpstates = Bdd.dand states (Bdd.dnot p) in
+         let qstates = Bdd.dand states q in
+         Bdd.dor
+           notpstates
+           (if (!Opts.iterativeSq) then
+              let sqTrans = MCU.iterativeSquarer mgr newTrans in
+              Bdd.dor qstates (MCU.pre mgr sqTrans qstates)
+            else
+              (MCU.computeFixPoint (MCU.preOrTransformer mgr newTrans)
+                                   MCU.inclusionFixPointTester qstates))
+    in
+    newStates
+  in                                           
   
   let rec elimCycles transRel states = 
     iteration := !iteration + 1;
-    Debug.dprintf "mc" "Elim Cycles: iteration %d, Reordering... " !iteration;
-    Debug.dflush ();
-    mgr#reorder 32;
-    Debug.dprintf "mc" "Done!@,";
-    Debug.dprintf "mc" "Elim Cycles: Finding Cycles@,";
+    Debug.dprintf "mc" "Elim Cycles: iteration %d, Finding Cycles@," !iteration;
     Debug.dflush (); 
-    let newStates = MCU.computeFixPoint (MCU.preAndTransformer mgr transRel)
-                                        MCU.inclusionFixPointTester states
+    let newStates =  MCU.computeFixPoint (MCU.preAndTransformer mgr transRel)
+                                         MCU.eqFixPointTester states
     in
     (* Filter based on justices *)
     Debug.dprintf "mc" ("Elim Cycles: Filtering on %d justice requirements. " ^^ 
                           "newStates : %d nodes@,")
                   (List.length jlist) (Bdd.size newStates);
     Debug.dflush ();
+
+    Debug.dprintf "mc" "Elim Cycles: iteration %d, Reordering... " !iteration;
+    Debug.dflush ();
+    mgr#reorder 32;
+    Debug.dprintf "mc" "Done!@,";
 
     let newStates = 
       List.fold_left

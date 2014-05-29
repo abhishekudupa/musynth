@@ -79,6 +79,10 @@ val preOrTransformer : MusynthBDDManager.bddManager ->
                        MusynthBDDManager.bddType -> 
                        MusynthBDDManager.bddType
 
+val iterativeSquarer : MusynthBDDManager.bddManager ->
+                       MusynthBDDManager.bddType list ->
+                       MusynthBDDManager.bddType list
+
 val postK : int -> MusynthBDDManager.bddManager ->
             MusynthBDDManager.bddType list -> 
             MusynthBDDManager.bddType -> 

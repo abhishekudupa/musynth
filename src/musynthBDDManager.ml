@@ -36,6 +36,8 @@ object (self)
   val mutable cachedAllVarCube = None
   val mutable cachedP2USubstTable = None
   val mutable cachedU2PSubstTable = None
+  val mutable cachedU2DPSubstTable = None
+  val mutable cachedP2DPSubstTable = None
   val mutable cachedAllButParamCube = None
   val mutable cachedConstraintsOnAllVars = None
   val mutable cachedConstraintsOnParams = None
@@ -84,6 +86,8 @@ object (self)
     cachedAllVarCube <- None;
     cachedP2USubstTable <- None;
     cachedU2PSubstTable <- None;
+    cachedU2DPSubstTable <- None;
+    cachedP2DPSubstTable <- None;
     cachedAllButParamCube <- None;
     cachedStateVarPrinter <- None;
     cachedParamVarPrinter <- None;
@@ -332,7 +336,7 @@ object (self)
         let varNameDP = getDPrimedLLDesig varName in
         self#registerVar varNameDP varDomain;
         let _, low, size, _, _, _, _, _ = LLDesigMap.find varNameDP varMap in
-        dPStateBitSet <- IntSet.union dPStateBitSet (self#registerBitsForVar low size);
+        dPStateBitSet <- IntSet.union dPStateBitSet (self#registerBitsForVar low size)
       end
     else
       ();
@@ -494,6 +498,32 @@ object (self)
           self#substOneVarInTable table vname pname) stateVars;
        cachedU2PSubstTable <- Some table;
        table
+
+  method getSubstTableU2DP () =
+    match cachedU2DPSubstTable with
+    | Some t -> t 
+    | None ->
+       let t = Array.make numTotalBits (self#makeTrue ()) in
+       let t = Array.mapi (fun i elem -> Bdd.ithvar manager i) t in
+       LLDesigMap.iter 
+         (fun vname pname ->
+          self#substOneVarInTable t vname (getDPrimedLLDesig vname)) 
+         stateVars;
+       cachedU2DPSubstTable <- Some t;
+       t
+
+  method getSubstTableP2DP () =
+    match cachedP2DPSubstTable with
+    | Some t -> t 
+    | None ->
+       let t = Array.make numTotalBits (self#makeTrue ()) in
+       let t = Array.mapi (fun i elem -> Bdd.ithvar manager i) t in
+       LLDesigMap.iter 
+         (fun vname pname ->
+          self#substOneVarInTable t pname (getDPrimedLLDesig vname)) 
+         stateVars;
+       cachedP2DPSubstTable <- Some t;
+       t
 
   method getAllButParamCube () = 
     match cachedAllButParamCube with
@@ -761,11 +791,17 @@ object (self)
     LLDesigSet.cardinal paramVars
 
   method minimize () =
-    Man.reduce_heap manager !Opts.reorderMethod 10;
+    if (!Opts.reorderEnabled) then
+      Man.reduce_heap manager !Opts.reorderMethod 10
+    else
+      ();
     ignore (Man.garbage_collect manager)
 
   method reorder bound =
-    Man.reduce_heap manager !Opts.reorderMethod bound
+    if (not !Opts.reorderEnabled) then
+      Man.reduce_heap manager !Opts.reorderMethod bound
+    else
+      ();
 
   (* accessors for var names *)
   method getParamVarNames () =
@@ -781,5 +817,11 @@ object (self)
          name :: lst
        else
          lst) stateVars []
-      
+
+  method enableAutoReorder () =
+    Man.enable_autodyn manager !Opts.reorderMethod
+
+  method disableAutoReorder () =
+    Man.disable_autodyn manager
+
 end (* class bddEncoder *)

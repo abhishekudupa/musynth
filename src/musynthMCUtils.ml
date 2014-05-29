@@ -108,6 +108,42 @@ let preAndTransformer mgr transRel pred =
 let preOrTransformer mgr transRel pred =
   Bdd.dor pred (pre mgr transRel pred)
 
+(* WARNING: Only works when disjunctive partitioning is turned off *)
+let iterativeSquarer mgr transRel =
+  assert ((List.length transRel) = 1);
+  let transRel = List.hd transRel in
+  mgr#enableAutoReorder ();
+  let p2dpSubstTable = mgr#getSubstTableP2DP () in
+  let u2dpSubstTable = mgr#getSubstTableU2DP () in
+  let dpCube = mgr#getCubeForDPrimedVars () in
+  let iteration = ref 0 in
+  let rec squareRec transRel = 
+    iteration := !iteration + 1;
+
+    Debug.dprintf "fp" "Iterative squaring, iteration %d, BDD size = %d@,"
+                  !iteration (Bdd.size transRel);
+    Debug.dflush ();
+
+    Debug.dprintf "fp" "Renaming P -> DP... "; Debug.dflush ();
+    let t1 = Bdd.vectorcompose p2dpSubstTable transRel in
+    Debug.dprintf "fp" "Done!@,Reordering... "; Debug.dflush ();
+    (* mgr#reorder 32; *)
+    Debug.dprintf "fp" "Done!@,Renaming U -> DP... "; Debug.dflush ();
+    let t2 = Bdd.vectorcompose u2dpSubstTable transRel in
+    Debug.dprintf "fp" "Done!@,Reordering... "; Debug.dflush ();
+    (* mgr#reorder 32; *)
+    Debug.dprintf "fp" "Done!@, Computing Relational Product... "; Debug.dflush ();
+    let newTransRel = Bdd.existand dpCube t1 t2 in
+    Debug.dprintf "fp" "Done!@,"; Debug.dflush ();
+    if (Bdd.is_equal newTransRel transRel) then
+      newTransRel
+    else
+      squareRec newTransRel
+  in
+  let r = [ squareRec transRel ] in
+  mgr#disableAutoReorder ();
+  r
+
 (* compute the post image k times *)
 (* and return the set of states reachable in k or fewer steps *)
 (* also indicates if a fixpoint was reached *)
