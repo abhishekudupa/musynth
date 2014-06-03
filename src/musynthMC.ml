@@ -50,6 +50,9 @@ let getFeasible mgr initStates reach chioftester origTransRel jlist clist =
                                         MCU.inclusionFixPointTester states
     in
     (* Filter based on justices *)
+    Debug.dprintf "mc" "Reordering... ";
+    mgr#reorder 16;
+    Debug.dprintf "mc" "Done!@,";
     Debug.dprintf "mc" ("Elim Cycles: Filtering on %d justice requirements. " ^^ 
                           "newStates : %d nodes@,")
                   (List.length jlist) (Bdd.size newStates);
@@ -147,11 +150,11 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
   Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
                 k (Bdd.nbminterms (Bdd.supportsize paramConstraints) paramConstraints); 
   Debug.dflush ();
-  let kReachStat = MCU.postK k mgr transRel actInitStates in
-  let kReach = 
+  let kReachStat = MCU.prunedPostK k mgr transRel actInitStates badstates in
+  let kReach, cnstr = 
     (match kReachStat with
-     | ExecNonConverged s -> s
-     | ExecFixpoint s -> s) 
+     | ExecNonConverged (s, c) -> (s, c)
+     | ExecFixpoint (s, c) -> (s, c)) 
   in
   Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
   Debug.dprintf "mc" "Reachable (safety) with choose vars existentially quantified has %d nodes@,"
@@ -160,8 +163,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
                                      kReach));
   Debug.dflush ();
   (* get params for safety *)
-  let sparams = getSafetyParams mgr actInitStates kReach transRel badstates in
-  let newParamConstraints = Bdd.dand paramConstraints sparams in
+  let newParamConstraints = Bdd.dand paramConstraints cnstr in
 
   (* Now for each tableau, construct the set of k reachable states for THAT tableau *)
   (* check if there exist cycles for THAT tableau, and refine params accordingly    *)
@@ -177,7 +179,7 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
        Debug.dflush ();
        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
        let ltransRel = Bdd.dand transRel tableautrans in
-       let kReachStat = MCU.postK k mgr transRel actInitStates in
+       let kReachStat = MCU.postK k mgr ltransRel actInitStates in
        let kReach =
          (match kReachStat with
           | ExecNonConverged s -> s
@@ -217,7 +219,7 @@ let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlB
     | ExecNonConverged params ->
       synthesize (k + !Opts.jumpStep) params
   in
-  let solbdd = synthesize 0 paramConstraints in
+  let solbdd = synthesize !Opts.jumpStep paramConstraints in
   if (Debug.debugEnabled ()) then
     Debug.dprintf "mc" "Found %e solutions@," (mgr#getNumMinTermsParam solbdd)
   else

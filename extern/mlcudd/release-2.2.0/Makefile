@@ -114,13 +114,13 @@ META: Makefile
 	echo "archive(native,gprof) = \"cudd.p.cmxa\"" >>META
 
 mostlyclean: clean
-	(cd cudd-2.4.2; make clean)
+	(cd $(CUDD_DIR); make clean)
 	/bin/rm -f Makefile.depend TAGS
 	/bin/rm -f $(IDLMODULES:%=%.ml) $(IDLMODULES:%=%.mli) $(IDLMODULES:%=%_caml.c) tmp/* html/*
 	/bin/rm -f mlcuddidl.?? mlcuddidl.??? mlcuddidl.info example example.opt mlcuddidl.tex ocamldoc.tex *.dvi style.css ocamldoc.sty index.html
 
 distclean: mostlyclean
-	(cd cudd-2.4.2; make distclean; /bin/rm -f *.a)
+	(cd $(CUDD_DIR); make distclean; /bin/rm -f *.a)
 
 clean:
 	/bin/rm -f cuddtop *.byte *.opt
@@ -144,7 +144,7 @@ cudd.cmx: $(MLMODULES:%=%.cmx)
 	$(OCAMLOPT) $(OCAMLOPTFLAGS) -pack -o $@ $^
 
 # C rules
-libcuddcaml.a: cudd-2.4.2/libcuddall.a $(CCMODULES:%=%.o)
+libcuddcaml.a: $(CUDD_DIR)/libcuddall.a $(CCMODULES:%=%.o)
 	cp $< $@
 	$(AR) r $@ $(CCMODULES:%=%.o)
 	$(RANLIB) $@
@@ -156,8 +156,8 @@ libcuddcaml.so: libcuddcaml.a
 	-L$(CAMLIDL_LIB_DIR) -lcamlidl
 	/bin/rm -f tmp/*.o
 
-cudd-2.4.2/libcuddall.a:
-	(cd cudd-2.4.2; \
+$(CUDD_DIR)/libcuddall.a:
+	(cd $(CUDD_DIR); \
 	make libcuddall.a CPP="$(CC)" CC="$(CC)" XCFLAGS="$(XCFLAGS)" ICFLAGS="$(CFLAGS)" RANLIB="$(RANLIB)" DDDEBUG="" MTRDEBUG="")
 
 # HTML and LATEX rules

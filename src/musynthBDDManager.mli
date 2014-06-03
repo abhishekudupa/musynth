@@ -146,6 +146,8 @@ object
 
   method registerVar : MusynthTypes.LLDesigMap.key -> 
                        MusynthTypes.LLDesigSet.elt list -> unit
+                                                             
+  method reorder : int -> unit
 
   method reset : unit -> unit
   method private substOneVarInTable : Cudd.Man.d Cudd.Bdd.t array ->
