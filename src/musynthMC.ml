@@ -186,6 +186,9 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
           | ExecFixpoint s -> s) 
        in
        Debug.dprintf "mc" "Reachable (liveness) BDD has %d nodes@," (Bdd.size kReach);
+       Debug.dprintf "mc" "Reordering... "; Debug.dflush ();
+       mgr#reorder 16;
+       Debug.dprintf "mc" "Done!@,";
        Debug.dflush ();
        let sparams = getParamsForInfeasible mgr actInitStates kReach chioftester 
                                             ltransRel jlist clist propname
@@ -309,6 +312,7 @@ let check mgr transBDDs initBDD badStateBDD dlfbdd ltltableaulist =
              MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
                                  MCU.inclusionFixPointTester initBDD
            in
+
            let feasible = getFeasible mgr initBDD lreachStates chioftester ltransrel jlist clist in
            if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then
              begin

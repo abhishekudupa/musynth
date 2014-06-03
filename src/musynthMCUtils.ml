@@ -43,7 +43,14 @@ let preOrTransformer mgr transRel pred =
 (* and return the set of states reachable in k or fewer steps *)
 (* also indicates if a fixpoint was reached *)
 let postK k mgr transRel states = 
+  let iteration = ref 0 in
   let rec postKRec k reach frontier =
+    iteration := !iteration + 1;
+    Debug.dprintf "fp" "postK: iteration %d, Reordering... " !iteration;
+    Debug.dflush ();
+    mgr#reorder 16;
+    Debug.dprintf "fp" "Done!@,";
+    Debug.dflush ();
     match k with
     | 0 -> ExecNonConverged reach
     | _ -> 
