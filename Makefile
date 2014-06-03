@@ -15,7 +15,7 @@ OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex.opt
 OCAMLDEP=ocamldep.opt
 OCAMLCFLAGS=-g -annot -cc g++ -ccopt -Wno-write-strings
-OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings
+OCAMLOPTFLAGS=-cc g++ -ccopt -Wno-write-strings -ccopt -O3
 
 INCDIRS=-I $(SRCDIR) -I $(CUDDDIR)
 OCAMLCFLAGS+=$(INCDIRS)

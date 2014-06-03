@@ -19,6 +19,19 @@ let getFeasible mgr initStates reach chioftester origTransRel
   let transRel = MCU.restrictTransRelToStates origTransRel reach in
   let iteration = ref 0 in
 
+  let preReach = MCU.pre mgr transRel reach in
+  let newAndPreReach = Bdd.dand reach preReach in
+  if (not (Bdd.is_equal reach newAndPreReach)) then
+    begin
+      Debug.dprintf "mc" "Pre of reach not equal to reach and Pre of reach!@,";
+      let reachAndNotPre = Bdd.dand (Bdd.dnot newAndPreReach) reach in
+      Debug.dprintf "mc" "%a@," (mgr#printStateVars 5) reachAndNotPre;
+    end
+  else
+    Debug.dprintf "mc" "Pre of reach equal to reach!@,";
+  Debug.dflush ();
+                    
+
   let filterOnFairness states transRel fairness =
     let newTrans = MCU.restrictTransRelToStates transRel states in
     let newTrans = MCU.restrictTransRelToStates newTrans (MCU.primeSet mgr states) in
@@ -113,7 +126,7 @@ let getFeasible mgr initStates reach chioftester origTransRel
   let rec elimCycles transRel states = 
     iteration := !iteration + 1;
     Debug.dprintf "mc" "Elim Cycles: iteration %d, Finding Cycles@," !iteration;
-    Debug.dflush (); 
+    Debug.dflush ();
     let newStates =  MCU.computeFixPoint (MCU.preAndTransformer mgr transRel)
                                          MCU.eqFixPointTester states
     in
@@ -216,33 +229,33 @@ let getParamsForInfeasible mgr initStates reach chioftester origTransRel
       let badParams = Bdd.exist (mgr#getAllButParamCube ()) feasibleBadStates in
       Bdd.dnot badParams
     end
-      
-(* computes a restriction on the initial states (parameters really) *)
-(* such that the restriction ensures the we're good for at least k steps *)
-(* badstates is the states where an invariant is blown *)
-(* tableau is the list of ltl tableaus *)
-let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tableau =
-  (* audupa: Hack, we compute params for reachable states first *)
-  let actInitStates = Bdd.dand initstates paramConstraints in
-  assert (Bdd.is_inter_empty actInitStates badstates);
+
+let getSafetyParams mgr paramConstraints transRel initStates badstates =
+  let actInitStates = Bdd.dand initStates paramConstraints in
   Debug.dprintf "mc" "Synthesizing completions safe upto %d steps with %e candidates@,"
-                k (Bdd.nbminterms (Bdd.supportsize paramConstraints) paramConstraints); 
+                max_int (Bdd.nbminterms (Bdd.supportsize paramConstraints) paramConstraints); 
   Debug.dflush ();
   let kReachStat = MCU.prunedPostK max_int mgr transRel actInitStates badstates in
   let kReach, newParamConstraints = 
     match kReachStat with
-    | ExecNonConverged (s, c) -> (s, c)
+    | ExecNonConverged (s, c) -> assert false
     | ExecFixpoint (s, c) -> (s, c)
   in
   Debug.dprintf "mc" "Reachable (safety) BDD has %d nodes@," (Bdd.size kReach);
   Debug.dflush ();
+  newParamConstraints
+    
+(* computes a restriction on the initial states (parameters really) *)
+(* such that the restriction ensures the we're good for at least k steps *)
+(* badstates is the states where an invariant is blown *)
+(* tableau is the list of ltl tableaus *)
+let getLivenessParamsForKSteps k paramConstraints mgr transRel initstates tableau dlBDD =
   (* Now for each tableau, construct the set of k reachable states for THAT tableau *)
   (* check if there exist cycles for THAT tableau, and refine params accordingly    *)
   (* and check subsequent tableau with the refined parameters                       *)
-  
-  let sparams = 
+  let sparams, converged = 
     StringMap.fold
-      (fun propname tableau pconstraints ->
+      (fun propname tableau (pconstraints, converged) ->
        let actInitStates = Bdd.dand pconstraints initstates in
        Debug.dprintf "mc" ("Synthesizing completions with no liveness violation " ^^ 
                              "on property \"%s\"" ^^ " upto %d steps with %e candidates@,") 
@@ -250,42 +263,62 @@ let getParamsForKSteps k paramConstraints mgr transRel initstates badstates tabl
        Debug.dflush ();
        let _, _, _, chioftester, tableautrans, jlist, clist = tableau in
        let ltransRel = MCU.addTableauTransRel transRel tableautrans in
-       let kReachStat = MCU.postK k mgr transRel actInitStates in
-       let kReach =
+       let kReachStat = MCU.postK k mgr ltransRel actInitStates in
+       let kReach, newconverged =
          (match kReachStat with
-          | ExecNonConverged s -> s
-          | ExecFixpoint s -> s) 
+          | ExecNonConverged s -> (s, false)
+          | ExecFixpoint s -> (s, converged))
        in
+       
        Debug.dprintf "mc" "Reachable (liveness) BDD has %d nodes@," (Bdd.size kReach);
+       if (not (Bdd.is_false (Bdd.dand kReach dlBDD))) then
+         Debug.dprintf "mc" "Odd: Deadlocked state found!@,"
+       else
+         Debug.dprintf "mc" "No deadlocks as expected!@,";
        Debug.dflush ();
+
+       let restTransRel = MCU.restrictTransRelToStates ltransRel kReach in
+       let preAndReach = Bdd.dand kReach (MCU.pre mgr restTransRel kReach) in
+       if (not (Bdd.is_equal kReach preAndReach)) then
+         Debug.dprintf "mc" "Reach inter PreAndReach are not the same!@,"
+       else
+         Debug.dprintf "mc" "Reach inter PreAndReach are the same!@,";
+       Debug.dflush ();
+
        let sparams = getParamsForInfeasible mgr actInitStates kReach chioftester 
                                             ltransRel tableautrans jlist clist propname
        in
-       Bdd.dand pconstraints sparams) tableau newParamConstraints
+       (Bdd.dand pconstraints sparams, newconverged)) tableau (paramConstraints, true)
   in
-  match kReachStat with
-  | ExecNonConverged _ -> ExecNonConverged sparams
-  | ExecFixpoint _ -> ExecFixpoint sparams
-    
+  if converged then
+    ExecFixpoint sparams
+  else
+    ExecNonConverged sparams    
 
-(* TODO: Currently hardwired to use monolithic transition *)
-(*       Change this to be based on command line option   *)
 let synthFrontEndInternal mgr paramConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist =
   let transrel = MCU.getTransRel mgr transBDDs in
   let badstates = Bdd.dor badStateBDD dlBDD in
+
+  (* compute the safety params first anyway *)
+  let safetyParams = 
+    getSafetyParams mgr paramConstraints transrel initBDD badstates 
+  in
+  let paramConstraints = Bdd.dand paramConstraints safetyParams in
+
   (* iteratively synthesize for greater and greater k until we hit fixpoint *)
   let rec synthesize k paramConstraints =
     mgr#minimize ();
     Debug.dprintf "mc" "Synthesizing upto %d steps...@," k; Debug.dflush ();
     let result =
-      getParamsForKSteps k paramConstraints mgr transrel
-        initBDD badstates ltltableaulist
+      getLivenessParamsForKSteps k paramConstraints mgr transrel
+                                 initBDD ltltableaulist dlBDD
     in
     match result with
     | ExecFixpoint params -> params
     | ExecNonConverged params ->
-      synthesize (k + !Opts.jumpStep) params
+       synthesize (k + !Opts.jumpStep) params
   in
+
   let solbdd = synthesize !Opts.jumpStep paramConstraints in
   if (Debug.debugEnabled ()) then
     Debug.dprintf "mc" "Found %e solutions@," (mgr#getNumMinTermsParam solbdd)
@@ -297,13 +330,13 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symProp
   let transRel = MCU.getTransRel mgr transBDDs in
   (* set initial params to false *)
   let paramNames = mgr#getParamVarNames () in
-  let paramConstProp = 
-    List.fold_left 
+  let paramConstProp =
+    List.fold_left
       (fun prop name -> LLPropAnd (LLPropEquals (name, Utils.makeDeferDesig ()), prop))
       LLPropTrue paramNames
   in
   let paramConstraints = mgr#prop2BDD paramConstProp in
-  let reachableStates = MCU.computeFixPoint 
+  let reachableStates = MCU.computeFixPoint
                           (MCU.postOrTransformer mgr transRel)
                           MCU.inclusionFixPointTester (Bdd.dand initBDD paramConstraints)
   in
@@ -316,7 +349,7 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symProp
   else
     begin
       let rstates = Bdd.exist (mgr#getCubeForParamVars ()) reachableStates in
-      Debug.dprintf "mc" "%e Deadlocked states.@," 
+      Debug.dprintf "mc" "%e Deadlocked states.@,"
                     (Bdd.nbminterms (mgr#getNumStateBits ())
                                     (Bdd.existand (mgr#getCubeForParamVars ())
                                                   rstates dlBDD));
@@ -331,7 +364,7 @@ let synthFrontEnd mgr transBDDs initBDD badStateBDD dlBDD ltltableaulist symProp
       let newConstraints = Bdd.dand newConstraints (Bdd.dnot dlParams) in
       let newConstraints = Bdd.dand newConstraints (mgr#getConstraintsOnParams ()) in
       let newConstraints = Bdd.dand newConstraints symPropBDD in
-      Debug.dprintf "mc" "New param constraints result in %e candidates.@," 
+      Debug.dprintf "mc" "New param constraints result in %e candidates.@,"
                     (Bdd.nbminterms (Bdd.supportsize newConstraints) newConstraints);
       synthFrontEndInternal mgr newConstraints transBDDs initBDD badStateBDD dlBDD ltltableaulist
     end
@@ -376,6 +409,7 @@ let check mgr transBDDs initBDD badStateBDD dlbdd ltltableaulist =
              MCU.computeFixPoint (MCU.postOrTransformer mgr ltransrel) 
                                  MCU.inclusionFixPointTester initBDD
            in
+
            let feasible = getFeasible mgr initBDD lreachStates chioftester 
                                       ltransrel tableautrans jlist clist in
            if (not (Bdd.is_false (Bdd.dand (Bdd.dand feasible chioftester) initBDD))) then

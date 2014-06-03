@@ -175,9 +175,11 @@ type 'a pruneStatT =
 
 let prunedPostK k mgr transRel states badStates =
   let outeriter = ref 0 in
+  let abpcube = mgr#getAllButParamCube () in
   
   (* repeatedly called the inner function until postK is computed *)
   let rec prunedPostKRec initStates =
+    mgr#reorder 16;
     outeriter := !outeriter + 1;
     let inneriter = ref 0 in
 
@@ -190,7 +192,6 @@ let prunedPostK k mgr transRel states badStates =
       let newReach = Bdd.dor reach frontier in
       let reachableBadStates = Bdd.dand newReach badStates in
       if (not (Bdd.is_false reachableBadStates)) then
-        let abpcube = mgr#getAllButParamCube () in
         let badparams = Bdd.exist abpcube reachableBadStates in
         PrunedError badparams
       else
@@ -207,7 +208,6 @@ let prunedPostK k mgr transRel states badStates =
     in
 
     let stat = postKOrPrune k (mgr#makeFalse ()) initStates in
-    let abpcube = mgr#getAllButParamCube () in
     match stat with
     | PrunedNonConverged states -> 
        ExecNonConverged (states, Bdd.exist abpcube initStates)

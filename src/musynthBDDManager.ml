@@ -624,9 +624,9 @@ object (self)
          (fun fmt cube ->
           LLDesigMap.iter 
             (fun name pname ->
-             if LLDesigSet.mem name internalStateVars then
-               ()
-             else
+             (* if LLDesigSet.mem name internalStateVars then *)
+             (*   () *)
+             (* else *)
                let _, _, _, _, _, _, cubeToDomValFun, _ = LLDesigMap.find name varMap in
                fprintf fmt "%a |--> %a@," AST.pLLDesignator name 
                        AST.pLLDesignator (cubeToDomValFun cube)) stateVars)
@@ -663,7 +663,7 @@ object (self)
     Array.iteri
       (fun i cube ->
        let minTerm = self#pickMinTermOnStates cube in
-       fprintf fmt "Param Values %d:@,%a@,@," i printer minTerm) cubes
+       fprintf fmt "State Values %d:@,%a@,@," i printer minTerm) cubes
 
   method printParamVars n fmt bdd =
     if ((LLDesigSet.cardinal paramVars) = 0) then
@@ -797,11 +797,11 @@ object (self)
       ();
     ignore (Man.garbage_collect manager)
 
-  method reorder bound =
+  method reorder bound  =
     if (not !Opts.reorderEnabled) then
       Man.reduce_heap manager !Opts.reorderMethod bound
     else
-      ();
+      ()
 
   (* accessors for var names *)
   method getParamVarNames () =
